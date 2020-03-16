@@ -424,6 +424,7 @@ module parameters_tunable
     clubb_c_K2,                         &
     clubb_nu2,                          &
     clubb_c_K8,                         &
+    clubb_nu8,                          &
     clubb_c_K9,                         &
     clubb_nu9,                          &
     clubb_c_K10,                        &
@@ -456,8 +457,8 @@ module parameters_tunable
 !$omp   clubb_C11c, clubb_C14, clubb_C15, &
 !$omp   clubb_beta, clubb_gamma_coef, clubb_gamma_coefb, clubb_gamma_coefc, &
 !$omp   clubb_pdf_component_stdev_factor_w, clubb_mu, clubb_c_K1, clubb_nu1, &
-!$omp   clubb_c_K2, clubb_nu2, clubb_c_K8, clubb_c_K9, clubb_nu9, clubb_c_K10, &
-!$omp   clubb_c_K10h, clubb_c_K_hmb, clubb_wpxp_L_thresh, &
+!$omp   clubb_c_K2, clubb_nu2, clubb_c_K8, clubb_nu8, clubb_c_K9, clubb_nu9, &
+!$omp   clubb_c_K10, clubb_c_K10h, clubb_c_K_hmb, clubb_wpxp_L_thresh, &
 !$omp   clubb_lmin_coef, clubb_mult_coef, clubb_Skw_denom_coef, &
 !$omp   clubb_up2_vp2_factor, clubb_Skw_max_mag, clubb_C_invrs_tau_bkgnd, &
 !$omp   clubb_C_invrs_tau_sfc, clubb_C_invrs_tau_shear, clubb_C_invrs_tau_N2, &
@@ -1071,6 +1072,7 @@ module parameters_tunable
     clubb_c_K2,                         &
     clubb_nu2,                          &
     clubb_c_K8,                         &
+    clubb_nu8,                          &
     clubb_c_K9,                         &
     clubb_nu9,                          &
     clubb_c_K10,                        &
@@ -1137,6 +1139,7 @@ module parameters_tunable
     clubb_c_K2 = init_value
     clubb_nu2 = init_value
     clubb_c_K8 = init_value
+    clubb_nu8 = init_value
     clubb_c_K9 = init_value
     clubb_nu9 = init_value
     clubb_c_K10 = init_value
@@ -1210,6 +1213,7 @@ module parameters_tunable
    call mpibcast(clubb_c_K2,       1, mpir8,  0, mpicom)
    call mpibcast(clubb_nu2,        1, mpir8,  0, mpicom)
    call mpibcast(clubb_c_K8,       1, mpir8,  0, mpicom)
+   call mpibcast(clubb_nu8,        1, mpir8,  0, mpicom)
    call mpibcast(clubb_c_K9,       1, mpir8,  0, mpicom)
    call mpibcast(clubb_nu9,        1, mpir8,  0, mpicom)
    call mpibcast(clubb_c_K10,      1, mpir8,  0, mpicom)
@@ -1337,6 +1341,7 @@ module parameters_tunable
     if (clubb_c_K2 /= init_value) c_K2 = clubb_c_K2
     if (clubb_nu2 /= init_value) nu2 = clubb_nu2
     if (clubb_c_K8 /= init_value) c_K8 = clubb_c_K8
+    if (clubb_nu8 /= init_value) nu8 = clubb_nu8
     if (clubb_c_K9 /= init_value) c_K9 = clubb_c_K9
     if (clubb_nu9 /= init_value) nu9 = clubb_nu9
     if (clubb_c_K10 /= init_value) c_K10 = clubb_c_K10
