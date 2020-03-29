@@ -764,7 +764,7 @@ module advance_clubb_core_module
  
     real( kind = core_rknd ), parameter :: &
        ufmin = 0.01_core_rknd,       & ! minimum value of friction velocity     [m/s]
-       z_displace = 20.0_core_rknd   ! displacement of log law profile above ground   [m]
+       z_displace = 10.0_core_rknd   ! displacement of log law profile above ground   [m]
 
     real( kind = core_rknd ) :: &
       Lscale_max    ! Max. allowable mixing length (based on grid box size) [m]
@@ -4402,9 +4402,9 @@ module advance_clubb_core_module
       do k = 1, gr%nz
         if ( rtm(k) < rcm(k) ) then
 
-          if ( clubb_at_least_debug_level( 3 ) ) then
-            write(fstderr,*) message, ' at k=', k, 'rcm(k) = ', rcm(k), &
-              'rtm(k) = ', rtm(k), '.',  ' Clipping rcm.'
+          if ( clubb_at_least_debug_level( 1 ) ) then
+!            write(fstderr,*) message, ' at k=', k, 'rcm(k) = ', rcm(k), &
+!              'rtm(k) = ', rtm(k), '.',  '  Clipping rcm.'
 
           end if ! clubb_at_least_debug_level( 3 )
 
