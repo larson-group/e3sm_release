@@ -160,7 +160,7 @@ module advance_clubb_core_module
                qclvar, &                                            ! intent(out)
 #endif
                thlprcp, wprcp, ice_supersat_frac, &                 ! intent(out)
-               rcm_in_layer, cloud_cover, &                         ! intent(out)
+               rcm_in_layer, cloud_cover, invrs_tau_zm, &           ! intent(out)
                err_code_out )                                       ! intent(out)
 
     ! Description:
@@ -549,7 +549,8 @@ module advance_clubb_core_module
     ! BUGSrad (cloud_cover).
     real( kind = core_rknd ), intent(out), dimension(gr%nz) ::  &
       rcm_in_layer, & ! rcm within cloud layer                          [kg/kg]
-      cloud_cover     ! cloud cover                                     [-]
+      cloud_cover,  &   ! cloud cover                                     [-]
+      invrs_tau_zm
 
     ! Variables that need to be output for use in host models
     real( kind = core_rknd ), intent(out), dimension(gr%nz) ::  &
@@ -744,7 +745,7 @@ module advance_clubb_core_module
        brunt_vaisala_freq_sqd_plus,  & ! N^2 from another way
        brunt_vaisala_freq_sqd_zt,    & ! Buoyancy frequency squared on t-levs.        [s^-2]
        brunt_freq_out_cloud,         & !
-       invrs_tau_zm,                 & ! One divided by tau on zm levels              [s^-1]
+!       invrs_tau_zm,                 & ! One divided by tau on zm levels              [s^-1]
        invrs_tau_xp2_zm,             & ! One divided by tau_xp2                       [s^-1]
        invrs_tau_wp2_zm,             & ! One divided by tau_wp2                       [s^-1]
        invrs_tau_wpxp_zm,            & ! One divided by tau_wpxp                      [s^-1]
