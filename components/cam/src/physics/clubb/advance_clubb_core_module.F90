@@ -337,7 +337,9 @@ module advance_clubb_core_module
         itau_no_N2_zm, &
         itau_xp2_zm,   &
         itau_wp2_zm,   &
-        itau_wp3_zm   
+        itau_wp3_zm,   &
+        itau_wpxp_zm,  &
+        ibrunt_vaisala_freq_sqd   
 
     use stats_variables, only: &
         iwprtp_zt,     &
@@ -1195,8 +1197,8 @@ module advance_clubb_core_module
               + C_invrs_tau_sfc * ( ustar / vonk ) / ( gr%zm - sfc_elevation + z_displace ) &
               + C_invrs_tau_shear * zt2zm( zm2zt( sqrt( (ddzt( um ))**2 + (ddzt( vm ))**2 ) ) )& 
               + C_invrs_tau_N2_xp2 &
-              * sqrt( max( zero_threshold, &
-              brunt_vaisala_freq_sqd_smth ) )!,0.002_core_rknd )
+              * sqrt( max( zero_threshold, brunt_vaisala_freq_sqd_smth ) ) & 
+              + C_invrs_tau_sfc *2 * sqrt(em)/(gr%zm - sfc_elevation + z_displace)
 
         invrs_tau_xp2_zm = merge(0.003_core_rknd, invrs_tau_xp2_zm, &
               zt2zm(ice_supersat_frac) <= 0.01_core_rknd &
@@ -1448,6 +1450,9 @@ module advance_clubb_core_module
       call stat_update_var( itau_xp2_zm,tau_xp2_zm , stats_zm)
       call stat_update_var( itau_wp2_zm,tau_wp2_zm , stats_zm)
       call stat_update_var( itau_wp3_zm,tau_wp3_zm , stats_zm)
+      call stat_update_var( itau_wpxp_zm,tau_wpxp_zm , stats_zm)
+      call stat_update_var( ibrunt_vaisala_freq_sqd,brunt_vaisala_freq_sqd , stats_zm)
+
       end if
 
       ! Cx_fnc_Richardson is only used if one of these flags is true,
