@@ -1222,7 +1222,7 @@ module advance_clubb_core_module
 
 
         tau_no_N2_zm = min( one / invrs_tau_no_N2_zm, tau_max_zm )
-        tau_zm       = min( one / invrs_tau_zm, tau_max_zm )
+        tau_zm       = min( one / invrs_tau_zm * 2, tau_max_zm )
         tau_wp2_zm   = min( one / invrs_tau_wp2_zm, tau_max_zm )
         tau_xp2_zm   = min( one / invrs_tau_xp2_zm, tau_max_zm )
         tau_wpxp_zm  = min( one / invrs_tau_wpxp_zm, tau_max_zm )
