@@ -1365,6 +1365,12 @@ end subroutine clubb_init_cnst
    real(r8) :: rtm_forcing(pverp)               ! r_t forcing (thermodynamic levels)            [(kg/kg)/s]                              
    real(r8) :: um_forcing(pverp)                ! u wind forcing (thermodynamic levels)         [m/s/s]
    real(r8) :: vm_forcing(pverp)                ! v wind forcing (thermodynamic levels)         [m/s/s]
+   real(r8) :: rtm_ref(pverp)                   ! Initial profile of rtm                        [kg/kg]
+   real(r8) :: thlm_ref(pverp)                  ! Initial profile of thlm                       [K]
+   real(r8) :: um_ref(pverp)                    ! Initial profile of um                         [m/s]
+   real(r8) :: vm_ref(pverp)                    ! Initial profile of vm                         [m/s]
+   real(r8) :: ug(pverp)                        ! U geostrophic wind                            [m/s]
+   real(r8) :: vg(pverp)                        ! V geostrophic wind                            [m/s]
    real(r8) :: wm_zm(pverp)                     ! w mean wind component on momentum levels      [m/s]
    real(r8) :: wm_zt(pverp)                     ! w mean wind component on thermo. levels       [m/s]
    real(r8) :: p_in_Pa(pverp)                   ! Air pressure (thermodynamic levels)           [Pa]
@@ -1654,6 +1660,13 @@ end subroutine clubb_init_cnst
    rtp2_forcing(1:pverp)    = 0._r8
    thlp2_forcing(1:pverp)   = 0._r8
    rtpthlp_forcing(1:pverp) = 0._r8
+
+   rtm_ref(1:pverp)  = 0.0_r8
+   thlm_ref(1:pverp) = 0.0_r8
+   um_ref(1:pverp)   = 0.0_r8
+   vm_ref(1:pverp)   = 0.0_r8
+   ug(1:pverp)       = 0.0_r8
+   vg(1:pverp)       = 0.0_r8
    
    !  Define surface sources for transported variables for diffusion, will 
    !  be zero as these tendencies are done in clubb_surface
@@ -2524,6 +2537,7 @@ end subroutine clubb_init_cnst
               rtpthlp_forcing, wm_zm, wm_zt, &                             ! intent(in)
               wpthlp_sfc, wprtp_sfc, upwp_sfc, vpwp_sfc, &                 ! intent(in)
               wpsclrp_sfc, wpedsclrp_sfc, &                                ! intent(in)
+              rtm_ref, thlm_ref, um_ref, vm_ref, ug, vg, &                 ! intent(in)
               p_in_Pa, rho_zm, rho_in, exner, &                            ! intent(in)
               rho_ds_zm, rho_ds_zt, invrs_rho_ds_zm, &                     ! intent(in)
               invrs_rho_ds_zt, thv_ds_zm, thv_ds_zt, hydromet, &           ! intent(in)
