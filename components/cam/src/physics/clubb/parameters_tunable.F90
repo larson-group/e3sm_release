@@ -292,7 +292,7 @@ module parameters_tunable
 !$omp threadprivate( xp3_coef_base, xp3_coef_slope )
 
   real( kind = core_rknd ), public :: &
-    altitude_threshold = 100.0_core_rknd ! Altitude above which damping should occur for wpxp
+    altitude_threshold = 400.0_core_rknd ! Altitude above which damping should occur for wpxp
 
 !$omp threadprivate( altitude_threshold )
 
