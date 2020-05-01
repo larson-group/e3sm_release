@@ -204,6 +204,7 @@ module advance_clubb_core_module
         c_K10h, &
         C5, C4, &
         C_wp2_splat, &
+        wpxp_L_thresh, & 
         C_invrs_tau_bkgnd, &
         C_invrs_tau_sfc, & 
         C_invrs_tau_shear, &
@@ -741,6 +742,7 @@ module advance_clubb_core_module
        Cx_fnc_Richardson,            & ! Cx_fnc computed from Richardson_num          [-]
        brunt_vaisala_freq_sqd,       & ! Buoyancy frequency squared, N^2              [s^-2]
        brunt_vaisala_freq_sqd_smth,  & ! smoothed Buoyancy frequency squared, N^2     [s^-2]
+       brunt_freq_pos,               & ! 
        brunt_vaisala_freq_sqd_mixed, & ! A mixture of dry and moist N^2
        brunt_vaisala_freq_sqd_dry,   & ! dry N^2
        brunt_vaisala_freq_sqd_moist, & ! moist N^2
@@ -1180,36 +1182,39 @@ module advance_clubb_core_module
         brunt_vaisala_freq_sqd_smth = zt2zm( zm2zt( &
               min( brunt_vaisala_freq_sqd, 1.e8_core_rknd * abs(brunt_vaisala_freq_sqd)**3 ) ) )
 
-        brunt_freq_out_cloud = sqrt( max( zero_threshold, &
-                brunt_vaisala_freq_sqd_smth ) ) &
+        brunt_freq_pos = sqrt( max( zero_threshold, brunt_vaisala_freq_sqd_smth ) )
+
+        brunt_freq_out_cloud =  brunt_freq_pos &
               * min(one, max(zero_threshold,&
               one - ( (zt2zm(ice_supersat_frac) / 0.007_core_rknd) )))
 
         invrs_tau_zm = invrs_tau_no_N2_zm & 
-              + C_invrs_tau_N2 * sqrt( max( zero_threshold, &
-              brunt_vaisala_freq_sqd_smth ) )
+              + C_invrs_tau_N2 * brunt_freq_pos 
 
         invrs_tau_wp2_zm = invrs_tau_no_N2_zm &
-              + C_invrs_tau_N2_wp2 * sqrt( max( zero_threshold, &
-              brunt_vaisala_freq_sqd_smth ) )
+              + C_invrs_tau_N2_wp2 * brunt_freq_pos  
 
         invrs_tau_xp2_zm =  0.1 * C_invrs_tau_bkgnd  / tau_const &
               + C_invrs_tau_sfc * ( ustar / vonk ) / ( gr%zm - sfc_elevation + z_displace ) &
-              + C_invrs_tau_shear * zt2zm( zm2zt( sqrt( (ddzt( um ))**2 + (ddzt( vm ))**2 ) ) )& 
-              + C_invrs_tau_N2_xp2 &
-              * sqrt( max( zero_threshold, brunt_vaisala_freq_sqd_smth ) ) & 
+              + 5 * C_invrs_tau_shear * zt2zm( zm2zt( sqrt( (ddzt( um ))**2 + (ddzt( vm ))**2 ) ) )& 
+              + C_invrs_tau_N2_xp2 * brunt_freq_pos & 
               + C_invrs_tau_sfc *2 * sqrt(em)/(gr%zm - sfc_elevation + z_displace)
 
         invrs_tau_xp2_zm = merge(0.003_core_rknd, invrs_tau_xp2_zm, &
               zt2zm(ice_supersat_frac) <= 0.01_core_rknd &
               .and. invrs_tau_xp2_zm  >= 0.003_core_rknd)
 
-        invrs_tau_wpxp_zm = invrs_tau_zm & 
-              + C_invrs_tau_N2_wpxp * brunt_freq_out_cloud 
-
         invrs_tau_wp3_zm = invrs_tau_wp2_zm &
               + C_invrs_tau_N2_clear_wp3 * brunt_freq_out_cloud
 
+        Lscale = tau_zt * sqrt_em_zt
+
+        invrs_tau_wpxp_zm = invrs_tau_zm & 
+              + C_invrs_tau_N2_wpxp * brunt_freq_out_cloud 
+
+        where( Lscale < wpxp_L_thresh .and. gr%zt > 300)
+           invrs_tau_wpxp_zm = invrs_tau_wpxp_zm * 5 !(14 - 0.13 * Lscale )
+        end where
 
         if ( gr%zm(1) - sfc_elevation + z_displace < eps ) then
              stop  "Lowest zm grid level is below ground in CLUBB."
@@ -1236,7 +1241,7 @@ module advance_clubb_core_module
         tau_wpxp_zt  = min( zm2zt( tau_wpxp_zm ), tau_max_zt )
         tau_wp3_zt   = min( zm2zt( tau_wp3_zm ), tau_max_zt )
 
-
+        
 !        invrs_tau_N2_zm = invrs_tau_zm  &
 !                          + C_invrs_tau_N2 * sqrt( max( zero_threshold, brunt_vaisala_freq_sqd ) )
 !
@@ -1247,7 +1252,7 @@ module advance_clubb_core_module
 !                             sqrt( max( zero_threshold, brunt_vaisala_freq_sqd ) ) )
 !        tau_zm = max( zero_threshold, zt2zm( tau_zt ) )
 
-        Lscale = tau_zt * sqrt_em_zt
+!        Lscale = tau_zt * sqrt_em_zt
 
         ! Lscale_up and Lscale_down aren't calculated with this option.
         ! They are set to 0 for stats output.
@@ -1276,7 +1281,7 @@ module advance_clubb_core_module
       ! Calculate CLUBB's eddy diffusivity as
       !   CLUBB's length scale times a velocity scale.
       Kh_zt = c_K * Lscale * sqrt_em_zt
-      Kh_zm = c_K * max( zt2zm( Lscale ), zero_threshold )  &
+      Kh_zm = c_K * max( zt2zm( Lscale ), 0.0_core_rknd  )  &
                   * sqrt( max( em, em_min ) )
 
       ! Vertical compression of eddies causes gustiness (increase in up2 and vp2)
