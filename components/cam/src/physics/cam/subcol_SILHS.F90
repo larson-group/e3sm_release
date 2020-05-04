@@ -1045,9 +1045,14 @@ contains
 
          call populate_pdf_params_silhs_col( i, lchnk )
 
+         ! Flip khzm to CLUBB's grid.
+         do k = 1, pverp-top_lev+1
+            khzm(k) = khzm_in(i,pverp-k+1)
+         enddo
+
          ! make the call
          call setup_pdf_parameters_api( pverp-top_lev+1, pdf_dim, ztodt, &                 ! In
-                                        Nc_in_cloud, rcm_in, cld_frac_in, &                ! In
+                                        Nc_in_cloud, rcm_in, cld_frac_in, khzm, &          ! In
                                         ice_supersat_frac_in, hydromet, wphydrometp, &     ! In
                                         corr_array_n_cloud, corr_array_n_below, &          ! In
                                         pdf_params, l_stats_samp, &                        ! In
@@ -1096,8 +1101,7 @@ contains
          ! needs to be interpolated back to thermodynamic (midpoint) grid levels
          ! for further use.
          do k = 1, pverp-top_lev+1
-            khzm(k) = khzm_in(i,pverp-k+1)
-            tke(k)  = tke_in(i,pverp-k+1)
+            tke(k) = tke_in(i,pverp-k+1)
          enddo
          Lscale_zm = khzm / ( c_K * sqrt( max( tke, em_min ) ) )
 
