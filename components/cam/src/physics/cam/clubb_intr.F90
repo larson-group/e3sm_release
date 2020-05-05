@@ -892,7 +892,6 @@ end subroutine clubb_init_cnst
            l_implemented, grid_type, zi_g(2), zi_g(1), zi_g(pverp), & ! In
            zi_g(1:pverp), zt_g(1:pverp), zi_g(1), &                   ! In
            clubb_config_flags%l_predict_upwp_vpwp, &                  ! In
-           clubb_config_flags%l_use_ice_latent, &                     ! In
            clubb_config_flags%l_prescribed_avg_deltaz, &              ! In
            clubb_config_flags%l_damp_wp2_using_em, &                  ! In
            clubb_config_flags%l_stability_correct_tau_zm, &           ! In
@@ -4950,8 +4949,6 @@ end function diag_ustar
       l_Lscale_plume_centered,      & ! Alternate that uses the PDF to compute the perturbed values
       l_diag_Lscale_from_tau,       & ! First diagnose dissipation time tau, and then diagnose the
                                       ! mixing length scale as Lscale = tau * tke
-      l_use_ice_latent,             & ! Includes the effects of ice latent heating in turbulence
-                                      ! terms
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
@@ -4997,7 +4994,6 @@ end function diag_ustar
                                                l_do_expldiff_rtm_thlm, & ! Out
                                                l_Lscale_plume_centered, & ! Out
                                                l_diag_Lscale_from_tau, & ! Out
-                                               l_use_ice_latent, & ! Out
                                                l_use_C7_Richardson, & ! Out
                                                l_use_C11_Richardson, & ! Out
                                                l_brunt_vaisala_freq_moist, & ! Out
@@ -5037,7 +5033,6 @@ end function diag_ustar
                                                    l_do_expldiff_rtm_thlm, & ! In
                                                    l_Lscale_plume_centered, & ! In
                                                    l_diag_Lscale_from_tau, & ! In
-                                                   l_use_ice_latent, & ! In
                                                    l_use_C7_Richardson, & ! In
                                                    l_use_C11_Richardson, & ! In
                                                    l_brunt_vaisala_freq_moist, & ! In

@@ -1458,7 +1458,7 @@ end subroutine clubb_init_cnst
    integer :: stats_nsamp, stats_nout                               ! Stats sampling and output intervals for CLUBB [timestep]
 !=======
    character(len=200)                    :: temp1, sub                  ! Strings needed for CLUBB output
-   logical                               :: l_Lscale_plume_centered, l_use_ice_latent
+   logical                               :: l_Lscale_plume_centered
    character(len=3), dimension(pcnst)    :: cnst_type_loc               ! local override option for constituents cnst_type
 
    real(r8) :: rtm_integral_1, rtm_integral_update, rtm_integral_forcing, rtm_integral_vtend, rtm_integral_ltend
