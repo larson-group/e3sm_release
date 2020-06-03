@@ -731,7 +731,6 @@ module model_flags
 !   None
 !-------------------------------------------------------------------------------
 
-use spmd_utils,      only: masterproc
     implicit none
 
     ! Input variables
@@ -788,7 +787,6 @@ use spmd_utils,      only: masterproc
     write(iunit,*) "l_damp_wp3_Skw_squared = ", clubb_config_flags%l_damp_wp3_Skw_squared
     write(iunit,*) "l_prescribed_avg_deltaz = ", clubb_config_flags%l_prescribed_avg_deltaz
     write(iunit,*) "l_update_pressure = ", clubb_config_flags%l_update_pressure
-    end if
 
     return
   end subroutine print_clubb_config_flags
