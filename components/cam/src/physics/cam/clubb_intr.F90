@@ -887,10 +887,12 @@ end subroutine clubb_init_cnst
            hydromet_dim,  sclr_dim, &                                 ! In
            sclr_tol, edsclr_dim, clubb_params, &                      ! In
            l_host_applies_sfc_fluxes, &                               ! In
-           saturation_equation,  &                        ! In
+           saturation_equation,  &                                    ! In
            l_input_fields, &                                          ! In
            l_implemented, grid_type, zi_g(2), zi_g(1), zi_g(pverp), & ! In
            zi_g(1:pverp), zt_g(1:pverp), zi_g(1), &                   ! In
+           clubb_config_flags%iiPDF_type, &                           ! In
+           clubb_config_flags%ipdf_call_placement, &                  ! In
            clubb_config_flags%l_predict_upwp_vpwp, &                  ! In
            clubb_config_flags%l_prescribed_avg_deltaz, &              ! In
            clubb_config_flags%l_damp_wp2_using_em, &                  ! In
@@ -4874,6 +4876,14 @@ end function diag_ustar
     type(clubb_config_flags_type), intent(inout) :: clubb_config_flags_in
 
     ! Local Variables
+    integer :: &
+      iiPDF_type,          & ! Selected option for the two-component normal
+                             ! (double Gaussian) PDF type to use for the w, rt,
+                             ! and theta-l (or w, chi, and eta) portion of
+                             ! CLUBB's multivariate, two-component PDF.
+      ipdf_call_placement    ! Selected option for the placement of the call to
+                             ! CLUBB's PDF.
+
     logical :: &
       l_use_precip_frac,            & ! Flag to use precipitation fraction in KK microphysics. The
                                       ! precipitation fraction is automatically set to 1 when this
@@ -4965,7 +4975,9 @@ end function diag_ustar
 
     if (first_call) then
 
-      call set_default_clubb_config_flags_api( l_use_precip_frac, & ! Out
+      call set_default_clubb_config_flags_api( iiPDF_type, & ! Out
+                                               ipdf_call_placement, & ! Out
+                                               l_use_precip_frac, & ! Out
                                                l_predict_upwp_vpwp, & ! Out
                                                l_min_wp2_from_corr_wx, & ! Out
                                                l_min_xp2_from_corr_wx, & ! Out
@@ -5004,7 +5016,9 @@ end function diag_ustar
                                                l_prescribed_avg_deltaz, & ! Out
                                                l_update_pressure ) ! Out
 
-      call initialize_clubb_config_flags_type_api( l_use_precip_frac, & ! In
+      call initialize_clubb_config_flags_type_api( iiPDF_type, & ! In
+                                                   ipdf_call_placement, & ! In
+                                                   l_use_precip_frac, & ! In
                                                    l_predict_upwp_vpwp, & ! In
                                                    l_min_wp2_from_corr_wx, & ! In
                                                    l_min_xp2_from_corr_wx, & ! In
