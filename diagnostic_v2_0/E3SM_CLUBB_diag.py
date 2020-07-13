@@ -22,9 +22,23 @@ filepath=[ \
 '/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
 '/lcrc/group/acme/zhun/E3SM_simulations/',\
           ]
+#cases=[ \
+#       'anvil-centos7.clubb_silhs_v2_tau.facc1_kmax3o_berg2_dcs4h_acc_try8.ne16_ne16',\   # n2p5 acc4 
+##       'anvil-centos7.clubb_silhs_v2_tau.facc1_kmax3o_berg2_dcs4h_acc_try6.ne16_ne16',\
+#       'anvil-centos7.clubb_silhs_v2_tau.facc1_kmax3o_berg2_dcs4h_acc_try14.ne16_ne16',\
+#       'anvil-centos7.clubb_silhs_v2_tau.facc1_kmax3o_berg2_dcs4h_acc_try15.ne16_ne16',\
+#       'anvil-centos7.clubb_silhs_v2_tau.facc1_kmax3o_berg2_dcs4h_acc_try3.ne16_ne16',\
+##       'anvil-centos7.clubb_silhs_v2_tau.facc1_kmax3o_berg2_dcs4h_test4.ne16_ne16',\
+##       'anvil-centos7.clubb_silhs_v2_tau.ice_c50_rtclp10_bvm_facc1_kmax3o_berg2_4.ne16_ne16', \
+#         'anvil-centos7.master_20191113.gust_polun_run3.ne16_ne16',\
+#]
+
 
 cases=[ \
+#'anvil.E3SM_v1.golaz.ne16_ne16',\
+#'anvil.E3SM_v1.golaz.ne30_ne30',\
 'anvil-centos7.base.revxp2_c15p5_all1_n2p65_wp2p2_bk1p5_alt.ne16_ne16',\
+#'anvil-centos7.base.c15p5_all1_n2p65_bk1p5_alt.ne30_ne30',\
 'anvil-centos7.base2.base_wpxpri_3e4_1_2_0_12.ne16_ne16',\
 'anvil-centos7.base2.base_wpxpri_3e4_1_2_0_12_cf.ne16_ne16',\
 'anvil-centos7.base2.base_wpxpri_3p3e4_1_3_0_12.ne16_ne16',\
@@ -35,7 +49,10 @@ cases=[ \
 # Give a short name for your experiment which will appears on plots
 
 casenames=[
+#'E3SMv1_2d',\
+#'E3SMv1_1d',\
 'base_20200608_2d',\
+#'base_20200608_1d',\
 'base_wpxpri_3e4_1_2_0_12',\
 'base_wpxpri_3e4_1_2_0_12_cf',\
 'base_wpxpri_3p3e4_1_3_0_12',\
@@ -86,9 +103,9 @@ area  = 1.
 # lats - area < lat(ncol) < lons + area .and. lons- area < lon(ncol) < lons + area
 #------------------------------------------------------------------------
 # Please give the lat and lon of sites here.
-# sites    1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16   17   18   19   20   21   23   24   25   26   27   28   29   30 
-lats = [  20,  27, -20, -20,  -5,  -1,  60,   2,   9,   56,  45,   0,  10,  20,   0,   5,   9, -60,   0,   0, -45, -75,  30,  25 , 70 , 15,  17,  13,  36]
-lons = [ 190, 240, 275, 285, 355, 259,  180, 140, 229, 311, 180, 295,  90, 205, 325, 280, 170, 340, 305,  25,  90,  90,  90, 105 , 90, 300, 300, 300, 263]
+# sites    1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16   17   18   19   20   21   23   24   25   26   27   28   29   30  31  32 33
+lats = [  20,  27, -20, -20,  -5,  -1,  60,   2,   9,   56,  45,   0,  10,  20,   0,   5,   9, -60,   0,   0, -45, -75,  30,  25 , 70 , 15,  17,  13,  36, 28, 29, 30, 27 , 30, 27]
+lons = [ 190, 240, 275, 285, 355, 259,  180, 140, 229, 311, 180, 295,  90, 205, 325, 280, 170, 340, 305,  25,  90,  90,  90, 105 , 90, 300, 300, 300, 263, 240,240, 240 , 242, 238, 238 ]
 
 
 #========================================================================

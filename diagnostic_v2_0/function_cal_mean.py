@@ -48,7 +48,6 @@ def cal_mean(ncases, cases,years,nyear, nsite,lats, lons,area, filepath):
      for yr in range (0, nyear[im]):
          infile=infile+datalocal+cases[im]+'.cam.h0.000'+str(years[im]+yr)+'-09.nc '+ datalocal+cases[im]+'.cam.h0.000'+str(years[im]+yr)+'-10.nc '+ datalocal+cases[im]+'.cam.h0.000'+str(years[im]+yr)+'-11.nc '
      os.system(ncea_str+infile +' -O '+outfile)
-
    
      outfile=filepath[im]+cases[im]+'/'+cases[im]+'_ANN_climo.nc'
      infile=filepath[im]+cases[im]+'/'+cases[im]+'_SON_climo.nc '+filepath[im]+cases[im]+'/'+cases[im]+'_JJA_climo.nc '+filepath[im]+cases[im]+'/'+cases[im]+'_MAM_climo.nc '+filepath[im]+cases[im]+'/'+cases[im]+'_DJF_climo.nc '
@@ -98,11 +97,5 @@ def cal_mean(ncases, cases,years,nyear, nsite,lats, lons,area, filepath):
      os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-09.nc' +' '+ filepath[im]+cases[im]+'/'+cases[im]+'_09_climo.nc' )
      os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-09.nc' +' '+ filepath[im]+cases[im]+'/'+cases[im]+'_09_budget_climo.nc' )
 
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-07.nc' +' '+ filepath[im]+cases[im]+'/'+cases[im]+'_07_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-07.nc' +' '+ filepath[im]+cases[im]+'/'+cases[im]+'_07_budget_climo.nc' )
 
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-08.nc' +' '+ filepath[im]+cases[im]+'/'+cases[im]+'_08_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-08.nc' +' '+ filepath[im]+cases[im]+'/'+cases[im]+'_08_budget_climo.nc' )
 
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-09.nc' +' '+ filepath[im]+cases[im]+'/'+cases[im]+'_09_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-09.nc' +' '+ filepath[im]+cases[im]+'/'+cases[im]+'_09_budget_climo.nc' )
