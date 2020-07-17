@@ -1111,11 +1111,11 @@ contains
          ! Set the seed to the random number generator based on a quantity that
          ! will be reproducible for restarts.
          lh_seed = int( 1.0e4_r8 * rtm(i,pver), kind = genrand_intg )
-         call genrand_init_api( put=lh_seed )
+         !call genrand_init_api( put=lh_seed )
 
          ! Let's generate some subcolumns!!!!!
          call generate_silhs_sample_api &
-              ( iter, pdf_dim, num_subcols, sequence_length, pverp-top_lev+1, & ! In
+              ( iter, pdf_dim, num_subcols, sequence_length, pverp-top_lev+1, 1, & ! In
                 l_calc_weights_all_levs_itime, &                   ! In 
                 pdf_params, delta_zm, rcm_in, Lscale, &            ! In
                 rho_ds_zt, mu_x_1, mu_x_2, sigma_x_1, sigma_x_2, & ! In 
@@ -1129,7 +1129,7 @@ contains
                 lh_sample_point_weights)                           ! Out
 
          ! Extract clipped variables from subcolumns
-         call clip_transform_silhs_output_api( pverp-top_lev+1, num_subcols, &   ! In
+         call clip_transform_silhs_output_api( pverp-top_lev+1, 1, num_subcols, &   ! In
                                                pdf_dim, hydromet_dim, & ! In
                                                X_mixt_comp_all_levs, & ! In
                                                X_nl_all_levs, &    ! In
