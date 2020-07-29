@@ -1111,14 +1111,15 @@ contains
          ! Set the seed to the random number generator based on a quantity that
          ! will be reproducible for restarts.
          lh_seed = int( 1.0e4_r8 * rtm(i,pver), kind = genrand_intg )
-         !call genrand_init_api( put=lh_seed )
 
          ! Let's generate some subcolumns!!!!!
          call generate_silhs_sample_api &
               ( iter, pdf_dim, num_subcols, sequence_length, pverp-top_lev+1, & ! In
                 l_calc_weights_all_levs_itime, &                   ! In 
                 pdf_params, delta_zm, rcm_in, Lscale, &            ! In
-                rho_ds_zt, mu_x_1, mu_x_2, sigma_x_1, sigma_x_2, & ! In 
+                lh_seed, &                                         ! In
+                rho_ds_zt, &                                       ! In
+                mu_x_1, mu_x_2, sigma_x_1, sigma_x_2, &            ! In 
                 corr_cholesky_mtx_1, corr_cholesky_mtx_2, &        ! In
                 hydromet_pdf_params, silhs_config_flags, &         ! In
                 clubb_config_flags%l_uv_nudge, &                   ! In
