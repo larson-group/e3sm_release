@@ -9,17 +9,18 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = n2p3_prc3p2_pra1 #F2010SC5-CMIP6 
-set compset        = FC5CLBMG2BCL72 
+set job_name       = n2p3_c151_pre1_fallp25_sgv 
+set compset        = F2010SC5-CMIP6 
+# FC5CLBMG2BCL72 
 #set compset        = FAMIPC5 
-set resolution     = ne16_ne16
+set resolution     = ne30_ne30
 set machine        = anvil-centos7
 setenv NUMSC 4
 setenv MGVER 2
 
 set walltime       = 18:00:00
 setenv project condo      
-setenv ntasks 360
+setenv ntasks 1080
 setenv nthrds 1
 
 setenv init_aero_type none # keep this as none for REPLAY option 
@@ -27,10 +28,14 @@ setenv init_aero_type none # keep this as none for REPLAY option
 ### SOURCE CODE OPTIONS
 set fetch_code     = false       # flag to toggle cloning source code
 set e3sm_tag       = maint-1.0   # github tag or hash
-set tag_name       = base2 
+set tag_name       = base2 # NGD 
 
-set clubb_vars_zt_list = "'thlm', 'thvm', 'rtm', 'rcm', 'rvm', 'um', 'vm', 'um_ref','vm_ref','ug', 'vg', 'cloud_frac', 'cloud_cover', 'rcm_in_layer', 'rcm_in_cloud', 'p_in_Pa', 'exner', 'rho_ds_zt', 'thv_ds_zt', 'Lscale', 'Lscale_pert_1', 'Lscale_pert_2', 'T_in_K', 'rel_humidity', 'wp3', 'wpthlp2', 'wp2thlp', 'wprtp2','wp2rtp', 'Lscale_up', 'Lscale_down', 'Kh_zt', 'wp2thvp', 'wp2rcp', 'wprtpthlp', 'sigma_sqd_w_zt', 'rho', 'radht', 'radht_LW', 'radht_SW', 'Ncm', 'Nc_in_cloud', 'Nc_activated', 'snowslope', 'sed_rcm', 'rsat', 'rsati', 'diam', 'mass_ice_cryst', 'rcm_icedfs', 'u_T_cm', 'rtm_bt', 'rtm_ma', 'rtm_ta', 'rtm_mfl', 'rtm_tacl', 'rtm_cl', 'rtm_forcing', 'rtm_sdmp','rtm_mc', 'rtm_pd', 'rvm_mc', 'rcm_mc', 'rcm_sd_mg_morr', 'thlm_bt', 'thlm_ma', 'thlm_ta', 'thlm_mfl', 'thlm_tacl', 'thlm_cl', 'thlm_forcing', 'thlm_sdmp','thlm_mc', 'thlm_old', 'thlm_without_ta', 'thlm_mfl_min', 'thlm_mfl_max', 'thlm_enter_mfl', 'thlm_exit_mfl', 'rtm_old', 'rtm_without_ta', 'rtm_mfl_min', 'rtm_mfl_max', 'rtm_enter_mfl', 'rtm_exit_mfl', 'um_bt', 'um_ma', 'um_gf', 'um_cf', 'um_ta', 'um_f', 'um_sdmp', 'um_ndg', 'vm_bt', 'vm_ma', 'vm_gf', 'vm_cf', 'vm_ta', 'vm_f', 'vm_sdmp', 'vm_ndg', 'wp3_bt', 'wp3_ma', 'wp3_ta', 'wp3_tp', 'wp3_ac', 'wp3_bp1', 'wp3_bp2', 'wp3_pr1', 'wp3_pr2', 'wp3_dp1', 'wp3_cl', 'mixt_frac', 'w_1', 'w_2', 'varnce_w_1', 'varnce_w_2', 'thl_1', 'thl_2', 'varnce_thl_1', 'varnce_thl_2', 'rt_1', 'rt_2', 'varnce_rt_1', 'varnce_rt_2', 'rc_1', 'rc_2', 'rsatl_1', 'rsatl_2', 'cloud_frac_1', 'cloud_frac_2', 'a3_coef_zt', 'wp3_on_wp2_zt', 'chi_1', 'chi_2', 'stdev_chi_1', 'stdev_chi_2', 'stdev_eta_1', 'stdev_eta_2', 'covar_chi_eta_1', 'covar_chi_eta_2', 'corr_chi_eta_1', 'corr_chi_eta_2', 'corr_rt_thl_1', 'crt_1', 'crt_2', 'cthl_1', 'cthl_2', 'precip_frac', 'precip_frac_1', 'precip_frac_2', 'Ncnm', 'wp2_zt', 'thlp2_zt', 'wpthlp_zt', 'wprtp_zt', 'rtp2_zt', 'rtpthlp_zt', 'up2_zt', 'vp2_zt', 'upwp_zt', 'vpwp_zt', 'C11_Skw_fnc'"
-set clubb_vars_zm_list = "'C6_term','wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 'wp4', 'up2', 'vp2', 'wpthvp', 'rtpthvp', 'thlpthvp','invrs_tau_shear','invrs_tau_sfc','invrs_tau_bkgnd', 'tau_zm','tau_no_N2_zm','tau_wp2_zm','tau_wp3_zm','tau_xp2_zm','tau_wpxp_zm','bv_freq_sqd','Kh_zm', 'wprcp', 'wm_zm', 'thlprcp', 'rtprcp', 'rcp2', 'upwp', 'vpwp', 'rho_zm', 'sigma_sqd_w', 'Skw_velocity', 'gamma_Skw_fnc', 'C6rt_Skw_fnc', 'C6thl_Skw_fnc', 'C7_Skw_fnc', 'C1_Skw_fnc', 'a3_coef', 'wp3_on_wp2', 'rcm_zm', 'rtm_zm', 'thlm_zm', 'cloud_frac_zm', 'rho_ds_zm', 'thv_ds_zm', 'em', 'mean_w_up', 'mean_w_down', 'shear', 'wp3_zm', 'Frad', 'Frad_LW', 'Frad_SW', 'Frad_LW_up', 'Frad_SW_up', 'Frad_LW_down', 'Frad_SW_down', 'Fprec', 'Fcsed', 'wp2_bt', 'wp2_ma', 'wp2_ta', 'wp2_ac', 'wp2_bp', 'wp2_pr1', 'wp2_pr2', 'wp2_pr3', 'wp2_dp1', 'wp2_dp2', 'wp2_cl', 'wp2_pd', 'wp2_sf', 'vp2_bt', 'vp2_ma', 'vp2_ta', 'vp2_tp', 'vp2_dp1', 'vp2_dp2', 'vp2_pr1', 'vp2_pr2', 'vp2_cl', 'vp2_pd', 'vp2_sf', 'up2_bt', 'up2_ma', 'up2_ta', 'up2_tp', 'up2_dp1', 'up2_dp2', 'up2_pr1', 'up2_pr2', 'up2_cl', 'up2_pd', 'up2_sf', 'wprtp_bt', 'wprtp_ma', 'wprtp_ta', 'wprtp_tp', 'wprtp_ac', 'wprtp_bp', 'wprtp_pr1', 'wprtp_pr2', 'wprtp_pr3', 'wprtp_dp1', 'wprtp_mfl', 'wprtp_cl', 'wprtp_sicl', 'wprtp_pd', 'wprtp_forcing', 'wprtp_mc', 'wpthlp_bt', 'wpthlp_ma', 'wpthlp_ta', 'wpthlp_tp', 'wpthlp_ac', 'wpthlp_bp', 'wpthlp_pr1', 'wpthlp_pr2', 'wpthlp_pr3', 'wpthlp_dp1', 'wpthlp_mfl', 'wpthlp_cl', 'wpthlp_sicl', 'wpthlp_forcing', 'wpthlp_mc', 'rtp2_bt', 'rtp2_ma', 'rtp2_ta', 'rtp2_tp', 'rtp2_dp1', 'rtp2_dp2', 'rtp2_cl', 'rtp2_pd', 'rtp2_sf', 'rtp2_forcing', 'rtp2_mc', 'thlp2_bt', 'thlp2_ma', 'thlp2_ta', 'thlp2_tp', 'thlp2_dp1', 'thlp2_dp2', 'thlp2_cl', 'thlp2_pd', 'thlp2_sf', 'thlp2_forcing', 'thlp2_mc', 'rtpthlp_bt', 'rtpthlp_ma', 'rtpthlp_ta', 'rtpthlp_tp1', 'rtpthlp_tp2', 'rtpthlp_dp1', 'rtpthlp_dp2', 'rtpthlp_cl', 'rtpthlp_sf', 'rtpthlp_forcing', 'rtpthlp_mc', 'wpthlp_entermfl', 'wpthlp_exit_mfl', 'wprtp_enter_mfl', 'wprtp_exit_mfl', 'wpthlp_mfl_min', 'wpthlp_mfl_max', 'wprtp_mfl_min', 'wprtp_mfl_max', 'Richardson_num', 'shear_sqd'"
+#set clubb_vars_zt_list = "'thlm', 'thvm', 'rtm', 'rcm', 'rvm', 'um', 'vm', 'um_ref','vm_ref','ug', 'vg', 'cloud_frac', 'cloud_cover', 'rcm_in_layer', 'rcm_in_cloud', 'p_in_Pa', 'exner', 'rho_ds_zt', 'thv_ds_zt', 'Lscale', 'Lscale_pert_1', 'Lscale_pert_2', 'T_in_K', 'rel_humidity', 'wp3', 'wpthlp2', 'wp2thlp', 'wprtp2','wp2rtp', 'Lscale_up', 'Lscale_down', 'Kh_zt', 'wp2thvp', 'wp2rcp', 'wprtpthlp', 'sigma_sqd_w_zt', 'rho', 'radht', 'radht_LW', 'radht_SW', 'Ncm', 'Nc_in_cloud', 'Nc_activated', 'snowslope', 'sed_rcm', 'rsat', 'rsati', 'diam', 'mass_ice_cryst', 'rcm_icedfs', 'u_T_cm', 'rtm_bt', 'rtm_ma', 'rtm_ta', 'rtm_mfl', 'rtm_tacl', 'rtm_cl', 'rtm_forcing', 'rtm_sdmp','rtm_mc', 'rtm_pd', 'rvm_mc', 'rcm_mc', 'rcm_sd_mg_morr', 'thlm_bt', 'thlm_ma', 'thlm_ta', 'thlm_mfl', 'thlm_tacl', 'thlm_cl', 'thlm_forcing', 'thlm_sdmp','thlm_mc', 'thlm_old', 'thlm_without_ta', 'thlm_mfl_min', 'thlm_mfl_max', 'thlm_enter_mfl', 'thlm_exit_mfl', 'rtm_old', 'rtm_without_ta', 'rtm_mfl_min', 'rtm_mfl_max', 'rtm_enter_mfl', 'rtm_exit_mfl', 'um_bt', 'um_ma', 'um_gf', 'um_cf', 'um_ta', 'um_f', 'um_sdmp', 'um_ndg', 'vm_bt', 'vm_ma', 'vm_gf', 'vm_cf', 'vm_ta', 'vm_f', 'vm_sdmp', 'vm_ndg', 'wp3_bt', 'wp3_ma', 'wp3_ta', 'wp3_tp', 'wp3_ac', 'wp3_bp1', 'wp3_bp2', 'wp3_pr1', 'wp3_pr2', 'wp3_dp1', 'wp3_cl', 'mixt_frac', 'w_1', 'w_2', 'varnce_w_1', 'varnce_w_2', 'thl_1', 'thl_2', 'varnce_thl_1', 'varnce_thl_2', 'rt_1', 'rt_2', 'varnce_rt_1', 'varnce_rt_2', 'rc_1', 'rc_2', 'rsatl_1', 'rsatl_2', 'cloud_frac_1', 'cloud_frac_2', 'a3_coef_zt', 'wp3_on_wp2_zt', 'chi_1', 'chi_2', 'stdev_chi_1', 'stdev_chi_2', 'stdev_eta_1', 'stdev_eta_2', 'covar_chi_eta_1', 'covar_chi_eta_2', 'corr_chi_eta_1', 'corr_chi_eta_2', 'corr_rt_thl_1', 'crt_1', 'crt_2', 'cthl_1', 'cthl_2', 'precip_frac', 'precip_frac_1', 'precip_frac_2', 'Ncnm', 'wp2_zt', 'thlp2_zt', 'wpthlp_zt', 'wprtp_zt', 'rtp2_zt', 'rtpthlp_zt', 'up2_zt', 'vp2_zt', 'upwp_zt', 'vpwp_zt', 'C11_Skw_fnc'"
+#set clubb_vars_zm_list = "'C6_term','wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 'wp4', 'up2', 'vp2', 'wpthvp', 'rtpthvp', 'thlpthvp','invrs_tau_shear','invrs_tau_sfc','invrs_tau_bkgnd', 'tau_zm','tau_no_N2_zm','tau_wp2_zm','tau_wp3_zm','tau_xp2_zm','tau_wpxp_zm','bv_freq_sqd','Kh_zm', 'wprcp', 'wm_zm', 'thlprcp', 'rtprcp', 'rcp2', 'upwp', 'vpwp', 'rho_zm', 'sigma_sqd_w', 'Skw_velocity', 'gamma_Skw_fnc', 'C6rt_Skw_fnc', 'C6thl_Skw_fnc', 'C7_Skw_fnc', 'C1_Skw_fnc', 'a3_coef', 'wp3_on_wp2', 'rcm_zm', 'rtm_zm', 'thlm_zm', 'cloud_frac_zm', 'rho_ds_zm', 'thv_ds_zm', 'em', 'mean_w_up', 'mean_w_down', 'shear', 'wp3_zm', 'Frad', 'Frad_LW', 'Frad_SW', 'Frad_LW_up', 'Frad_SW_up', 'Frad_LW_down', 'Frad_SW_down', 'Fprec', 'Fcsed', 'wp2_bt', 'wp2_ma', 'wp2_ta', 'wp2_ac', 'wp2_bp', 'wp2_pr1', 'wp2_pr2', 'wp2_pr3', 'wp2_dp1', 'wp2_dp2', 'wp2_cl', 'wp2_pd', 'wp2_sf', 'vp2_bt', 'vp2_ma', 'vp2_ta', 'vp2_tp', 'vp2_dp1', 'vp2_dp2', 'vp2_pr1', 'vp2_pr2', 'vp2_cl', 'vp2_pd', 'vp2_sf', 'up2_bt', 'up2_ma', 'up2_ta', 'up2_tp', 'up2_dp1', 'up2_dp2', 'up2_pr1', 'up2_pr2', 'up2_cl', 'up2_pd', 'up2_sf', 'wprtp_bt', 'wprtp_ma', 'wprtp_ta', 'wprtp_tp', 'wprtp_ac', 'wprtp_bp', 'wprtp_pr1', 'wprtp_pr2', 'wprtp_pr3', 'wprtp_dp1', 'wprtp_mfl', 'wprtp_cl', 'wprtp_sicl', 'wprtp_pd', 'wprtp_forcing', 'wprtp_mc', 'wpthlp_bt', 'wpthlp_ma', 'wpthlp_ta', 'wpthlp_tp', 'wpthlp_ac', 'wpthlp_bp', 'wpthlp_pr1', 'wpthlp_pr2', 'wpthlp_pr3', 'wpthlp_dp1', 'wpthlp_mfl', 'wpthlp_cl', 'wpthlp_sicl', 'wpthlp_forcing', 'wpthlp_mc', 'rtp2_bt', 'rtp2_ma', 'rtp2_ta', 'rtp2_tp', 'rtp2_dp1', 'rtp2_dp2', 'rtp2_cl', 'rtp2_pd', 'rtp2_sf', 'rtp2_forcing', 'rtp2_mc', 'thlp2_bt', 'thlp2_ma', 'thlp2_ta', 'thlp2_tp', 'thlp2_dp1', 'thlp2_dp2', 'thlp2_cl', 'thlp2_pd', 'thlp2_sf', 'thlp2_forcing', 'thlp2_mc', 'rtpthlp_bt', 'rtpthlp_ma', 'rtpthlp_ta', 'rtpthlp_tp1', 'rtpthlp_tp2', 'rtpthlp_dp1', 'rtpthlp_dp2', 'rtpthlp_cl', 'rtpthlp_sf', 'rtpthlp_forcing', 'rtpthlp_mc', 'wpthlp_entermfl', 'wpthlp_exit_mfl', 'wprtp_enter_mfl', 'wprtp_exit_mfl', 'wpthlp_mfl_min', 'wpthlp_mfl_max', 'wprtp_mfl_min', 'wprtp_mfl_max', 'Richardson_num', 'shear_sqd'"
+
+set clubb_vars_zt_list = "'thlm', 'thvm', 'rtm', 'rcm', 'rvm', 'um', 'vm', 'cloud_frac', 'cloud_cover', 'rcm_in_layer', 'rcm_in_cloud',  'exner', 'rho_ds_zt', 'thv_ds_zt', 'Lscale', 'wp3', 'wpthlp2', 'wp2thlp', 'wprtp2','wp2rtp', 'Lscale_up', 'Lscale_down', 'Kh_zt', 'wp2thvp', 'wp2rcp', 'wprtpthlp', 'sigma_sqd_w_zt', 'rho', 'Ncm', 'rsat', 'rsati', 'rtm_bt', 'rtm_ma', 'rtm_ta', 'rtm_mfl', 'rtm_tacl', 'rtm_cl', 'rtm_forcing', 'rtm_sdmp','rtm_mc', 'rtm_pd', 'rvm_mc', 'rcm_mc', 'thlm_bt', 'thlm_ma', 'thlm_ta', 'thlm_mfl', 'thlm_tacl', 'thlm_cl', 'thlm_forcing', 'thlm_sdmp','thlm_mc', 'thlm_old', 'thlm_without_ta', 'thlm_mfl_min', 'thlm_mfl_max', 'thlm_enter_mfl', 'thlm_exit_mfl', 'rtm_old', 'rtm_without_ta', 'rtm_mfl_min', 'rtm_mfl_max', 'rtm_enter_mfl', 'rtm_exit_mfl', 'um_bt', 'um_ma', 'um_gf', 'um_cf', 'um_ta', 'um_f', 'um_sdmp', 'um_ndg', 'vm_bt', 'vm_ma', 'vm_gf', 'vm_cf', 'vm_ta', 'vm_f', 'vm_sdmp', 'vm_ndg', 'wp3_bt', 'wp3_ma', 'wp3_ta', 'wp3_tp', 'wp3_ac', 'wp3_bp1', 'wp3_bp2', 'wp3_pr1', 'wp3_pr2', 'wp3_dp1', 'wp3_cl', 'mixt_frac', 'a3_coef_zt', 'wp3_on_wp2_zt', 'Ncnm', 'wp2_zt', 'thlp2_zt', 'wpthlp_zt', 'wprtp_zt', 'rtp2_zt', 'rtpthlp_zt', 'up2_zt', 'vp2_zt', 'upwp_zt', 'vpwp_zt', 'C11_Skw_fnc'"
+set clubb_vars_zm_list = "'C6_term','wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 'wp4', 'up2', 'vp2', 'wpthvp', 'rtpthvp', 'thlpthvp','invrs_tau_shear','invrs_tau_sfc','invrs_tau_bkgnd', 'tau_zm','tau_no_N2_zm','tau_wp2_zm','tau_wp3_zm','tau_xp2_zm','tau_wpxp_zm','bv_freq_sqd','Kh_zm', 'wprcp', 'wm_zm', 'thlprcp', 'rtprcp', 'rcp2', 'upwp', 'vpwp', 'rho_zm', 'sigma_sqd_w', 'Skw_velocity', 'gamma_Skw_fnc', 'C6rt_Skw_fnc', 'C6thl_Skw_fnc', 'C7_Skw_fnc', 'C1_Skw_fnc', 'a3_coef', 'wp3_on_wp2', 'rcm_zm', 'rtm_zm', 'thlm_zm', 'cloud_frac_zm', 'rho_ds_zm', 'thv_ds_zm', 'em', 'shear', 'wp3_zm', 'wp2_bt', 'wp2_ma', 'wp2_ta', 'wp2_ac', 'wp2_bp', 'wp2_pr1', 'wp2_pr2', 'wp2_pr3', 'wp2_dp1', 'wp2_dp2', 'wp2_cl', 'wp2_pd', 'wp2_sf', 'vp2_bt', 'vp2_ma', 'vp2_ta', 'vp2_tp', 'vp2_dp1', 'vp2_dp2', 'vp2_pr1', 'vp2_pr2', 'vp2_cl', 'vp2_pd', 'vp2_sf', 'up2_bt', 'up2_ma', 'up2_ta', 'up2_tp', 'up2_dp1', 'up2_dp2', 'up2_pr1', 'up2_pr2', 'up2_cl', 'up2_pd', 'up2_sf', 'wprtp_bt', 'wprtp_ma', 'wprtp_ta', 'wprtp_tp', 'wprtp_ac', 'wprtp_bp', 'wprtp_pr1', 'wprtp_pr2', 'wprtp_pr3', 'wprtp_dp1', 'wprtp_mfl', 'wprtp_cl', 'wprtp_sicl', 'wprtp_pd', 'wprtp_forcing', 'wprtp_mc', 'wpthlp_bt', 'wpthlp_ma', 'wpthlp_ta', 'wpthlp_tp', 'wpthlp_ac', 'wpthlp_bp', 'wpthlp_pr1', 'wpthlp_pr2', 'wpthlp_pr3', 'wpthlp_dp1', 'wpthlp_mfl', 'wpthlp_cl', 'wpthlp_sicl', 'wpthlp_forcing', 'wpthlp_mc', 'rtp2_bt', 'rtp2_ma', 'rtp2_ta', 'rtp2_tp', 'rtp2_dp1', 'rtp2_dp2', 'rtp2_cl', 'rtp2_pd', 'rtp2_sf', 'rtp2_forcing', 'rtp2_mc', 'thlp2_bt', 'thlp2_ma', 'thlp2_ta', 'thlp2_tp', 'thlp2_dp1', 'thlp2_dp2', 'thlp2_cl', 'thlp2_pd', 'thlp2_sf', 'thlp2_forcing', 'thlp2_mc', 'rtpthlp_bt', 'rtpthlp_ma', 'rtpthlp_ta', 'rtpthlp_tp1', 'rtpthlp_tp2', 'rtpthlp_dp1', 'rtpthlp_dp2', 'rtpthlp_cl', 'rtpthlp_sf', 'rtpthlp_forcing', 'rtpthlp_mc', 'wpthlp_entermfl', 'wpthlp_exit_mfl', 'wprtp_enter_mfl', 'wprtp_exit_mfl', 'wpthlp_mfl_min', 'wpthlp_mfl_max','wprtp_mfl_min', 'wprtp_mfl_max', 'Richardson_num', 'shear_sqd'"
+
 
 ### CUSTOM CASE_NAME
 set case_name = ${machine}.${tag_name}.${job_name}.${resolution}
@@ -65,7 +70,7 @@ set short_term_archive_root_dir = ${e3sm_simulations_dir}/${case_name}/archive
 
 ### LENGTH OF SIMULATION, RESTARTS, AND ARCHIVING
 set stop_units                  = nmonths
-set stop_num                    = 14
+set stop_num                    = 26
 set restart_units               = $stop_units
 set restart_num                 = $stop_num
 set num_resubmits               = 0
@@ -74,7 +79,7 @@ set do_short_term_archiving     = false
 ### SIMULATION OPTIONS
 set atm_output_freq             = 0
 set records_per_atm_output_file = 1
-set start_date                  = default
+set start_date                  = 0001-01-01#default
 
 ### COUPLER HISTORY FILES
 set do_cpl_hist    = false
@@ -725,7 +730,6 @@ mkdir -p $script_provenance_dir
 cp -f $this_script_path $script_provenance_dir/$script_provenance_name
 mv $code_root_dir/$tag_name/diff.$job_name.$DATE.asc $case_run_dir/.
 mv $code_root_dir/$tag_name/diff_script.$job_name.$DATE.asc $case_run_dir/.
-#mv $code_root_dir/$tag_name/diff_clm.$job_name.$DATE.asc $case_run_dir/.
 mv $code_root_dir/$tag_name/log.$job_name.$DATE.asc $case_run_dir/.
 
 
@@ -799,23 +803,23 @@ else if ( `lowercase $processor_config` == 'customknl' ) then
 endif
 
 
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ATM -val 1
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_LND -val 1
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ICE -val 1
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_OCN -val 1
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_CPL -val 1
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_GLC -val 1
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ROF -val 1
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_WAV -val 1
-
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ATM -val $ntasks
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_LND -val $ntasks
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ICE -val $ntasks
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_OCN -val $ntasks
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_CPL -val $ntasks
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_GLC -val $ntasks
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ROF -val $ntasks
-  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_WAV -val $ntasks
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ATM -val 1
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_LND -val 1
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ICE -val 1
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_OCN -val 1
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_CPL -val 1
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_GLC -val 1
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ROF -val 1
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_WAV -val 1
+#
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ATM -val $ntasks
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_LND -val $ntasks
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ICE -val $ntasks
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_OCN -val $ntasks
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_CPL -val $ntasks
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_GLC -val $ntasks
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ROF -val $ntasks
+#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_WAV -val $ntasks
 
 #============================================
 # SET PARALLEL I/O (PIO) SETTINGS
@@ -1021,47 +1025,13 @@ cat <<EOF >> user_nl_cpl
 ! finidat=''
 EOF
 
-#cat <<EOF >> user_nl_cam
-# use_hetfrz_classnuc = .true.
-# micro_mg_dcs_tdep = .true.
-# microp_aero_wsub_scheme = 1
-# sscav_tuning = .true.
-# convproc_do_aer = .true.
-# demott_ice_nuc = .true.
-# liqcf_fix = .true.
-# regen_fix = .true.
-# resus_fix = .false.
-# mam_amicphys_optaa = 1
-# fix_g1_err_ndrop = .true.
-# ssalt_tuning = .true.
-# use_rad_dt_cosz = .true.
-# ice_sed_ai = 500.0
-# cldfrc_dp1 = 0.045D0
-# zmconv_c0_lnd = 0.007
-# zmconv_c0_ocn = 0.007
-# zmconv_dmpdz = -0.7e-3
-# zmconv_ke = 1.5E-6
-# effgw_oro = 0.25
-# seasalt_emis_scale = 0.85
-# dust_emis_fact = 2.05D0
-# cldfrc2m_rhmaxi = 1.05D0
-# effgw_beres = 0.4
-# do_tms = .false.
-# so4_sz_thresh_icenuc = 0.075e-6
-# n_so4_monolayers_pcage = 8.0D0
-# micro_mg_accre_enhan_fac = 1.5D0
-# zmconv_tiedke_add = 0.8D0
-# zmconv_cape_cin = 1
-# zmconv_mx_bot_lyr_adj = 2
-# taubgnd = 2.5D-3
-# raytau0 = 5.0D0
-# prc_coef1 = 30500.0D0
-# prc_exp = 3.19D0
-# prc_exp1 = -1.2D0
-# se_ftype = 2
-#EOF
-
 cat <<EOF >> user_nl_cam 
+
+! clubb_ice_deep = 25.e-7 ! -6
+! clubb_ice_sh = 50.e-7
+! clubb_liq_deep = 8.e-7
+! clubb_liq_sh = 10.e-7
+
 
 state_debug_checks=.true.
 clubb_do_icesuper= .false.
@@ -1072,7 +1042,7 @@ clubb_c11              = .5
 clubb_c11b             = .5
 clubb_c11c             = 0.85
 clubb_c14              = 1.0
-clubb_c15              = 0.5
+clubb_c15              = 1
 clubb_c1b              = 1.0
 clubb_c1c              = 0.75
 clubb_c2rt             = 1
@@ -1090,7 +1060,7 @@ clubb_c7b              = 0.7
 clubb_c8               = 0.5
 
 clubb_c_invrs_tau_bkgnd                = 1.5
-clubb_c_invrs_tau_n2                   = 0.3 !65
+clubb_c_invrs_tau_n2                   = 0.3
 clubb_c_invrs_tau_n2_clear_wp3         = 2.
 clubb_c_invrs_tau_n2_wp2               = 0.2
 clubb_c_invrs_tau_n2_wpxp              = 2.
@@ -1121,9 +1091,9 @@ clubb_rad_history = .false.
 clubb_vars_zt = $clubb_vars_zt_list
 clubb_vars_zm = $clubb_vars_zm_list
 
-nhtfrq = $atm_output_freq, -24,-6,-3                                                        
-mfilt  = $records_per_atm_output_file, 5000, 5000, 5000                                 
-avgflag_pertape = 'A','A','A','A','A','A'
+nhtfrq = $atm_output_freq, -24,-6,-3,-3,-3,-3
+mfilt  = $records_per_atm_output_file, 5000, 5000, 5000,5000,5000,5000
+avgflag_pertape = 'A','A','A','A','A','A','A'
 
 
 fincl1 = $clubb_vars_zt_list,$clubb_vars_zm_list,
@@ -1139,8 +1109,7 @@ fincl1 = $clubb_vars_zt_list,$clubb_vars_zm_list,
 'PE','APRL','PEFRAC','VPRCO','VPRAO','RACAU',
 'QIRESO','QCRESO','PRACSO','MPDT','MPDQ','MPDLIQ',
 'MPDICE','INEGCLPTEND', 'LNEGCLPTEND', 'VNEGCLPTEND','AIST','AST','CLDFSNOW',
-'QCRAT', 'QVHFTEN', 'QCHFTEN', 'QRHFTEN', 'QIHFTEN', 'QSHFTEN', 'THFTEN',
-'SL', 'Q', 'RHW', 'QRS', 'QRL', 'HR', 'FDL', 'SILHS_CLUBB_PRECIP_FRAC', 'SILHS_CLUBB_ICE_SS_FRAC', 
+'QCRAT','SL', 'Q', 'RHW', 'QRS', 'QRL', 'HR', 'FDL', 
 'T_ADJ_CLUBB','VMAGGUST','VMAGDP','VMAGCL','DETNLIQTND','DETNICETND',
 'QCSEVAP', 'QISEVAP', 'QVRES', 'CMEIOUT', 'VTRMC', 'VTRMI', 'QCSEDTEN','QISEDTEN',
 'PRAO',  'PRCO',  'MNUCCCO', 'MNUCCTO', 'MNUCCDO', 'MNUCCDOhet','MSACWIO', 'PSACWSO',
@@ -1151,16 +1120,121 @@ fincl1 = $clubb_vars_zt_list,$clubb_vars_zm_list,
 'bc_a1_num','dst_a1_num','dst_a3_num','bc_c1_num','dst_c1_num','dst_c3_num','fn_bc_c1_num','fn_dst_c1_num',
 'fn_dst_c3_num', 'na500','totna500','FREQIMM','FREQCNT','FREQDEP','FREQMIX',
 'DSTFREZIMM','DSTFREZCNT','DSTFREZDEP','BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP', 'NIMIX_IMM', 'NIMIX_CNT', 'NIMIX_DEP'
-'DSTNIDEP','DSTNICNT','DSTNIIMM','BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s','NUMIMM10sDST', 'NUMIMM10sBC' 
+'DSTNIDEP','DSTNICNT','DSTNIIMM','BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s','NUMIMM10sDST', 'NUMIMM10sBC'
+!'SILHS_CLUBB_PRECIP_FRAC', 'SILHS_CLUBB_ICE_SS_FRAC','QVHFTEN', 'QCHFTEN', 'QRHFTEN', 'QIHFTEN', 'QSHFTEN', 'THFTEN', 
 
-! fincl2 = 'PRECT','U200','V200','U850','V850','FLUT' 
-! fincl3 = 'OMEGA500','PRECT','U200','U850','FLUT' 
-! fincl4 = 'PRECT' 
+ fincl2 = 'PRECT','FLUT','TGCLDLWP','TGCLDIWP','SHFLX','LHFLX'
 
-clubb_do_adv = .false.
-clubb_expldiff = .false.
-clubb_rainevap_turb = .false.
-clubb_cloudtop_cooling = .false.
+fincl3 = $clubb_vars_zt_list,$clubb_vars_zm_list,
+'U','PS','T','V','OMEGA','Z3','PRECT',
+'CLDLIQ', 'CLDICE', 'LWCF', 'SWCF', 'FLUT',
+'TMQ', 'PRECC', 'PRECL', 'CME', 'PRODPREC',
+'EVAPPREC','EVAPSNOW','ICWMRST','ICIMRST','PRAO',
+'PRCO','QCSEVAP','QISEVAP','QVRES','CMEIOUT','VTRMI',
+'VTRMC','QCSEDTEN','QISEDTEN','MNUCCCO','MNUCCTO',
+'MNUCCDO','MNUCCDOhet','MSACWIO','PSACWSO','BERGSO',
+'BERGO','MELTO','HOMOO','QCRESO','PRCIO','PRAIO',
+'MELTSDT','FRZRDT','ADRAIN','ADSNOW','FREQR','FREQS',
+'PE','APRL','PEFRAC','VPRCO','VPRAO','RACAU',
+'QIRESO','QCRESO','PRACSO','MPDT','MPDQ','MPDLIQ',
+'MPDICE','INEGCLPTEND', 'LNEGCLPTEND', 'VNEGCLPTEND','AIST','AST','CLDFSNOW',
+'QCRAT','SL', 'Q', 'RHW', 'QRS', 'QRL', 'HR', 'FDL',
+'T_ADJ_CLUBB','VMAGGUST','VMAGDP','VMAGCL','DETNLIQTND','DETNICETND',
+'QCSEVAP', 'QISEVAP', 'QVRES', 'CMEIOUT', 'VTRMC', 'VTRMI', 'QCSEDTEN','QISEDTEN',
+'PRAO',  'PRCO',  'MNUCCCO', 'MNUCCTO', 'MNUCCDO', 'MNUCCDOhet','MSACWIO', 'PSACWSO',
+'BERGSO','BERGO', 'MELTO','HOMOO','QCRESO','PRCIO', 'PRAIO', 'QIRESO','MNUCCRO','PRACSO','MELTSDT','FRZRDT',
+'RELVAR','nnuccco', 'nnuccto', 'npsacwso','nsubco','nprao','mnuccrio','mnudepo',
+'nprc1o','nnuccdo', 'tmpfrzo', 'nnudepo', 'nsacwio', 'nsubio','nprcio','npraio','nnuccrio',
+'bc_num', 'dst1_num', 'dst3_num', 'bcc_num', 'dst1c_num','dst3c_num', 'bcuc_num', 'dst1uc_num','dst3uc_num',
+'bc_a1_num','dst_a1_num','dst_a3_num','bc_c1_num','dst_c1_num','dst_c3_num','fn_bc_c1_num','fn_dst_c1_num',
+'fn_dst_c3_num', 'na500','totna500','FREQIMM','FREQCNT','FREQDEP','FREQMIX',
+'DSTFREZIMM','DSTFREZCNT','DSTFREZDEP','BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP', 'NIMIX_IMM', 'NIMIX_CNT', 'NIMIX_DEP'
+'DSTNIDEP','DSTNICNT','DSTNIIMM','BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s','NUMIMM10sDST', 'NUMIMM10sBC'
+
+
+fincl4 = $clubb_vars_zt_list,$clubb_vars_zm_list,
+'U','PS','T','V','OMEGA','Z3','PRECT',
+'CLDLIQ', 'CLDICE', 'LWCF', 'SWCF', 'FLUT',
+'TMQ', 'PRECC', 'PRECL', 'CME', 'PRODPREC',
+'EVAPPREC','EVAPSNOW','ICWMRST','ICIMRST','PRAO',
+'PRCO','QCSEVAP','QISEVAP','QVRES','CMEIOUT','VTRMI',
+'VTRMC','QCSEDTEN','QISEDTEN','MNUCCCO','MNUCCTO',
+'MNUCCDO','MNUCCDOhet','MSACWIO','PSACWSO','BERGSO',
+'BERGO','MELTO','HOMOO','QCRESO','PRCIO','PRAIO',
+'MELTSDT','FRZRDT','ADRAIN','ADSNOW','FREQR','FREQS',
+'PE','APRL','PEFRAC','VPRCO','VPRAO','RACAU',
+'QIRESO','QCRESO','PRACSO','MPDT','MPDQ','MPDLIQ',
+'MPDICE','INEGCLPTEND', 'LNEGCLPTEND', 'VNEGCLPTEND','AIST','AST','CLDFSNOW',
+'QCRAT','SL', 'Q', 'RHW', 'QRS', 'QRL', 'HR', 'FDL',
+'T_ADJ_CLUBB','VMAGGUST','VMAGDP','VMAGCL','DETNLIQTND','DETNICETND',
+'QCSEVAP', 'QISEVAP', 'QVRES', 'CMEIOUT', 'VTRMC', 'VTRMI', 'QCSEDTEN','QISEDTEN',
+'PRAO',  'PRCO',  'MNUCCCO', 'MNUCCTO', 'MNUCCDO', 'MNUCCDOhet','MSACWIO', 'PSACWSO',
+'BERGSO','BERGO', 'MELTO','HOMOO','QCRESO','PRCIO', 'PRAIO', 'QIRESO','MNUCCRO','PRACSO','MELTSDT','FRZRDT',
+'RELVAR','nnuccco', 'nnuccto', 'npsacwso','nsubco','nprao','mnuccrio','mnudepo',
+'nprc1o','nnuccdo', 'tmpfrzo', 'nnudepo', 'nsacwio', 'nsubio','nprcio','npraio','nnuccrio',
+'bc_num', 'dst1_num', 'dst3_num', 'bcc_num', 'dst1c_num','dst3c_num', 'bcuc_num', 'dst1uc_num','dst3uc_num',
+'bc_a1_num','dst_a1_num','dst_a3_num','bc_c1_num','dst_c1_num','dst_c3_num','fn_bc_c1_num','fn_dst_c1_num',
+'fn_dst_c3_num', 'na500','totna500','FREQIMM','FREQCNT','FREQDEP','FREQMIX',
+'DSTFREZIMM','DSTFREZCNT','DSTFREZDEP','BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP', 'NIMIX_IMM', 'NIMIX_CNT', 'NIMIX_DEP'
+'DSTNIDEP','DSTNICNT','DSTNIIMM','BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s','NUMIMM10sDST', 'NUMIMM10sBC'
+
+
+fincl5 = $clubb_vars_zt_list,$clubb_vars_zm_list,
+'U','PS','T','V','OMEGA','Z3','PRECT',
+'CLDLIQ', 'CLDICE', 'LWCF', 'SWCF', 'FLUT',
+'TMQ', 'PRECC', 'PRECL', 'CME', 'PRODPREC',
+'EVAPPREC','EVAPSNOW','ICWMRST','ICIMRST','PRAO',
+'PRCO','QCSEVAP','QISEVAP','QVRES','CMEIOUT','VTRMI',
+'VTRMC','QCSEDTEN','QISEDTEN','MNUCCCO','MNUCCTO',
+'MNUCCDO','MNUCCDOhet','MSACWIO','PSACWSO','BERGSO',
+'BERGO','MELTO','HOMOO','QCRESO','PRCIO','PRAIO',
+'MELTSDT','FRZRDT','ADRAIN','ADSNOW','FREQR','FREQS',
+'PE','APRL','PEFRAC','VPRCO','VPRAO','RACAU',
+'QIRESO','QCRESO','PRACSO','MPDT','MPDQ','MPDLIQ',
+'MPDICE','INEGCLPTEND', 'LNEGCLPTEND', 'VNEGCLPTEND','AIST','AST','CLDFSNOW',
+'QCRAT','SL', 'Q', 'RHW', 'QRS', 'QRL', 'HR', 'FDL',
+'T_ADJ_CLUBB','VMAGGUST','VMAGDP','VMAGCL','DETNLIQTND','DETNICETND',
+'QCSEVAP', 'QISEVAP', 'QVRES', 'CMEIOUT', 'VTRMC', 'VTRMI', 'QCSEDTEN','QISEDTEN',
+'PRAO',  'PRCO',  'MNUCCCO', 'MNUCCTO', 'MNUCCDO', 'MNUCCDOhet','MSACWIO', 'PSACWSO',
+'BERGSO','BERGO', 'MELTO','HOMOO','QCRESO','PRCIO', 'PRAIO', 'QIRESO','MNUCCRO','PRACSO','MELTSDT','FRZRDT',
+'RELVAR','nnuccco', 'nnuccto', 'npsacwso','nsubco','nprao','mnuccrio','mnudepo',
+'nprc1o','nnuccdo', 'tmpfrzo', 'nnudepo', 'nsacwio', 'nsubio','nprcio','npraio','nnuccrio',
+'bc_num', 'dst1_num', 'dst3_num', 'bcc_num', 'dst1c_num','dst3c_num', 'bcuc_num', 'dst1uc_num','dst3uc_num',
+'bc_a1_num','dst_a1_num','dst_a3_num','bc_c1_num','dst_c1_num','dst_c3_num','fn_bc_c1_num','fn_dst_c1_num',
+'fn_dst_c3_num', 'na500','totna500','FREQIMM','FREQCNT','FREQDEP','FREQMIX',
+'DSTFREZIMM','DSTFREZCNT','DSTFREZDEP','BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP', 'NIMIX_IMM', 'NIMIX_CNT', 'NIMIX_DEP'
+'DSTNIDEP','DSTNICNT','DSTNIIMM','BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s','NUMIMM10sDST', 'NUMIMM10sBC'
+
+fincl6 = $clubb_vars_zt_list,$clubb_vars_zm_list,
+'U','PS','T','V','OMEGA','Z3','PRECT',
+'CLDLIQ', 'CLDICE', 'LWCF', 'SWCF', 'FLUT',
+'TMQ', 'PRECC', 'PRECL', 'CME', 'PRODPREC',
+'EVAPPREC','EVAPSNOW','ICWMRST','ICIMRST','PRAO',
+'PRCO','QCSEVAP','QISEVAP','QVRES','CMEIOUT','VTRMI',
+'VTRMC','QCSEDTEN','QISEDTEN','MNUCCCO','MNUCCTO',
+'MNUCCDO','MNUCCDOhet','MSACWIO','PSACWSO','BERGSO',
+'BERGO','MELTO','HOMOO','QCRESO','PRCIO','PRAIO',
+'MELTSDT','FRZRDT','ADRAIN','ADSNOW','FREQR','FREQS',
+'PE','APRL','PEFRAC','VPRCO','VPRAO','RACAU',
+'QIRESO','QCRESO','PRACSO','MPDT','MPDQ','MPDLIQ',
+'MPDICE','INEGCLPTEND', 'LNEGCLPTEND', 'VNEGCLPTEND','AIST','AST','CLDFSNOW',
+'QCRAT','SL', 'Q', 'RHW', 'QRS', 'QRL', 'HR', 'FDL',
+'T_ADJ_CLUBB','VMAGGUST','VMAGDP','VMAGCL','DETNLIQTND','DETNICETND',
+'QCSEVAP', 'QISEVAP', 'QVRES', 'CMEIOUT', 'VTRMC', 'VTRMI', 'QCSEDTEN','QISEDTEN',
+'PRAO',  'PRCO',  'MNUCCCO', 'MNUCCTO', 'MNUCCDO', 'MNUCCDOhet','MSACWIO', 'PSACWSO',
+'BERGSO','BERGO', 'MELTO','HOMOO','QCRESO','PRCIO', 'PRAIO', 'QIRESO','MNUCCRO','PRACSO','MELTSDT','FRZRDT',
+'RELVAR','nnuccco', 'nnuccto', 'npsacwso','nsubco','nprao','mnuccrio','mnudepo',
+'nprc1o','nnuccdo', 'tmpfrzo', 'nnudepo', 'nsacwio', 'nsubio','nprcio','npraio','nnuccrio',
+'bc_num', 'dst1_num', 'dst3_num', 'bcc_num', 'dst1c_num','dst3c_num', 'bcuc_num', 'dst1uc_num','dst3uc_num',
+'bc_a1_num','dst_a1_num','dst_a3_num','bc_c1_num','dst_c1_num','dst_c3_num','fn_bc_c1_num','fn_dst_c1_num',
+'fn_dst_c3_num', 'na500','totna500','FREQIMM','FREQCNT','FREQDEP','FREQMIX',
+'DSTFREZIMM','DSTFREZCNT','DSTFREZDEP','BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP', 'NIMIX_IMM', 'NIMIX_CNT', 'NIMIX_DEP'
+'DSTNIDEP','DSTNICNT','DSTNIIMM','BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s','NUMIMM10sDST', 'NUMIMM10sBC'
+
+fincl3lonlat='300e_3s'
+fincl4lonlat='285e_5n'
+fincl5lonlat='142e_2n'
+fincl6lonlat='25e_0n'
 
 
 relvar_fix = .true. 
@@ -1186,7 +1260,7 @@ do_aerocom_ind3                =  .false.
 do_tms                         =  .false.
 fix_g1_err_ndrop               = .true.
 history_aero_optics            = .true.
-history_aerosol                = .true.
+history_aerosol                = .false.
 history_eddy                   = .false.                                                     
 history_vdiag                  = .false.                                                      
 history_verbose                = .false.                                                
@@ -1197,7 +1271,7 @@ micro_mg_accre_enhan_fac               = 1.75D0
 n_so4_monolayers_pcage         = 8.0D0 
 
 prc_coef1 = 30500.0D0
-prc_exp =  3.2D0
+prc_exp = 3.D0
 prc_exp1 = -1.2D0
 
 radiation_scheme               = 'rrtmg'                                                              
@@ -1222,7 +1296,7 @@ ice_sed_ai= 1200.0
 effgw_beres            =         0.4
 effgw_oro              =           0.25
 dust_emis_fact         =      2.8D0
-clubb_use_sgv          = .false. 
+clubb_use_sgv          =.true. 
 micro_mg_dcs_tdep              = .false.
 mam_mom_mixing_state           = 3
 se_ftype               = 2
@@ -1248,6 +1322,11 @@ deep_scheme = 'off'         ! off
 subcol_scheme = 'SILHS'     ! SILHS
 use_subcol_microp = .true.  ! true
 microp_uniform = .true.     ! true
+
+clubb_do_adv = .false.
+clubb_expldiff = .false.
+clubb_rainevap_turb = .false.
+clubb_cloudtop_cooling = .false.
 
 subcol_SILHS_weight = .true.
 subcol_SILHS_numsubcol =  4 
