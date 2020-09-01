@@ -2223,8 +2223,8 @@ subroutine micro_mg_tend ( &
            unr(i,k) = min(arn(i,k)*gamma_br_plus1/lamr(i,k)**br,9.1_r8*rhof(i,k))
            umr(i,k) = min(arn(i,k)*gamma_br_plus4/(6._r8*lamr(i,k)**br),9.1_r8*rhof(i,k))
 
-!           umr(i,k) = umr(i,k)*0.5 
-!           unr(i,k) = unr(i,k)*0.5
+           umr(i,k) = umr(i,k)*0.25 
+           unr(i,k) = unr(i,k)*0.25
 
            fr(k) = g*rho(i,k)*umr(i,k)
            fnr(k) = g*rho(i,k)*unr(i,k)
@@ -2249,8 +2249,8 @@ subroutine micro_mg_tend ( &
            ums(i,k) = min(asn(i,k)*gamma_bs_plus4/(6._r8*lams(i,k)**bs),1.2_r8*rhof(i,k))
            uns(i,k) = min(asn(i,k)*gamma_bs_plus1/lams(i,k)**bs,1.2_r8*rhof(i,k))
 
-!           ums(i,k) = ums(i,k)*0.5
-!           uns(i,k) = uns(i,k)*0.5
+           ums(i,k) = ums(i,k)*0.25
+           uns(i,k) = uns(i,k)*0.25
 
            fs(k) = g*rho(i,k)*ums(i,k)
            fns(k) = g*rho(i,k)*uns(i,k)
