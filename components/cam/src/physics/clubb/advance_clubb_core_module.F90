@@ -1218,7 +1218,7 @@ module advance_clubb_core_module
 !        where( gr%zt > alt_thresh) 
 !        invrs_tau_xp2_zm =invrs_tau_xp2_zm * &
 !                 min(max(sqrt((ddzt(um)**2+ddzt(vm)**2)/max(1e-7,brunt_vaisala_freq_sqd_smth)),0.3),3.0)
-!         invrs_tau_xp2_zm =min(invrs_tau_xp2_zm, invrs_tau_xp2_zm * &
+!        invrs_tau_xp2_zm =min(invrs_tau_xp2_zm, invrs_tau_xp2_zm * &
 !               min(max(sqrt((ddzt(um)**2+ddzt(vm)**2)/max(1e-7,brunt_vaisala_freq_sqd_smth)),0.3),3.0))
 
         invrs_tau_xp2_zm = min(max(sqrt((ddzt(um)**2+ddzt(vm)**2) &

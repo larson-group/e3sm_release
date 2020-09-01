@@ -9,17 +9,17 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = base 
-set compset        = F2010SC5-CMIP6 # FC5CLBMG2BCL72 
+set job_name       = n2p3_prc3p2_pra1 #F2010SC5-CMIP6 
+set compset        = FC5CLBMG2BCL72 
 #set compset        = FAMIPC5 
 set resolution     = ne16_ne16
 set machine        = anvil-centos7
 setenv NUMSC 4
 setenv MGVER 2
 
-set walltime       = 12:00:00
+set walltime       = 18:00:00
 setenv project condo      
-setenv ntasks 960
+setenv ntasks 360
 setenv nthrds 1
 
 setenv init_aero_type none # keep this as none for REPLAY option 
@@ -57,24 +57,24 @@ set model_start_type = initial
 set restart_files_dir = none
 
 ### DIRECTORIES
-  set code_root_dir               = ~/E3SM_code
-  set e3sm_simulations_dir        = /lcrc/group/acme/$USER/E3SM_simulations
-  set case_build_dir              = ${e3sm_simulations_dir}/${case_name}/build                  
-  set case_run_dir                = ${e3sm_simulations_dir}/${case_name}/run                    
-  set short_term_archive_root_dir = ${e3sm_simulations_dir}/${case_name}/archive
+set code_root_dir               = ~/E3SM_code
+set e3sm_simulations_dir        = /lcrc/group/acme/$USER/E3SM_simulations
+set case_build_dir              = ${e3sm_simulations_dir}/${case_name}/build                  
+set case_run_dir                = ${e3sm_simulations_dir}/${case_name}/run                    
+set short_term_archive_root_dir = ${e3sm_simulations_dir}/${case_name}/archive
 
 ### LENGTH OF SIMULATION, RESTARTS, AND ARCHIVING
 set stop_units                  = nmonths
 set stop_num                    = 14
 set restart_units               = $stop_units
-set restart_num                 = 14 # $stop_num
+set restart_num                 = $stop_num
 set num_resubmits               = 0
 set do_short_term_archiving     = false
 
 ### SIMULATION OPTIONS
 set atm_output_freq             = 0
 set records_per_atm_output_file = 1
-set start_date                  = 0001-01-01# default
+set start_date                  = default
 
 ### COUPLER HISTORY FILES
 set do_cpl_hist    = false
@@ -899,11 +899,14 @@ if ($init_aero_type == prescribed || $init_aero_type == observed) then
     $xmlchange_exe --id CAM_CONFIG_OPTS --append --val='$CAM_CONFIG_OPTS -chem none'
 endif
 
- set  CAM_CONFIG_OPTS="-dyn se -phys cam5 -silent "
+#set  CAM_CONFIG_OPTS="-dyn se -phys cam5 -silent "
+set  CAM_CONFIG_OPTS=" -silent "
 
 #$xmlchange_exe --id CAM_CONFIG_OPTS --append --val="-nadv 40  -clubb_sgs -rad rrtmg -chem linoz_mam4_resus_mom_soag -rain_evap_to_coarse_aero -bc_dep_to_snow_updates -microphys mg$MGVER  -psubcols $NUMSC -cppdefs '-DUWM_MISC -DSILHS'"
 
 $xmlchange_exe --id CAM_CONFIG_OPTS --append --val="-nadv 40  -clubb_sgs -rad rrtmg -chem linoz_mam4_resus_mom_soag -rain_evap_to_coarse_aero -microphys mg$MGVER  -psubcols $NUMSC -cppdefs '-DUWM_MISC -DSILHS'"
+
+#$xmlchange_exe --id CAM_CONFIG_OPTS --append --val="-nadv 40  -psubcols $NUMSC -cppdefs '-DUWM_MISC -DSILHS'"
 
 #$xmlchange_exe --id CAM_CONFIG_OPTS --append --val="-nadv 40  -clubb_sgs -rad rrtmg -chem linoz_mam4_resus_mom_soag -rain_evap_to_coarse_aero -microphys mg$MGVER  -cppdefs '-DUWM_MISC'"  
 
@@ -1063,64 +1066,64 @@ cat <<EOF >> user_nl_cam
 state_debug_checks=.true.
 clubb_do_icesuper= .false.
 
- clubb_beta             = 2.
- clubb_c1               = 1.0
- clubb_c11              = .5
- clubb_c11b             = .5
- clubb_c11c             = 0.85
- clubb_c14              = 1.0
- clubb_c15              = 0.5
- clubb_c1b              = 1.0
- clubb_c1c              = 0.75
- clubb_c2rt             = 1
- clubb_c2rtthl          = 1
- clubb_c2thl            = 1
- clubb_c4               = 1
- clubb_c5               = 0
- clubb_c6rt             = 1
- clubb_c6rtb            = 1
- clubb_c6rtc            = 0.50
- clubb_c6thlb           = 1
- clubb_c6thlc           = 0.50
- clubb_c7               = 0.7
- clubb_c7b              = 0.7
- clubb_c8               = 0.5
+clubb_beta             = 2.
+clubb_c1               = 1.0
+clubb_c11              = .5
+clubb_c11b             = .5
+clubb_c11c             = 0.85
+clubb_c14              = 1.0
+clubb_c15              = 0.5
+clubb_c1b              = 1.0
+clubb_c1c              = 0.75
+clubb_c2rt             = 1
+clubb_c2rtthl          = 1
+clubb_c2thl            = 1
+clubb_c4               = 1
+clubb_c5               = 0
+clubb_c6rt             = 1
+clubb_c6rtb            = 1
+clubb_c6rtc            = 0.50
+clubb_c6thlb           = 1
+clubb_c6thlc           = 0.50
+clubb_c7               = 0.7
+clubb_c7b              = 0.7
+clubb_c8               = 0.5
 
- clubb_c_invrs_tau_bkgnd                = 1.5
- clubb_c_invrs_tau_n2                   = 0.65
- clubb_c_invrs_tau_n2_clear_wp3         = 2.
- clubb_c_invrs_tau_n2_wp2               = 0.2
- clubb_c_invrs_tau_n2_wpxp              = 2.
- clubb_c_invrs_tau_n2_xp2               = 0.0  
- clubb_c_invrs_tau_sfc                  = .3
- clubb_c_invrs_tau_shear                = 0.15
+clubb_c_invrs_tau_bkgnd                = 1.5
+clubb_c_invrs_tau_n2                   = 0.3 !65
+clubb_c_invrs_tau_n2_clear_wp3         = 2.
+clubb_c_invrs_tau_n2_wp2               = 0.2
+clubb_c_invrs_tau_n2_wpxp              = 2.
+clubb_c_invrs_tau_n2_xp2               = 0.0  
+clubb_c_invrs_tau_sfc                  = .3
+clubb_c_invrs_tau_shear                = 0.15
 
- clubb_c_k1             = 1
- clubb_c_k10            = 0.5
- clubb_c_k2             = 0.1
- clubb_c_k8             = 10
- clubb_c_wp2_splat              = 0.
- clubb_gamma_coef               = 0.3
- clubb_gamma_coefb              = 0.3
- clubb_gamma_coefc              = 1.2
- clubb_mu               = 0.0005
- clubb_nu1              = 10
- clubb_nu2              = 1
- clubb_nu8              = 60
- clubb_wpxp_l_thresh            = 100.0D0
- clubb_alt_thresh       =300.
+clubb_c_k1             = 1
+clubb_c_k10            = 0.5
+clubb_c_k2             = 0.1
+clubb_c_k8             = 10
+clubb_c_wp2_splat              = 0.
+clubb_gamma_coef               = 0.3
+clubb_gamma_coefb              = 0.3
+clubb_gamma_coefc              = 1.2
+clubb_mu               = 0.0005
+clubb_nu1              = 10
+clubb_nu2              = 1
+clubb_nu8              = 60
+clubb_wpxp_l_thresh            = 100.0D0
+clubb_alt_thresh       =300.
 
- history_amwg = .true.
- history_budget = .true.
- clubb_history = .true.
- clubb_rad_history = .false.
- 
- clubb_vars_zt = $clubb_vars_zt_list
- clubb_vars_zm = $clubb_vars_zm_list
- 
- nhtfrq = $atm_output_freq, -24,-6,-3                                                        
- mfilt  = $records_per_atm_output_file, 5000, 5000, 5000                                 
- avgflag_pertape = 'A','A','A','A','A','A'
+history_amwg = .true.
+history_budget = .true.
+clubb_history = .true.
+clubb_rad_history = .false.
+
+clubb_vars_zt = $clubb_vars_zt_list
+clubb_vars_zm = $clubb_vars_zm_list
+
+nhtfrq = $atm_output_freq, -24,-6,-3                                                        
+mfilt  = $records_per_atm_output_file, 5000, 5000, 5000                                 
+avgflag_pertape = 'A','A','A','A','A','A'
 
 
 fincl1 = $clubb_vars_zt_list,$clubb_vars_zm_list,
@@ -1150,130 +1153,123 @@ fincl1 = $clubb_vars_zt_list,$clubb_vars_zm_list,
 'DSTFREZIMM','DSTFREZCNT','DSTFREZDEP','BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP', 'NIMIX_IMM', 'NIMIX_CNT', 'NIMIX_DEP'
 'DSTNIDEP','DSTNICNT','DSTNIIMM','BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s','NUMIMM10sDST', 'NUMIMM10sBC' 
 
- fincl2 = 'PRECT','U200','V200','U850','V850','FLUT' 
- fincl3 = 'OMEGA500','PRECT','U200','U850','FLUT' 
- fincl4 = 'PRECT' 
+! fincl2 = 'PRECT','U200','V200','U850','V850','FLUT' 
+! fincl3 = 'OMEGA500','PRECT','U200','U850','FLUT' 
+! fincl4 = 'PRECT' 
 
-
-
-macrop_scheme = 'CLUBB_SGS'
-eddy_scheme = 'CLUBB_SGS'
-shallow_scheme = 'CLUBB_SGS'
-history_amwg = .true.
 clubb_do_adv = .false.
 clubb_expldiff = .false.
 clubb_rainevap_turb = .false.
 clubb_cloudtop_cooling = .false.
 
 
- relvar_fix = .true. 
- mg_prc_coeff_fix = .true.
- rrtmg_temp_fix = .true.
- microp_scheme = 'MG'
- micro_mg_version = 2
- micro_mg_sub_version = 0
- micro_mg_num_steps = 1
- micro_mg_dcs = 300e-6 !
- micro_mg_berg_eff_factor =1.0D0
- cldfrc2m_rhmini = 0.9
- cldfrc2m_rhmaxi = 1.05
+relvar_fix = .true. 
+mg_prc_coeff_fix = .true.
+rrtmg_temp_fix = .true.
+microp_scheme = 'MG'
+micro_mg_version = 2
+micro_mg_sub_version = 0
+micro_mg_num_steps = 1
+micro_mg_dcs = 300e-6 
+micro_mg_berg_eff_factor =1.0D0
+cldfrc2m_rhmini = 0.9
+cldfrc2m_rhmaxi = 1.05
 
-  cld_macmic_num_steps           =  6 
-  cld_sed                        =  1.8D0 
-  conv_water_in_rad              =  1                                                                   
-  convproc_do_aer                = .true.
-  convproc_do_gas                = .false.                                                              
-  convproc_method_activate       = 2                                                            
-  demott_ice_nuc                 = .true.
-  do_aerocom_ind3                =  .false.                                                             
-  do_tms                 =              .false.
-  fix_g1_err_ndrop               = .true.
-  history_aero_optics            = .true.
-  history_aerosol                = .true.
-  history_eddy           =                  .false.                                                     
-  history_vdiag          =                 .false.                                                      
-  history_verbose                =               .false.                                                
-  history_waccm          =                 .false.                                                      
-  liqcf_fix              = .true.
-  mam_amicphys_optaa             = 1
-  micro_mg_accre_enhan_fac               = 1.75D0
-  n_so4_monolayers_pcage         = 8.0D0 
-  prc_coef1 = 30500.0D0
-  prc_exp =  3 !3.19D0
-  prc_exp1 = -1.2D0
+cld_macmic_num_steps           =  6 
+cld_sed                        =  1.8D0 
+conv_water_in_rad              =  1                                                                   
+convproc_do_aer                = .true.
+convproc_do_gas                = .false.                                                              
+convproc_method_activate       = 2                                                            
+demott_ice_nuc                 = .true.
+do_aerocom_ind3                =  .false.                                                             
+do_tms                         =  .false.
+fix_g1_err_ndrop               = .true.
+history_aero_optics            = .true.
+history_aerosol                = .true.
+history_eddy                   = .false.                                                     
+history_vdiag                  = .false.                                                      
+history_verbose                = .false.                                                
+history_waccm          =                 .false.                                                      
+liqcf_fix              = .true.
+mam_amicphys_optaa             = 1
+micro_mg_accre_enhan_fac               = 1.75D0
+n_so4_monolayers_pcage         = 8.0D0 
 
+prc_coef1 = 30500.0D0
+prc_exp =  3.2D0
+prc_exp1 = -1.2D0
 
-  radiation_scheme               = 'rrtmg'                                                              
-  regen_fix              = .true.
-  resus_fix              = .true.
-  rrtmg_temp_fix         = .true.                                                                       
-  srf_flux_avg           = 0                                                                            
-  ssalt_tuning           = .true.
-  use_gw_convect         = .true.                                                                       
-  use_gw_front           = .true.                                                                       
-  use_gw_oro             = .true.                                                                       
-  use_hetfrz_classnuc    = .true.
-  co2vmr         = 367.000000e-6 
-  waccmx_opt             = 'off'
-  nucleate_ice_subgrid           = 1.2D0 
-  so4_sz_thresh_icenuc           = 0.080e-6
-  use_preexisting_ice            = .false.
-  taubgnd                = 2.5D-3
-  ice_sed_ai= 1200.0
+radiation_scheme               = 'rrtmg'                                                              
+regen_fix              = .true.
+resus_fix              = .true.
+rrtmg_temp_fix         = .true.                                                                       
+srf_flux_avg           = 0                                                                            
+ssalt_tuning           = .true.
+use_gw_convect         = .true.                                                                       
+use_gw_front           = .true.                                                                       
+use_gw_oro             = .true.                                                                       
+use_hetfrz_classnuc    = .true.
+co2vmr         = 367.000000e-6 
+waccmx_opt             = 'off'
+nucleate_ice_subgrid           = 1.2D0 
+so4_sz_thresh_icenuc           = 0.080e-6
+use_preexisting_ice            = .false.
+taubgnd                = 2.5D-3
 
-  effgw_beres            =         0.4
-  effgw_oro              =           0.25
-  dust_emis_fact         =      2.8D0
-  clubb_use_sgv          = .false. 
-  micro_mg_dcs_tdep              = .false.
-  mam_mom_mixing_state           = 3
-  se_ftype               = 2
-  use_rad_dt_cosz                = .true.
+ice_sed_ai= 1200.0
 
-  zmconv_alfa            =         0.14D0
-  zmconv_c0_lnd          =       0.0020
-  zmconv_c0_ocn          =       0.0020
-  zmconv_cape_cin                = 1
-  zmconv_dmpdz           =       -1.2e-3
-  zmconv_ke              =           5.0E-6
-  zmconv_mx_bot_lyr_adj          = 1
-  zmconv_tau             =  3600
-  zmconv_tiedke_add              = 0.8D0
-  zmconv_tp_fac          =       2.0D0
+effgw_beres            =         0.4
+effgw_oro              =           0.25
+dust_emis_fact         =      2.8D0
+clubb_use_sgv          = .false. 
+micro_mg_dcs_tdep              = .false.
+mam_mom_mixing_state           = 3
+se_ftype               = 2
+use_rad_dt_cosz                = .true.
 
+zmconv_alfa            =         0.14D0
+zmconv_c0_lnd          =       0.0020
+zmconv_c0_ocn          =       0.0020
+zmconv_cape_cin                = 1
+zmconv_dmpdz           =       -1.2e-3
+zmconv_ke              =           5.0E-6
+zmconv_mx_bot_lyr_adj          = 1
+zmconv_tau             =  3600
+zmconv_tiedke_add              = 0.8D0
+zmconv_tp_fac          =       2.0D0
 
-  macrop_scheme = 'CLUBB_SGS'
-  eddy_scheme = 'CLUBB_SGS'
-  shallow_scheme = 'CLUBB_SGS'
-  deep_scheme = 'off'           ! off
-  subcol_scheme = 'SILHS'        ! SILHS
-  use_subcol_microp = .true.  ! true
-  microp_uniform = .true.     ! true
-  clubb_do_adv = .false.
-  clubb_expldiff = .false.
-  clubb_rainevap_turb = .false.
-  clubb_cloudtop_cooling = .false.
-  subcol_SILHS_weight = .true.
-  subcol_SILHS_numsubcol =  4 
-  subcol_SILHS_corr_file_name = 'arm_97'
-  subcol_silhs_q_to_micro = .true. ! if .false. gridbox means are used instead of sample points
-  subcol_silhs_n_to_micro = .true. ! if .false. gridbox means are used instead of sample points
-  subcol_silhs_use_clear_col = .false.
-  subcol_SILHS_constrainmn = .false.
-  subcol_silhs_ncnp2_on_ncnm2 = 0.05,
+! How to turn on SILHS? deep_scheme='off', subcol_scheme = 'SILHS',use_subcol_microp = .true.,microp_uniform = .true. 
+macrop_scheme = 'CLUBB_SGS'
+eddy_scheme = 'CLUBB_SGS'
+shallow_scheme = 'CLUBB_SGS'
 
-  hmp2_ip_on_hmm2_ip_slope%rr = 0.0,
-  hmp2_ip_on_hmm2_ip_slope%Nr = 0.0,
-  hmp2_ip_on_hmm2_ip_slope%rs = 0.0,
-  hmp2_ip_on_hmm2_ip_slope%Ns = 0.0,
-  hmp2_ip_on_hmm2_ip_slope%ri = 0.0,
-  hmp2_ip_on_hmm2_ip_slope%Ni = 0.0,
-  hmp2_ip_on_hmm2_ip_intrcpt%rr = 1.0,
-  hmp2_ip_on_hmm2_ip_intrcpt%Nr = 1.0,
-  hmp2_ip_on_hmm2_ip_intrcpt%rs = 1.0,
-  hmp2_ip_on_hmm2_ip_intrcpt%Ns = 1.0,
-  hmp2_ip_on_hmm2_ip_intrcpt%ri = 1.0,
-  hmp2_ip_on_hmm2_ip_intrcpt%Ni = 1.0
+deep_scheme = 'off'         ! off
+subcol_scheme = 'SILHS'     ! SILHS
+use_subcol_microp = .true.  ! true
+microp_uniform = .true.     ! true
+
+subcol_SILHS_weight = .true.
+subcol_SILHS_numsubcol =  4 
+subcol_SILHS_corr_file_name = 'arm_97'
+subcol_silhs_q_to_micro = .true. ! if .false. gridbox means are used instead of sample points
+subcol_silhs_n_to_micro = .true. ! if .false. gridbox means are used instead of sample points
+subcol_silhs_use_clear_col = .false.
+subcol_SILHS_constrainmn = .false.
+subcol_silhs_ncnp2_on_ncnm2 = 0.05,
+
+hmp2_ip_on_hmm2_ip_slope%rr = 0.0,
+hmp2_ip_on_hmm2_ip_slope%Nr = 0.0,
+hmp2_ip_on_hmm2_ip_slope%rs = 0.0,
+hmp2_ip_on_hmm2_ip_slope%Ns = 0.0,
+hmp2_ip_on_hmm2_ip_slope%ri = 0.0,
+hmp2_ip_on_hmm2_ip_slope%Ni = 0.0,
+hmp2_ip_on_hmm2_ip_intrcpt%rr = 1.0,
+hmp2_ip_on_hmm2_ip_intrcpt%Nr = 1.0,
+hmp2_ip_on_hmm2_ip_intrcpt%rs = 1.0,
+hmp2_ip_on_hmm2_ip_intrcpt%Ns = 1.0,
+hmp2_ip_on_hmm2_ip_intrcpt%ri = 1.0,
+hmp2_ip_on_hmm2_ip_intrcpt%Ni = 1.0
 
 
 EOF
