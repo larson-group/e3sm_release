@@ -1091,7 +1091,7 @@ clubb_rad_history = .false.
 clubb_vars_zt = $clubb_vars_zt_list
 clubb_vars_zm = $clubb_vars_zm_list
 
-nhtfrq = $atm_output_freq, -24,-6,-3,-3,-3,-3
+nhtfrq = $atm_output_freq, -3,-3,-3,-3,-3,-3
 mfilt  = $records_per_atm_output_file, 5000, 5000, 5000,5000,5000,5000
 avgflag_pertape = 'A','A','A','A','A','A','A'
 
