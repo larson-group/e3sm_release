@@ -11,40 +11,18 @@ Main code to make 1) 2D plots,2) profiles, 3) budgets on selected stations,
 # Begin User Defined Settings
 # User defined name used for this comparison, this will be the name 
 #   given the directory for these diagnostics
-case='paper4' # A general case name
-outdir='/lcrc/group/acme/zhun/plots/' # Location of plots
+case='testing' # A general case name
+outdir='/lcrc/group/acme/ac.griffin/plots/' # Location of plots
 
-filepath=[ \
-'/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
-'/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
-'/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
-'/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
-'/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
-'/lcrc/group/acme/zhun/E3SM_simulations/',\
-          ]
-cases=[ \
-'anvil.EAMv1.F2010SC5-CMIP6_t1.ne30_ne30',\
-'anvil-centos7.base2.wpxpri_3p3e4_1_3_0_12_C7ri.ne30_ne30',\
-'anvil.EAMv1.FC5AV1C.ne30_ne30',\
-'anvil-centos7.base2.wpxpri_3p3e4_1_3_0_12_C7ri_FC5AV1C.ne30_ne30',\
-'anvil-centos7.base2.wpxpri_3p35e4_1_2p5_0_12_C7ri_F2010SC5-CMIP6.ne30_ne30',\
-]
-
+filepath=[ '/lcrc/group/acme/ac.griffin/E3SM_simulations/' ]
+cases=[ 'anvil.default.clubb_silhs_test.ne16_ne16' ]
        
 # Give a short name for your experiment which will appears on plots
 
-casenames=[
-'EAMv1.F2010SC5-CMIP6',\
-'wpxpri_3p3e4_1_3_0_12_C7ri',\
-'EAMv1.FC5AV1C',\
-'wpxpri_3p3e4_1_3_0_12_C7ri_FC5AV1C',\
-'wpxpri_3p35e4_1_2p5_0_12_C7ri_F2010SC5-CMIP6',\
-]
+casenames=[ 'test_clubb_silhs' ]
 
-years=[\
-        1, 1, 1, 1,1,1]
-nyear=[\
-        10, 5, 1, 5,3,1]
+years=[ 1 ]
+nyear=[ 1 ]
 
 dpsc=[\
       'none','none','none','none','none','none']
@@ -52,7 +30,7 @@ dpsc=[\
 
 # Observation Data
 #filepathobs='/global/project/projectdirs/m2689/zhun/amwg/obs_data_20140804/'
-filepathobs='/blues/gpfs/home/ac.zguo/amwg_diag_20140804/obs_data_20140804/'
+filepathobs='/home/ac.griffin/amwg/amwg_diag/obs_data/'
 #------------------------------------------------------------------------
 # Setting of plots.
 ptype         ='png'   # eps, pdf, ps, png, x11, ... are supported by this package
