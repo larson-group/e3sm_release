@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = n2p3_c151_pre1_fallp25_sgv 
+set job_name       = n2p3_c151_pre1_fallp25 
 set compset        = F2010SC5-CMIP6 
 # FC5CLBMG2BCL72 
 #set compset        = FAMIPC5 
@@ -70,7 +70,7 @@ set short_term_archive_root_dir = ${e3sm_simulations_dir}/${case_name}/archive
 
 ### LENGTH OF SIMULATION, RESTARTS, AND ARCHIVING
 set stop_units                  = nmonths
-set stop_num                    = 26
+set stop_num                    = 20
 set restart_units               = $stop_units
 set restart_num                 = $stop_num
 set num_resubmits               = 0
@@ -1121,12 +1121,12 @@ fincl1 = $clubb_vars_zt_list,$clubb_vars_zm_list,
 'fn_dst_c3_num', 'na500','totna500','FREQIMM','FREQCNT','FREQDEP','FREQMIX',
 'DSTFREZIMM','DSTFREZCNT','DSTFREZDEP','BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP', 'NIMIX_IMM', 'NIMIX_CNT', 'NIMIX_DEP'
 'DSTNIDEP','DSTNICNT','DSTNIIMM','BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s','NUMIMM10sDST', 'NUMIMM10sBC'
-!'SILHS_CLUBB_PRECIP_FRAC', 'SILHS_CLUBB_ICE_SS_FRAC','QVHFTEN', 'QCHFTEN', 'QRHFTEN', 'QIHFTEN', 'QSHFTEN', 'THFTEN', 
 
- fincl2 = 'PRECT','FLUT','TGCLDLWP','TGCLDIWP','SHFLX','LHFLX'
+fincl2 = 'PRECT','FLUT','TGCLDLWP','TGCLDIWP','SHFLX','LHFLX'
+
 
 fincl3 = $clubb_vars_zt_list,$clubb_vars_zm_list,
-'U','PS','T','V','OMEGA','Z3','PRECT',
+'U','PS','T','V','OMEGA','Z3','PRECT','TGCLDLWP','TGCLDIWP','LHFLX','SHFLX',
 'CLDLIQ', 'CLDICE', 'LWCF', 'SWCF', 'FLUT',
 'TMQ', 'PRECC', 'PRECL', 'CME', 'PRODPREC',
 'EVAPPREC','EVAPSNOW','ICWMRST','ICIMRST','PRAO',
@@ -1153,7 +1153,7 @@ fincl3 = $clubb_vars_zt_list,$clubb_vars_zm_list,
 
 
 fincl4 = $clubb_vars_zt_list,$clubb_vars_zm_list,
-'U','PS','T','V','OMEGA','Z3','PRECT',
+'U','PS','T','V','OMEGA','Z3','PRECT','TGCLDLWP','TGCLDIWP','LHFLX','SHFLX',
 'CLDLIQ', 'CLDICE', 'LWCF', 'SWCF', 'FLUT',
 'TMQ', 'PRECC', 'PRECL', 'CME', 'PRODPREC',
 'EVAPPREC','EVAPSNOW','ICWMRST','ICIMRST','PRAO',
@@ -1177,10 +1177,9 @@ fincl4 = $clubb_vars_zt_list,$clubb_vars_zm_list,
 'fn_dst_c3_num', 'na500','totna500','FREQIMM','FREQCNT','FREQDEP','FREQMIX',
 'DSTFREZIMM','DSTFREZCNT','DSTFREZDEP','BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP', 'NIMIX_IMM', 'NIMIX_CNT', 'NIMIX_DEP'
 'DSTNIDEP','DSTNICNT','DSTNIIMM','BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s','NUMIMM10sDST', 'NUMIMM10sBC'
-
 
 fincl5 = $clubb_vars_zt_list,$clubb_vars_zm_list,
-'U','PS','T','V','OMEGA','Z3','PRECT',
+'U','PS','T','V','OMEGA','Z3','PRECT','TGCLDLWP','TGCLDIWP','LHFLX','SHFLX',
 'CLDLIQ', 'CLDICE', 'LWCF', 'SWCF', 'FLUT',
 'TMQ', 'PRECC', 'PRECL', 'CME', 'PRODPREC',
 'EVAPPREC','EVAPSNOW','ICWMRST','ICIMRST','PRAO',
@@ -1205,8 +1204,9 @@ fincl5 = $clubb_vars_zt_list,$clubb_vars_zm_list,
 'DSTFREZIMM','DSTFREZCNT','DSTFREZDEP','BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP', 'NIMIX_IMM', 'NIMIX_CNT', 'NIMIX_DEP'
 'DSTNIDEP','DSTNICNT','DSTNIIMM','BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s','NUMIMM10sDST', 'NUMIMM10sBC'
 
+
 fincl6 = $clubb_vars_zt_list,$clubb_vars_zm_list,
-'U','PS','T','V','OMEGA','Z3','PRECT',
+'U','PS','T','V','OMEGA','Z3','PRECT','TGCLDLWP','TGCLDIWP','LHFLX','SHFLX',
 'CLDLIQ', 'CLDICE', 'LWCF', 'SWCF', 'FLUT',
 'TMQ', 'PRECC', 'PRECL', 'CME', 'PRODPREC',
 'EVAPPREC','EVAPSNOW','ICWMRST','ICIMRST','PRAO',
@@ -1296,7 +1296,7 @@ ice_sed_ai= 1200.0
 effgw_beres            =         0.4
 effgw_oro              =           0.25
 dust_emis_fact         =      2.8D0
-clubb_use_sgv          =.true. 
+clubb_use_sgv          =.false. 
 micro_mg_dcs_tdep              = .false.
 mam_mom_mixing_state           = 3
 se_ftype               = 2
