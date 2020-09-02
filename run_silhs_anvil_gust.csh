@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = n2p3_c151_pre1_fallp25_sgv 
+set job_name       = n2p3_c151_pre1_fallp25 
 set compset        = F2010SC5-CMIP6 
 # FC5CLBMG2BCL72 
 #set compset        = FAMIPC5 
@@ -1296,7 +1296,7 @@ ice_sed_ai= 1200.0
 effgw_beres            =         0.4
 effgw_oro              =           0.25
 dust_emis_fact         =      2.8D0
-clubb_use_sgv          =.true. 
+clubb_use_sgv          =.false. 
 micro_mg_dcs_tdep              = .false.
 mam_mom_mixing_state           = 3
 se_ftype               = 2
