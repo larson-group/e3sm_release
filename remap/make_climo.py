@@ -10,10 +10,10 @@ E3SM CLUBB Diagnostics package
 #   given the directory for these diagnostics
 
 filepath=[ \
-'/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
+'/lcrc/group/acme/ac.griffin/E3SM_simulations/',\
           ]
 cases=[ \
-'anvil-centos7.NGD.n2p3_c151_pra1_allfallp1.ne16_ne16',\
+'anvil.default.clubb_silhs_test.ne16_ne16',\
 ]
 
 years=[\
