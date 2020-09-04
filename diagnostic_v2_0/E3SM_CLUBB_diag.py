@@ -1,3 +1,7 @@
+# source /lcrc/soft/climate/e3sm-unified/base/etc/profile.d/conda.sh
+# conda activate $USER
+# python E3SM_CLUBB_diag.py
+
 # -*- coding: utf-8 -*-
 '''
 E3SM CLUBB Diagnostics package 
@@ -15,7 +19,7 @@ case='testing' # A general case name
 outdir='/lcrc/group/acme/ac.griffin/plots/' # Location of plots
 
 filepath=[ '/lcrc/group/acme/ac.griffin/E3SM_simulations/' ]
-cases=[ 'anvil.default.clubb_silhs_test.ne16_ne16' ]
+cases=[ 'anvil.default.clubb_silhs_test.ne30_ne30' ]
        
 # Give a short name for your experiment which will appears on plots
 

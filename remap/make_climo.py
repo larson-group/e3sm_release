@@ -1,3 +1,7 @@
+# source /lcrc/soft/climate/e3sm-unified/base/etc/profile.d/conda.sh
+# conda activate $USER
+# python make_climo.py
+
 # -*- coding: utf-8 -*-
 '''
 E3SM CLUBB Diagnostics package 
@@ -13,7 +17,7 @@ filepath=[ \
 '/lcrc/group/acme/ac.griffin/E3SM_simulations/',\
           ]
 cases=[ \
-'anvil.default.clubb_silhs_test.ne16_ne16',\
+'anvil.default.clubb_silhs_test.ne30_ne30',\
 ]
 
 years=[\
