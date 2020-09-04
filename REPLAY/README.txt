@@ -56,3 +56,6 @@ data:
   3.3 find out which site do you want. 
       ncks -d ncol,27031 globalforcing.nc scmforcing.nc
 
+  3.4 some postprocssed forcing files on 
+  anvil:/home/ac.zguo/myiops
+  brocks:
