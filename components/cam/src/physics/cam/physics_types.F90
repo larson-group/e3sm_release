@@ -545,6 +545,7 @@ contains
 !---------------------------Local storage-------------------------------
     ! Shortened name for ncol.
     integer :: ncol
+    integer :: i,j
     ! Double precision positive/negative infinity.
     real(r8) :: posinf_r8, neginf_r8
     ! Canned message.
@@ -662,6 +663,23 @@ contains
          varname="state%tw_cur",    msg=msg)
 
     ! 2-D variables (at midpoints)
+! Zhun 20200909
+    if (any(state%t < 0.0 )) then 
+      write(*,*) "totalncol=", ncol
+      do i = 1, ncol
+         do j = 1, 72
+           if (state%t(i,j) < 0.0 ) then 
+           write(*,*) "state%t=", abs(state%t(i,j))
+           write(*,*) "ncol=", i  
+           write(*,*) "nlev=", j
+           write(*,*) "lat=",state%lat(i)
+           write(*,*) "lon=",state%lon(i)
+           end if 
+          end do
+       end do
+    end if
+! Zhun 20200909
+
     call shr_assert_in_domain(state%t(:ncol,:),         lt=posinf_r8, gt=0._r8, &
          varname="state%t",         msg=msg)
     call shr_assert_in_domain(state%u(:ncol,:),         lt=posinf_r8, gt=neginf_r8, &
