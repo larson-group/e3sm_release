@@ -743,7 +743,6 @@ module model_flags
 !-----------------------------------------------------------------------
     ! Begin code
 
-    if (masterproc) then
     write(iunit,*) "iiPDF_type = ", clubb_config_flags%iiPDF_type
     write(iunit,*) "ipdf_call_placement = ", clubb_config_flags%ipdf_call_placement
     write(iunit,*) "l_use_precip_frac = ", clubb_config_flags%l_use_precip_frac
