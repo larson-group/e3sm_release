@@ -17,6 +17,25 @@ module model_flags
 
   private ! Default Scope
 
+  ! Options for the two component normal (double Gaussian) PDF type to use for
+  ! the w, rt, and theta-l (or w, chi, and eta) portion of CLUBB's multivariate,
+  ! two-component PDF.
+  integer, parameter, public :: &
+    iiPDF_ADG1 = 1,       & ! ADG1 PDF
+    iiPDF_ADG2 = 2,       & ! ADG2 PDF
+    iiPDF_3D_Luhar = 3,   & ! 3D Luhar PDF
+    iiPDF_new = 4,        & ! new PDF
+    iiPDF_TSDADG = 5,     & ! new TSDADG PDF
+    iiPDF_LY93 = 6,       & ! Lewellen and Yoh (1993)
+    iiPDF_new_hybrid = 7    ! new hybrid PDF
+
+  ! Options for the placement of the call to CLUBB's PDF.
+  integer, parameter, public :: &
+    ipdf_pre_advance_fields   = 1,   & ! Call before advancing predictive fields
+    ipdf_post_advance_fields  = 2,   & ! Call after advancing predictive fields
+    ipdf_pre_post_advance_fields = 3   ! Call both before and after advancing
+                                       ! predictive fields
+
   logical, parameter, public ::  & 
     l_pos_def            = .false., & ! Flux limiting positive definite scheme on rtm
     l_hole_fill          = .true.,  & ! Hole filling pos def scheme on wp2,up2,rtp2,etc
@@ -123,6 +142,15 @@ module model_flags
 
   ! Derived type to hold all configurable CLUBB flags
   type clubb_config_flags_type
+
+    integer :: &
+      iiPDF_type,          & ! Selected option for the two-component normal
+                             ! (double Gaussian) PDF type to use for the w, rt,
+                             ! and theta-l (or w, chi, and eta) portion of
+                             ! CLUBB's multivariate, two-component PDF.
+      ipdf_call_placement    ! Selected option for the placement of the call to
+                             ! CLUBB's PDF.
+
     logical :: &
       l_use_precip_frac,            & ! Flag to use precipitation fraction in KK microphysics. The
                                       ! precipitation fraction is automatically set to 1 when this
@@ -183,6 +211,11 @@ module model_flags
                                       ! pulled outside of the derivative in
                                       ! advance_wp2_wp3_module.F90 and in
                                       ! advance_xp2_xpyp_module.F90.
+      l_partial_upwind_wp3,         & ! Flag to use an "upwind" discretization rather
+                                      ! than a centered discretization for the portion
+                                      ! of the wp3 turbulent advection term for ADG1
+                                      ! that is linearized in terms of wp3<t+1>.
+                                      ! (Requires ADG1 PDF and l_standard_term_ta).
       l_use_cloud_cover,            & ! Use cloud_cover and rcm_in_layer to help boost cloud_frac
                                       ! and rcm to help increase cloudiness at coarser grid
                                       ! resolutions.
@@ -198,8 +231,6 @@ module model_flags
       l_Lscale_plume_centered,      & ! Alternate that uses the PDF to compute the perturbed values
       l_diag_Lscale_from_tau,       & ! First diagnose dissipation time tau, and then diagnose the
                                       ! mixing length scale as Lscale = tau * tke
-      l_use_ice_latent,             & ! Includes the effects of ice latent heating in turbulence
-                                      ! terms
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
@@ -211,6 +242,7 @@ module model_flags
       l_damp_wp3_Skw_squared,       & ! Set damping on wp3 to use Skw^2 rather than Skw^4
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
       l_update_pressure               ! Flag for having CLUBB update pressure and exner
+
   end type clubb_config_flags_type
 
   contains
@@ -279,7 +311,9 @@ module model_flags
   end subroutine setup_model_flags
 
 !===============================================================================
-  subroutine set_default_clubb_config_flags( l_use_precip_frac, &
+  subroutine set_default_clubb_config_flags( iiPDF_type, &
+                                             ipdf_call_placement, &
+                                             l_use_precip_frac, &
                                              l_predict_upwp_vpwp, &
                                              l_min_wp2_from_corr_wx, &
                                              l_min_xp2_from_corr_wx, &
@@ -298,6 +332,7 @@ module model_flags
                                              l_trapezoidal_rule_zm, &
                                              l_call_pdf_closure_twice, &
                                              l_standard_term_ta, &
+                                             l_partial_upwind_wp3, &
                                              l_use_cloud_cover, &
                                              l_diagnose_correlations, &
                                              l_calc_w_corr, &
@@ -308,7 +343,6 @@ module model_flags
                                              l_do_expldiff_rtm_thlm, &
                                              l_Lscale_plume_centered, &
                                              l_diag_Lscale_from_tau, &
-                                             l_use_ice_latent, &
                                              l_use_C7_Richardson, &
                                              l_use_C11_Richardson, &
                                              l_brunt_vaisala_freq_moist, &
@@ -329,6 +363,14 @@ module model_flags
     implicit none
 
     ! Output variables
+    integer, intent(out) :: &
+      iiPDF_type,          & ! Selected option for the two-component normal
+                             ! (double Gaussian) PDF type to use for the w, rt,
+                             ! and theta-l (or w, chi, and eta) portion of
+                             ! CLUBB's multivariate, two-component PDF.
+      ipdf_call_placement    ! Selected option for the placement of the call to
+                             ! CLUBB's PDF.
+
     logical, intent(out) :: &
       l_use_precip_frac,            & ! Flag to use precipitation fraction in KK microphysics. The
                                       ! precipitation fraction is automatically set to 1 when this
@@ -389,6 +431,11 @@ module model_flags
                                       ! pulled outside of the derivative in
                                       ! advance_wp2_wp3_module.F90 and in
                                       ! advance_xp2_xpyp_module.F90.
+      l_partial_upwind_wp3,         & ! Flag to use an "upwind" discretization rather
+                                      ! than a centered discretization for the portion
+                                      ! of the wp3 turbulent advection term for ADG1
+                                      ! that is linearized in terms of wp3<t+1>.
+                                      ! (Requires ADG1 PDF and l_standard_term_ta).
       l_use_cloud_cover,            & ! Use cloud_cover and rcm_in_layer to help boost cloud_frac
                                       ! and rcm to help increase cloudiness at coarser grid
                                       ! resolutions.
@@ -404,8 +451,6 @@ module model_flags
       l_Lscale_plume_centered,      & ! Alternate that uses the PDF to compute the perturbed values
       l_diag_Lscale_from_tau,       & ! First diagnose dissipation time tau, and then diagnose the
                                       ! mixing length scale as Lscale = tau * tke
-      l_use_ice_latent,             & ! Includes the effects of ice latent heating in turbulence
-                                      ! terms
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
@@ -421,6 +466,8 @@ module model_flags
 !-----------------------------------------------------------------------
     ! Begin code
 
+    iiPDF_type = iiPDF_ADG1
+    ipdf_call_placement = ipdf_pre_advance_fields
     l_use_precip_frac = .true.
     l_predict_upwp_vpwp = .true.
     l_min_wp2_from_corr_wx = .true.
@@ -440,6 +487,7 @@ module model_flags
     l_trapezoidal_rule_zm = .false.
     l_call_pdf_closure_twice = .false.
     l_standard_term_ta = .false.
+    l_partial_upwind_wp3 = .false.
     l_use_cloud_cover = .false.
     l_diagnose_correlations = .false.
     l_calc_w_corr = .false.
@@ -449,8 +497,7 @@ module model_flags
     l_damp_wp2_using_em = .true.
     l_do_expldiff_rtm_thlm = .false.
     l_Lscale_plume_centered = .false.
-    l_diag_Lscale_from_tau = .false.
-    l_use_ice_latent = .false.
+    l_diag_Lscale_from_tau = .true.
     l_use_C7_Richardson = .true.
     l_use_C11_Richardson = .false.
     l_brunt_vaisala_freq_moist = .false.
@@ -469,7 +516,9 @@ module model_flags
   end subroutine set_default_clubb_config_flags
 
 !===============================================================================
-  subroutine initialize_clubb_config_flags_type( l_use_precip_frac, &
+  subroutine initialize_clubb_config_flags_type( iiPDF_type,          &
+                                                 ipdf_call_placement, &
+                                                 l_use_precip_frac, &
                                                  l_predict_upwp_vpwp, &
                                                  l_min_wp2_from_corr_wx, &
                                                  l_min_xp2_from_corr_wx, &
@@ -488,6 +537,7 @@ module model_flags
                                                  l_trapezoidal_rule_zm, &
                                                  l_call_pdf_closure_twice, &
                                                  l_standard_term_ta, &
+                                                 l_partial_upwind_wp3, &
                                                  l_use_cloud_cover, &
                                                  l_diagnose_correlations, &
                                                  l_calc_w_corr, &
@@ -498,7 +548,6 @@ module model_flags
                                                  l_do_expldiff_rtm_thlm, &
                                                  l_Lscale_plume_centered, &
                                                  l_diag_Lscale_from_tau, &
-                                                 l_use_ice_latent, &
                                                  l_use_C7_Richardson, &
                                                  l_use_C11_Richardson, &
                                                  l_brunt_vaisala_freq_moist, &
@@ -520,6 +569,14 @@ module model_flags
     implicit none
 
     ! Input variables
+    integer, intent(in) :: &
+      iiPDF_type,          & ! Selected option for the two-component normal
+                             ! (double Gaussian) PDF type to use for the w, rt,
+                             ! and theta-l (or w, chi, and eta) portion of
+                             ! CLUBB's multivariate, two-component PDF.
+      ipdf_call_placement    ! Selected option for the placement of the call to
+                             ! CLUBB's PDF.
+
     logical, intent(in) :: &
       l_use_precip_frac,            & ! Flag to use precipitation fraction in KK microphysics. The
                                       ! precipitation fraction is automatically set to 1 when this
@@ -580,6 +637,11 @@ module model_flags
                                       ! pulled outside of the derivative in
                                       ! advance_wp2_wp3_module.F90 and in
                                       ! advance_xp2_xpyp_module.F90.
+      l_partial_upwind_wp3,         & ! Flag to use an "upwind" discretization rather
+                                      ! than a centered discretization for the portion
+                                      ! of the wp3 turbulent advection term for ADG1
+                                      ! that is linearized in terms of wp3<t+1>.
+                                      ! (Requires ADG1 PDF and l_standard_term_ta).
       l_use_cloud_cover,            & ! Use cloud_cover and rcm_in_layer to help boost cloud_frac
                                       ! and rcm to help increase cloudiness at coarser grid
                                       ! resolutions.
@@ -595,8 +657,6 @@ module model_flags
       l_Lscale_plume_centered,      & ! Alternate that uses the PDF to compute the perturbed values
       l_diag_Lscale_from_tau,       & ! First diagnose dissipation time tau, and then diagnose the
                                       ! mixing length scale as Lscale = tau * tke
-      l_use_ice_latent,             & ! Includes the effects of ice latent heating in turbulence
-                                      ! terms
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
@@ -616,6 +676,8 @@ module model_flags
 !-----------------------------------------------------------------------
     ! Begin code
 
+    clubb_config_flags%iiPDF_type = iiPDF_type
+    clubb_config_flags%ipdf_call_placement = ipdf_call_placement
     clubb_config_flags%l_use_precip_frac = l_use_precip_frac
     clubb_config_flags%l_predict_upwp_vpwp = l_predict_upwp_vpwp
     clubb_config_flags%l_min_wp2_from_corr_wx = l_min_wp2_from_corr_wx
@@ -635,6 +697,7 @@ module model_flags
     clubb_config_flags%l_trapezoidal_rule_zm = l_trapezoidal_rule_zm
     clubb_config_flags%l_call_pdf_closure_twice = l_call_pdf_closure_twice
     clubb_config_flags%l_standard_term_ta = l_standard_term_ta
+    clubb_config_flags%l_partial_upwind_wp3 = l_partial_upwind_wp3
     clubb_config_flags%l_use_cloud_cover = l_use_cloud_cover
     clubb_config_flags%l_diagnose_correlations = l_diagnose_correlations
     clubb_config_flags%l_calc_w_corr = l_calc_w_corr
@@ -645,7 +708,6 @@ module model_flags
     clubb_config_flags%l_do_expldiff_rtm_thlm = l_do_expldiff_rtm_thlm
     clubb_config_flags%l_Lscale_plume_centered = l_Lscale_plume_centered
     clubb_config_flags%l_diag_Lscale_from_tau = l_diag_Lscale_from_tau
-    clubb_config_flags%l_use_ice_latent = l_use_ice_latent
     clubb_config_flags%l_use_C7_Richardson = l_use_C7_Richardson
     clubb_config_flags%l_use_C11_Richardson = l_use_C11_Richardson
     clubb_config_flags%l_brunt_vaisala_freq_moist = l_brunt_vaisala_freq_moist
@@ -681,6 +743,8 @@ module model_flags
 !-----------------------------------------------------------------------
     ! Begin code
 
+    write(iunit,*) "iiPDF_type = ", clubb_config_flags%iiPDF_type
+    write(iunit,*) "ipdf_call_placement = ", clubb_config_flags%ipdf_call_placement
     write(iunit,*) "l_use_precip_frac = ", clubb_config_flags%l_use_precip_frac
     write(iunit,*) "l_predict_upwp_vpwp = ", clubb_config_flags%l_predict_upwp_vpwp
     write(iunit,*) "l_min_wp2_from_corr_wx = ", clubb_config_flags%l_min_wp2_from_corr_wx
@@ -701,6 +765,7 @@ module model_flags
     write(iunit,*) "l_trapezoidal_rule_zm = ", clubb_config_flags%l_trapezoidal_rule_zm
     write(iunit,*) "l_call_pdf_closure_twice = ", clubb_config_flags%l_call_pdf_closure_twice
     write(iunit,*) "l_standard_term_ta = ", clubb_config_flags%l_standard_term_ta
+    write(iunit,*) "l_partial_upwind_wp3 = ", clubb_config_flags%l_partial_upwind_wp3
     write(iunit,*) "l_use_cloud_cover = ", clubb_config_flags%l_use_cloud_cover
     write(iunit,*) "l_diagnose_correlations = ", clubb_config_flags%l_diagnose_correlations
     write(iunit,*) "l_calc_w_corr = ", clubb_config_flags%l_calc_w_corr
@@ -712,7 +777,6 @@ module model_flags
     write(iunit,*) "l_do_expldiff_rtm_thlm = ", clubb_config_flags%l_do_expldiff_rtm_thlm
     write(iunit,*) "l_Lscale_plume_centered = ", clubb_config_flags%l_Lscale_plume_centered
     write(iunit,*) "l_diag_Lscale_from_tau = ", clubb_config_flags%l_diag_Lscale_from_tau
-    write(iunit,*) "l_use_ice_latent = ", clubb_config_flags%l_use_ice_latent
     write(iunit,*) "l_use_C7_Richardson = ", clubb_config_flags%l_use_C7_Richardson
     write(iunit,*) "l_use_C11_Richardson = ", clubb_config_flags%l_use_C11_Richardson
     write(iunit,*) "l_brunt_vaisala_freq_moist = ", clubb_config_flags%l_brunt_vaisala_freq_moist

@@ -287,7 +287,6 @@ module est_kessler_microphys_module
 
     use constants_clubb, only:  &
       fstderr, & ! Constant(s)
-      g_per_kg, &
       zero, &
       one
 
@@ -302,9 +301,6 @@ module est_kessler_microphys_module
     ! Constant parameters
     logical, parameter :: &
       l_cloud_weighted_averaging = .false.
-
-    real(kind=core_rknd), parameter :: &
-      r_crit_g_kg = 0.2_core_rknd
 
     ! Input Variables
 

@@ -1,0 +1,87 @@
+commit 1497311021dd977c7234d464ccd98882ea7b6a5e
+Author: strikenp <nchief@gmail.com>
+Date:   Wed Sep 2 12:25:30 2020 -0500
+
+    Pyplotgen Changes:
+    * Fix a multithreading bug where a "No cases plotted" warning would almost always show up.
+    
+    https://github.com/larson-group/sys_admin/issues/542
+
+commit 3321b66747568c3de2992183b1c5def46854e632
+Merge: bb2740c ae50788
+Author: System Administrator <larsongroupgithub@gmail.com>
+Date:   Tue Sep 1 23:00:46 2020 -0500
+
+    Autoupdated clubb's morrison using sam's morrison
+
+commit bb2740c054b9aa825c1fa6d8f259e218abfe9a78
+Author: IsenfireLDC <isenfireldc@gmail.com>
+Date:   Tue Sep 1 15:21:11 2020 -0500
+
+    Removes debug lines leftover from branch I881
+    
+    Issue #881
+
+commit 568f1eb9e5e68a4151638d046964fd86de42a2eb
+Author: strikenp <nchief@gmail.com>
+Date:   Tue Sep 1 13:32:06 2020 -0500
+
+    Pyplotgen Changes:
+    * Code comment/docstring updates
+    * Added GATE_shear_rlsf case
+    * Updated "No cases plotted" warning to be more helpful
+    
+    https://github.com/larson-group/sys_admin/issues/542
+
+commit ae507880bd4fbda9bf645d25ac766cfbb10709be
+Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
+Date:   Tue Sep 1 08:38:31 2020 -0500
+
+    Some housecleaning relevant to #128: renaming rtend with more specific names and adding units to vars.F90.
+    
+    General housecleaning: replacing the name "case" with "cloudcase" since "case" is a standard Fortran term.  Most of the files changed are because of this.
+
+commit 43eab54998d846f9f5f2ed308a87914dd3395b5a
+Merge: c0919a1 ed89db0
+Author: IsenfireLDC <isenfireldc@gmail.com>
+Date:   Mon Aug 31 09:48:27 2020 -0500
+
+    Merges branch 'I881' into master
+    
+    This pulls fixes for netcdf file handling into master
+    
+    Resolves Issues #881, larson-group/sys_admin#672
+
+commit c0919a180e30ac95c03756403634fe46d0b7f645
+Author: IsenfireLDC <isenfireldc@gmail.com>
+Date:   Mon Aug 31 09:42:50 2020 -0500
+
+    Reverts temporary fix in commit a3052ae
+    
+    This change is in preparation of merging branch I881 with master
+    
+    Issue #881
+
+commit ed89db054bec53e5f4701bf05673df695071e055
+Author: IsenfireLDC <isenfireldc@gmail.com>
+Date:   Fri Aug 28 16:36:32 2020 -0500
+
+    Changes default file type for tuner to netcdf
+    
+    Issue #881
+
+commit aa4aa644b9248ea219122031e4c6de51636bb5c3
+Author: IsenfireLDC <isenfireldc@gmail.com>
+Date:   Fri Aug 28 16:25:09 2020 -0500
+
+    Sets default tuning run for fire to use netcdf files
+    
+    Issue #881
+
+commit 78721e55491dfb09d08176a3703e9080dd47f0f2
+Author: IsenfireLDC <isenfireldc@gmail.com>
+Date:   Fri Aug 28 11:44:41 2020 -0500
+
+    Stops check_for_missing_threadprivate.py from checking .txt files
+    
+    This fixes an issue with test Clubb Release Nightly Build (Intel)

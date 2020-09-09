@@ -123,8 +123,12 @@ module clubb_api_module
     hydromet_pdf_parameter
 
   use model_flags, only : &
-    clubb_config_flags_type, & ! Type
-    l_use_boussinesq    ! Use Boussinesq form of predictive equations (default is Anelastic).
+      clubb_config_flags_type, & ! Type
+      iiPDF_ADG1, &
+      iiPDF_new_hybrid, &
+      ipdf_pre_advance_fields, &
+      ipdf_post_advance_fields, &
+      l_use_boussinesq    ! Use Boussinesq form of predictive equations (default is Anelastic).
 
   use parameters_model, only : &
     hydromet_dim    ! Number of hydrometeor species
@@ -213,14 +217,6 @@ module clubb_api_module
   use stats_sfc_module, only : &
     nvarmax_sfc
 
-  use variables_diagnostic_module, only : &
-    Lscale, & ! Mixing lengths
-    wp2_zt, & ! w'^2 on thermo. grid     [m^2/s^2]
-    wphydrometp ! Covariance of w and hydrometeor (momentum levels) [(m/s)un]
-
-  use variables_prognostic_module, only : &
-    pdf_params_frz ! for use when l_use_ice_latent = .true.
-
   implicit none
 
   private
@@ -230,6 +226,10 @@ module clubb_api_module
     read_parameters_api, &
     setup_clubb_core_api, &
         ! CLUBB can be set more specifically using these flags:
+        iiPDF_ADG1, &
+        iiPDF_new_hybrid, &
+        ipdf_pre_advance_fields, &
+        ipdf_post_advance_fields, &
         l_use_boussinesq, &
         ! The parameters of CLUBB can be retrieved and tuned using these indices:
         iC1, iC1b, iC1c, iC2, iC2b, iC2c,  &
@@ -276,9 +276,7 @@ module clubb_api_module
         iiedsclr_CO2, &
         l_frozen_hm, &
         l_mix_rat_hm, &
-    cleanup_clubb_core_api, &
-    ! Added for use in SAM's SGS_CLUBB package
-    pdf_params_frz
+    cleanup_clubb_core_api
 
   public &
     ! To Implement SILHS:
@@ -421,7 +419,6 @@ module clubb_api_module
     l_netcdf, &
     l_output_rad_files, &
     leap_year_api, &
-    Lscale, &
     nvarmax_rad_zm, &
     nvarmax_rad_zt, &
     nvarmax_sfc, &
@@ -441,8 +438,6 @@ module clubb_api_module
     stats_init_sfc_api, &
     stats_init_zm_api, &
     stats_init_zt_api, &
-    wp2_zt, &
-    wphydrometp, &
     stats_zm, &
     zmscr01, zmscr02, zmscr03, &
     zmscr04, zmscr05, zmscr06, &
@@ -488,6 +483,7 @@ contains
     rtpthlp_forcing, wm_zm, wm_zt, &                        ! intent(in)
     wpthlp_sfc, wprtp_sfc, upwp_sfc, vpwp_sfc, &            ! intent(in)
     wpsclrp_sfc, wpedsclrp_sfc, &                           ! intent(in)
+    rtm_ref, thlm_ref, um_ref, vm_ref, ug, vg, &            ! Intent(in)
     p_in_Pa, rho_zm, rho, exner, &                          ! intent(in)
     rho_ds_zm, rho_ds_zt, invrs_rho_ds_zm, &                ! intent(in)
     invrs_rho_ds_zt, thv_ds_zm, thv_ds_zt, hydromet, &      ! intent(in)
@@ -516,13 +512,11 @@ contains
                RH_crit, & !h1g, 2010-06-16                  ! intent(inout)
                do_liquid_only_in_clubb, &                   ! intent(in)
 #endif
-#if defined(CLUBB_CAM) || defined(GFDL)
-    khzm, khzt, &                                           ! intent(out)
-#endif
+    Kh_zm, Kh_zt, &                                         ! intent(out)
 #ifdef CLUBB_CAM
-    qclvar, thlprcp_out, &                                  ! intent(out)
+    qclvar, &                                               ! intent(out)
 #endif
-    wprcp, ice_supersat_frac, &                             ! intent(out)
+    thlprcp, wprcp, ice_supersat_frac, &                    ! intent(out)
     rcm_in_layer, cloud_cover )                             ! intent(out)
 
     use advance_clubb_core_module, only : advance_clubb_core
@@ -602,15 +596,24 @@ contains
     real( kind = core_rknd ), intent(in), dimension(gr%nz,sclr_dim) :: &
       sclrm_forcing    ! Passive scalar forcing         [{units vary}/s]
 
-    real( kind = core_rknd ), intent(in),  dimension(sclr_dim) ::  &
+    real( kind = core_rknd ), intent(in), dimension(sclr_dim) ::  &
       wpsclrp_sfc      ! Scalar flux at surface         [{units vary} m/s]
 
     ! Eddy passive scalar variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz,edsclr_dim) :: &
       edsclrm_forcing  ! Eddy passive scalar forcing    [{units vary}/s]
 
-    real( kind = core_rknd ), intent(in),  dimension(edsclr_dim) ::  &
+    real( kind = core_rknd ), intent(in), dimension(edsclr_dim) ::  &
       wpedsclrp_sfc    ! Eddy-Scalar flux at surface    [{units vary} m/s]
+
+    ! Reference profiles (used for nudging, sponge damping, and Coriolis effect)
+    real( kind = core_rknd ), dimension(gr%nz), intent(in) ::  &
+      rtm_ref,  & ! Initial total water mixing ratio             [kg/kg]
+      thlm_ref, & ! Initial liquid water potential temperature   [K]
+      um_ref,   & ! Initial u wind; Michael Falk                 [m/s]
+      vm_ref,   & ! Initial v wind; Michael Falk                 [m/s]
+      ug,       & ! u geostrophic wind                           [m/s]
+      vg          ! v geostrophic wind                           [m/s]
 
     ! Host model horizontal grid spacing, if part of host model.
     real( kind = core_rknd ), intent(in) :: &
@@ -692,17 +695,17 @@ contains
       wprcp,            & ! w'r_c' (momentum levels)                  [(kg/kg) m/s]
       ice_supersat_frac   ! ice cloud fraction (thermodynamic levels) [-]
 
-#if defined(CLUBB_CAM) || defined(GFDL)
-    real( kind = core_rknd ), intent(out), dimension(gr%nz) :: &
-      khzt, &       ! eddy diffusivity on thermo levels
-      khzm          ! eddy diffusivity on momentum levels
-#endif
+    real( kind = core_rknd ), dimension(gr%nz), intent(out) :: &
+      Kh_zt, & ! Eddy diffusivity coefficient on thermodynamic levels   [m^2/s]
+      Kh_zm    ! Eddy diffusivity coefficient on momentum levels        [m^2/s]
 
 #ifdef CLUBB_CAM
     real( kind = core_rknd), intent(out), dimension(gr%nz) :: &
-      qclvar, &     ! cloud water variance
-      thlprcp_out
+      qclvar        ! cloud water variance
 #endif
+
+    real( kind = core_rknd ), dimension(gr%nz), intent(out) :: &
+      thlprcp    ! thl'rc'              [K kg/kg]
 
     !!! Output Variable 
     integer, intent(inout) :: err_code_api ! Diagnostic, for if some calculation goes amiss.
@@ -721,6 +724,7 @@ contains
       rtpthlp_forcing, wm_zm, wm_zt, &                        ! intent(in)
       wpthlp_sfc, wprtp_sfc, upwp_sfc, vpwp_sfc, &            ! intent(in)
       wpsclrp_sfc, wpedsclrp_sfc, &                           ! intent(in)
+      rtm_ref, thlm_ref, um_ref, vm_ref, ug, vg, &            ! Intent(in)
       p_in_Pa, rho_zm, rho, exner, &                          ! intent(in)
       rho_ds_zm, rho_ds_zt, invrs_rho_ds_zm, &                ! intent(in)
       invrs_rho_ds_zt, thv_ds_zm, thv_ds_zt, hydromet, &      ! intent(in)
@@ -749,13 +753,11 @@ contains
                RH_crit, & !h1g, 2010-06-16                    ! intent(inout)
                do_liquid_only_in_clubb, &                     ! intent(in)
 #endif
-#if defined(CLUBB_CAM) || defined(GFDL)
-               khzm, khzt, &                                  ! intent(out)
-#endif
+      Kh_zm, Kh_zt, &                                         ! intent(out)
 #ifdef CLUBB_CAM
-               qclvar, thlprcp_out, &                         ! intent(out)
+               qclvar, &                                      ! intent(out)
 #endif
-      wprcp, ice_supersat_frac, &                             ! intent(out)
+      thlprcp, wprcp, ice_supersat_frac, &                    ! intent(out)
       rcm_in_layer, cloud_cover, &                            ! intent(out)
       err_code_api )                                          ! intent(out)
 
@@ -778,8 +780,9 @@ contains
     l_implemented, grid_type, deltaz, zm_init, zm_top,  & ! intent(in)
     momentum_heights, thermodynamic_heights,            & ! intent(in)
     sfc_elevation,                                      & ! intent(in)
+    iiPDF_type,                                         & ! intent(in)
+    ipdf_call_placement,                                & ! intent(in)
     l_predict_upwp_vpwp,                                & ! intent(in)
-    l_use_ice_latent,                                   & ! intent(in)
     l_prescribed_avg_deltaz,                            & ! intent(in)
     l_damp_wp2_using_em,                                & ! intent(in)
     l_stability_correct_tau_zm,                         & ! intent(in)
@@ -870,6 +873,14 @@ contains
     logical, intent(in) ::  &
       l_input_fields    ! Flag for whether LES input fields are used
 
+    integer, intent(in) :: &
+      iiPDF_type,          & ! Selected option for the two-component normal
+                             ! (double Gaussian) PDF type to use for the w,
+                             ! rt, and theta-l (or w, chi, and eta) portion of
+                             ! CLUBB's multivariate, two-component PDF.
+      ipdf_call_placement    ! Selected option for the placement of the call to
+                             ! CLUBB's PDF.
+
     logical, intent(in) :: &
       l_predict_upwp_vpwp,     & ! Flag to predict <u'w'> and <v'w'> along with <u> and <v>
                                  ! alongside the advancement of <rt>, <w'rt'>, <thl>, <wpthlp>,
@@ -877,7 +888,6 @@ contains
                                  ! Otherwise, <u'w'> and <v'w'> are still approximated by eddy
                                  ! diffusivity when <u> and <v> are advanced in subroutine
                                  ! advance_windm_edsclrm.
-      l_use_ice_latent,        & ! Includes the effects of ice latent heating in turbulence terms
       l_prescribed_avg_deltaz, &  ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
       l_damp_wp2_using_em,     &
       l_stability_correct_tau_zm
@@ -907,8 +917,9 @@ contains
       l_implemented, grid_type, deltaz, zm_init, zm_top,    & ! intent(in)
       momentum_heights, thermodynamic_heights,              & ! intent(in)
       sfc_elevation,                                        & ! intent(in)
+      iiPDF_type,                                           & ! intent(in)
+      ipdf_call_placement,                                  & ! intent(in)
       l_predict_upwp_vpwp,                                  & ! intent(in)
-      l_use_ice_latent,                                     & ! intent(in)
       l_prescribed_avg_deltaz,                              & ! intent(in)
       l_damp_wp2_using_em,                                  & ! intent(in)
       l_stability_correct_tau_zm,                           & ! intent(in)
@@ -923,19 +934,14 @@ contains
   ! cleanup_clubb_core_api - Frees memory used by the model.
   !================================================================================================
 
-  subroutine cleanup_clubb_core_api( &
-    l_implemented )
+  subroutine cleanup_clubb_core_api( )
 
     use advance_clubb_core_module, only : cleanup_clubb_core
 
     implicit none
 
-    ! Flag to see if CLUBB is running on it's own,
-    ! or if it's implemented as part of a host model.
-    logical, intent(in) :: l_implemented   ! (T/F)
+    call cleanup_clubb_core( )
 
-    call cleanup_clubb_core( &
-    l_implemented )
   end subroutine cleanup_clubb_core_api
 
   !================================================================================================
@@ -1633,10 +1639,11 @@ contains
 
   subroutine setup_pdf_parameters_api( &
     nz, pdf_dim, dt, &                      ! Intent(in)
-    Nc_in_cloud, rcm, cloud_frac, &             ! Intent(in)
+    Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
     ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
     corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
     pdf_params, l_stats_samp, &                 ! Intent(in)
+    iiPDF_type, &                               ! Intent(in)
     l_use_precip_frac, &                        ! Intent(in)
     l_predict_upwp_vpwp, &                      ! Intent(in)
     l_diagnose_correlations, &                  ! Intent(in)
@@ -1673,6 +1680,7 @@ contains
       Nc_in_cloud,       & ! Mean (in-cloud) cloud droplet conc.       [num/kg]
       rcm,               & ! Mean cloud water mixing ratio, < r_c >    [kg/kg]
       cloud_frac,        & ! Cloud fraction                            [-]
+      Kh_zm,             & ! Eddy diffusivity coef. on momentum levels [m^2/s]
       ice_supersat_frac    ! Ice supersaturation fraction              [-]
 
     real( kind = core_rknd ), dimension(nz,hydromet_dim), intent(in) :: &
@@ -1689,6 +1697,12 @@ contains
 
     logical, intent(in) :: &
       l_stats_samp    ! Flag to sample statistics
+
+    integer, intent(in) :: &
+      iiPDF_type    ! Selected option for the two-component normal (double
+                    ! Gaussian) PDF type to use for the w, rt, and theta-l (or
+                    ! w, chi, and eta) portion of CLUBB's multivariate,
+                    ! two-component PDF.
 
     logical, intent(in) :: &
       l_use_precip_frac,            & ! Flag to use precipitation fraction in KK microphysics. The
@@ -1731,10 +1745,11 @@ contains
 
     call setup_pdf_parameters( &
       nz, pdf_dim, dt, &                          ! Intent(in)
-      Nc_in_cloud, rcm, cloud_frac, &             ! Intent(in)
+      Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
       ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
       corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
       pdf_params, l_stats_samp, &                 ! Intent(in)
+      iiPDF_type, &                               ! Intent(in)
       l_use_precip_frac, &                        ! Intent(in)
       l_predict_upwp_vpwp, &                      ! Intent(in)
       l_diagnose_correlations, &                  ! Intent(in)
@@ -2513,7 +2528,9 @@ contains
   !================================================================================================
   ! set_default_clubb_config_flags: Sets all CLUBB flags to a default setting
   !================================================================================================
-  subroutine set_default_clubb_config_flags_api( l_use_precip_frac, & ! Out
+  subroutine set_default_clubb_config_flags_api( iiPDF_type, & ! Out
+                                                 ipdf_call_placement, & ! Out
+                                                 l_use_precip_frac, & ! Out
                                                  l_predict_upwp_vpwp, & ! Out
                                                  l_min_wp2_from_corr_wx, & ! Out
                                                  l_min_xp2_from_corr_wx, & ! Out
@@ -2532,6 +2549,7 @@ contains
                                                  l_trapezoidal_rule_zm, & ! Out
                                                  l_call_pdf_closure_twice, & ! Out
                                                  l_standard_term_ta, & ! Out
+                                                 l_partial_upwind_wp3, & ! Out
                                                  l_use_cloud_cover, & ! Out
                                                  l_diagnose_correlations, & ! Out
                                                  l_calc_w_corr, & ! Out
@@ -2542,7 +2560,6 @@ contains
                                                  l_do_expldiff_rtm_thlm, & ! Out
                                                  l_Lscale_plume_centered, & ! Out
                                                  l_diag_Lscale_from_tau, & ! Out
-                                                 l_use_ice_latent, & ! Out
                                                  l_use_C7_Richardson, & ! Out
                                                  l_use_C11_Richardson, & ! Out
                                                  l_brunt_vaisala_freq_moist, & ! Out
@@ -2559,6 +2576,14 @@ contains
     implicit none
 
     ! Output variables
+    integer, intent(out) :: &
+      iiPDF_type,          & ! Selected option for the two-component normal
+                             ! (double Gaussian) PDF type to use for the w, rt,
+                             ! and theta-l (or w, chi, and eta) portion of
+                             ! CLUBB's multivariate, two-component PDF.
+      ipdf_call_placement    ! Selected option for the placement of the call to
+                             ! CLUBB's PDF.
+
     logical, intent(out) :: &
       l_use_precip_frac,            & ! Flag to use precipitation fraction in KK microphysics. The
                                       ! precipitation fraction is automatically set to 1 when this
@@ -2619,6 +2644,11 @@ contains
                                       ! pulled outside of the derivative in
                                       ! advance_wp2_wp3_module.F90 and in
                                       ! advance_xp2_xpyp_module.F90.
+      l_partial_upwind_wp3,         & ! Flag to use an "upwind" discretization rather
+                                      ! than a centered discretization for the portion
+                                      ! of the wp3 turbulent advection term for ADG1
+                                      ! that is linearized in terms of wp3<t+1>.
+                                      ! (Requires ADG1 PDF and l_standard_term_ta).
       l_use_cloud_cover,            & ! Use cloud_cover and rcm_in_layer to help boost cloud_frac
                                       ! and rcm to help increase cloudiness at coarser grid
                                       ! resolutions.
@@ -2634,8 +2664,6 @@ contains
       l_Lscale_plume_centered,      & ! Alternate that uses the PDF to compute the perturbed values
       l_diag_Lscale_from_tau,       & ! First diagnose dissipation time tau, and then diagnose the
                                       ! mixing length scale as Lscale = tau * tke
-      l_use_ice_latent,             & ! Includes the effects of ice latent heating in turbulence
-                                      ! terms
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
@@ -2648,7 +2676,9 @@ contains
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
       l_update_pressure               ! Flag for having CLUBB update pressure and exner
 
-    call set_default_clubb_config_flags( l_use_precip_frac, & ! Out
+    call set_default_clubb_config_flags( iiPDF_type, & ! Out
+                                         ipdf_call_placement, & ! Out
+                                         l_use_precip_frac, & ! Out
                                          l_predict_upwp_vpwp, & ! Out
                                          l_min_wp2_from_corr_wx, & ! Out
                                          l_min_xp2_from_corr_wx, & ! Out
@@ -2667,6 +2697,7 @@ contains
                                          l_trapezoidal_rule_zm, & ! Out
                                          l_call_pdf_closure_twice, & ! Out
                                          l_standard_term_ta, & ! Out
+                                         l_partial_upwind_wp3, & ! Out
                                          l_use_cloud_cover, & ! Out
                                          l_diagnose_correlations, & ! Out
                                          l_calc_w_corr, & ! Out
@@ -2677,7 +2708,6 @@ contains
                                          l_do_expldiff_rtm_thlm, & ! Out
                                          l_Lscale_plume_centered, & ! Out
                                          l_diag_Lscale_from_tau, & ! Out
-                                         l_use_ice_latent, & ! Out
                                          l_use_C7_Richardson, & ! Out
                                          l_use_C11_Richardson, & ! Out
                                          l_brunt_vaisala_freq_moist, & ! Out
@@ -2693,7 +2723,9 @@ contains
   !================================================================================================
   ! initialize_clubb_config_flags_type: Initialize the clubb_config_flags_type
   !================================================================================================
-  subroutine initialize_clubb_config_flags_type_api( l_use_precip_frac, & ! In
+  subroutine initialize_clubb_config_flags_type_api( iiPDF_type, & ! In
+                                                     ipdf_call_placement, & ! In
+                                                     l_use_precip_frac, & ! In
                                                      l_predict_upwp_vpwp, & ! In
                                                      l_min_wp2_from_corr_wx, & ! In
                                                      l_min_xp2_from_corr_wx, & ! In
@@ -2712,6 +2744,7 @@ contains
                                                      l_trapezoidal_rule_zm, & ! In
                                                      l_call_pdf_closure_twice, & ! In
                                                      l_standard_term_ta, & ! In
+                                                     l_partial_upwind_wp3, & ! In
                                                      l_use_cloud_cover, & ! In
                                                      l_diagnose_correlations, & ! In
                                                      l_calc_w_corr, & ! In
@@ -2722,7 +2755,6 @@ contains
                                                      l_do_expldiff_rtm_thlm, & ! In
                                                      l_Lscale_plume_centered, & ! In
                                                      l_diag_Lscale_from_tau, & ! In
-                                                     l_use_ice_latent, & ! In
                                                      l_use_C7_Richardson, & ! In
                                                      l_use_C11_Richardson, & ! In
                                                      l_brunt_vaisala_freq_moist, & ! In
@@ -2741,6 +2773,14 @@ contains
     implicit none
 
     ! Input variables
+    integer, intent(in) :: &
+      iiPDF_type,          & ! Selected option for the two-component normal
+                             ! (double Gaussian) PDF type to use for the w, rt,
+                             ! and theta-l (or w, chi, and eta) portion of
+                             ! CLUBB's multivariate, two-component PDF.
+      ipdf_call_placement    ! Selected option for the placement of the call to
+                             ! CLUBB's PDF.
+
     logical, intent(in) :: &
       l_use_precip_frac,            & ! Flag to use precipitation fraction in KK microphysics. The
                                       ! precipitation fraction is automatically set to 1 when this
@@ -2801,6 +2841,11 @@ contains
                                       ! pulled outside of the derivative in
                                       ! advance_wp2_wp3_module.F90 and in
                                       ! advance_xp2_xpyp_module.F90.
+      l_partial_upwind_wp3,         & ! Flag to use an "upwind" discretization rather
+                                      ! than a centered discretization for the portion
+                                      ! of the wp3 turbulent advection term for ADG1
+                                      ! that is linearized in terms of wp3<t+1>.
+                                      ! (Requires ADG1 PDF and l_standard_term_ta).
       l_use_cloud_cover,            & ! Use cloud_cover and rcm_in_layer to help boost cloud_frac
                                       ! and rcm to help increase cloudiness at coarser grid
                                       ! resolutions.
@@ -2816,8 +2861,6 @@ contains
       l_Lscale_plume_centered,      & ! Alternate that uses the PDF to compute the perturbed values
       l_diag_Lscale_from_tau,       & ! First diagnose dissipation time tau, and then diagnose the
                                       ! mixing length scale as Lscale = tau * tke
-      l_use_ice_latent,             & ! Includes the effects of ice latent heating in turbulence
-                                      ! terms
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
@@ -2834,7 +2877,9 @@ contains
     type(clubb_config_flags_type), intent(out) :: &
       clubb_config_flags            ! Derived type holding all configurable CLUBB flags
 
-    call initialize_clubb_config_flags_type( l_use_precip_frac, & ! In
+    call initialize_clubb_config_flags_type( iiPDF_type, & ! In
+                                             ipdf_call_placement, & ! In 
+                                             l_use_precip_frac, & ! In
                                              l_predict_upwp_vpwp, & ! In
                                              l_min_wp2_from_corr_wx, & ! In
                                              l_min_xp2_from_corr_wx, & ! In
@@ -2853,6 +2898,7 @@ contains
                                              l_trapezoidal_rule_zm, & ! In
                                              l_call_pdf_closure_twice, & ! In
                                              l_standard_term_ta, & ! In
+                                             l_partial_upwind_wp3, & ! In
                                              l_use_cloud_cover, & ! In
                                              l_diagnose_correlations, & ! In
                                              l_calc_w_corr, & ! In
@@ -2863,7 +2909,6 @@ contains
                                              l_do_expldiff_rtm_thlm, & ! In
                                              l_Lscale_plume_centered, & ! In
                                              l_diag_Lscale_from_tau, & ! In
-                                             l_use_ice_latent, & ! In
                                              l_use_C7_Richardson, & ! In
                                              l_use_C11_Richardson, & ! In
                                              l_brunt_vaisala_freq_moist, & ! In

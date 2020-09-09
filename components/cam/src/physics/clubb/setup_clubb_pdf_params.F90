@@ -39,11 +39,12 @@ module setup_clubb_pdf_params
   contains
 
   !=============================================================================
-  subroutine setup_pdf_parameters( nz, pdf_dim, dt, &                      ! Intent(in)
-                                   Nc_in_cloud, rcm, cloud_frac, &             ! Intent(in)
+  subroutine setup_pdf_parameters( nz, pdf_dim, dt, &                          ! Intent(in)
+                                   Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
                                    ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
                                    corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
                                    pdf_params, l_stats_samp, &                 ! Intent(in)
+                                   iiPDF_type, &                               ! Intent(in)
                                    l_use_precip_frac, &                        ! Intent(in)
                                    l_predict_upwp_vpwp, &                      ! Intent(in)
                                    l_diagnose_correlations, &                  ! Intent(in)
@@ -101,9 +102,6 @@ module setup_clubb_pdf_params
 
     use advance_windm_edsclrm_module, only: &
         xpwp_fnc
-
-    use variables_diagnostic_module, only: &
-        Kh_zm
 
     use parameters_tunable, only: &
         c_K_hm
@@ -168,6 +166,7 @@ module setup_clubb_pdf_params
       Nc_in_cloud,       & ! Mean (in-cloud) cloud droplet conc.       [num/kg]
       rcm,               & ! Mean cloud water mixing ratio, < r_c >    [kg/kg]
       cloud_frac,        & ! Cloud fraction                            [-]
+      Kh_zm,             & ! Eddy diffusivity coef. on momentum levels [m^2/s]
       ice_supersat_frac    ! Ice supersaturation fraction              [-]
 
     real( kind = core_rknd ), dimension(nz,hydromet_dim), intent(in) :: &
@@ -184,6 +183,12 @@ module setup_clubb_pdf_params
 
     logical, intent(in) :: &
       l_stats_samp    ! Flag to sample statistics
+
+    integer, intent(in) :: &
+      iiPDF_type    ! Selected option for the two-component normal (double
+                    ! Gaussian) PDF type to use for the w, rt, and theta-l (or
+                    ! w, chi, and eta) portion of CLUBB's multivariate,
+                    ! two-component PDF.
 
     logical, intent(in) :: &
       l_use_precip_frac,            & ! Flag to use precipitation fraction in KK microphysics. The
@@ -629,6 +634,7 @@ module setup_clubb_pdf_params
                             pdf_params%corr_w_eta_1, &
                             pdf_params%corr_w_eta_2, &
                             pdf_dim, &
+                            iiPDF_type, &
                             l_calc_w_corr, &
                             l_fix_w_chi_eta_correlations, &
                             corr_array_1_n, corr_array_2_n )
@@ -1068,6 +1074,7 @@ module setup_clubb_pdf_params
                              corr_w_eta_1, &
                              corr_w_eta_2, &
                              pdf_dim, &
+                             iiPDF_type, &
                              l_calc_w_corr, &
                              l_fix_w_chi_eta_correlations, &
                              corr_array_1_n, corr_array_2_n )
@@ -1143,6 +1150,12 @@ module setup_clubb_pdf_params
       corr_w_chi_2, &
       corr_w_eta_1, &
       corr_w_eta_2
+
+    integer, intent(in) :: &
+      iiPDF_type    ! Selected option for the two-component normal (double
+                    ! Gaussian) PDF type to use for the w, rt, and theta-l (or
+                    ! w, chi, and eta) portion of CLUBB's multivariate,
+                    ! two-component PDF.
 
     logical, intent(in) :: &
       l_calc_w_corr, &                ! Calculate the correlations between w and the hydrometeors
@@ -1271,13 +1284,13 @@ module setup_clubb_pdf_params
     = component_corr_w_x( nz, corr_w_chi_1, rc_1, cloud_frac_1, &
                           corr_array_n_cloud(iiPDF_w,iiPDF_chi), &
                           corr_array_n_below(iiPDF_w,iiPDF_chi), &
-                          l_fix_w_chi_eta_correlations )
+                          iiPDF_type, l_fix_w_chi_eta_correlations )
 
     corr_array_2_n(iiPDF_w,iiPDF_chi,:) &
     = component_corr_w_x( nz, corr_w_chi_2, rc_2, cloud_frac_2, &
                           corr_array_n_cloud(iiPDF_w,iiPDF_chi), &
                           corr_array_n_below(iiPDF_w,iiPDF_chi), &
-                          l_fix_w_chi_eta_correlations )
+                          iiPDF_type, l_fix_w_chi_eta_correlations )
 
 
     ! Correlation of chi (old s) and ln Ncn
@@ -1310,13 +1323,13 @@ module setup_clubb_pdf_params
     = component_corr_w_x( nz, corr_w_eta_1, rc_1, cloud_frac_1, &
                           corr_array_n_cloud(iiPDF_w,iiPDF_eta), &
                           corr_array_n_below(iiPDF_w,iiPDF_eta), &
-                          l_fix_w_chi_eta_correlations )
+                          iiPDF_type, l_fix_w_chi_eta_correlations )
 
     corr_array_2_n(iiPDF_w,iiPDF_eta,:) &
     = component_corr_w_x( nz, corr_w_eta_2, rc_2, cloud_frac_2, &
                           corr_array_n_cloud(iiPDF_w,iiPDF_eta), &
                           corr_array_n_below(iiPDF_w,iiPDF_eta), &
-                          l_fix_w_chi_eta_correlations )
+                          iiPDF_type, l_fix_w_chi_eta_correlations )
 
 
     ! Correlation of eta (old t) and ln Ncn
@@ -2198,7 +2211,7 @@ module setup_clubb_pdf_params
   !=============================================================================
   function component_corr_w_x( nz, pdf_corr_w_x_i, rc_i, cloud_frac_i, &
                                corr_w_x_NN_cloud, corr_w_x_NN_below, &
-                               l_fix_w_chi_eta_correlations ) &
+                               iiPDF_type, l_fix_w_chi_eta_correlations ) &
   result( corr_w_x_i )
 
     ! Description:
@@ -2214,11 +2227,10 @@ module setup_clubb_pdf_params
         zero,   &
         rc_tol
 
-    use pdf_closure_module, only: &
+    use model_flags, only: &
         iiPDF_ADG1,       & ! Variable(s)
         iiPDF_ADG2,       &
-        iiPDF_new_hybrid, &
-        iiPDF_type
+        iiPDF_new_hybrid
 
     use clubb_precision, only: &
         core_rknd  ! Variable(s)
@@ -2237,6 +2249,12 @@ module setup_clubb_pdf_params
     real( kind = core_rknd ), intent(in) :: &
       corr_w_x_NN_cloud, & ! Corr. of w and x (ith PDF comp.); cloudy levs [-]
       corr_w_x_NN_below    ! Corr. of w and x (ith PDF comp.); clear levs  [-]
+
+    integer, intent(in) :: &
+      iiPDF_type    ! Selected option for the two-component normal (double
+                    ! Gaussian) PDF type to use for the w, rt, and theta-l (or
+                    ! w, chi, and eta) portion of CLUBB's multivariate,
+                    ! two-component PDF.
 
     logical, intent(in) :: &
       l_fix_w_chi_eta_correlations ! Use a fixed correlation for s and t Mellor(chi/eta)
