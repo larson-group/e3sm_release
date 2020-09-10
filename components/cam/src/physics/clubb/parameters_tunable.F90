@@ -87,7 +87,7 @@ module parameters_tunable
     C6rt_Lscale0  = 14.0_core_rknd,      & ! Damp C6rt as a fnct. of Lscale  [-]
     C6thl_Lscale0 = 14.0_core_rknd,      & ! Damp C6thl as a fnct. of Lscale [-]
     C7_Lscale0    = 0.8500000_core_rknd, & ! Damp C7 as a fnct. of Lscale    [-]
-    wpxp_L_thresh = 100.0_core_rknd,     & ! Lscale threshold: damp C6 & C7  [m]
+    wpxp_L_thresh = 100.0_core_rknd        ! Lscale threshold: damp C6 & C7  [m]
 !$omp threadprivate(C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh)
 
   ! Note: DD 1987 is Duynkerke & Driedonks (1987).
@@ -1401,8 +1401,7 @@ module parameters_tunable
                altitude_threshold, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
                C_invrs_tau_shear, C_invrs_tau_N2, &
                C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, &  
-               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, &
-               params )
+               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, params )
 
     l_error = .false.
 
@@ -1483,8 +1482,7 @@ module parameters_tunable
       Skw_max_mag, xp3_coef_base, xp3_coef_slope, altitude_threshold, &
       C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
       C_invrs_tau_shear, C_invrs_tau_N2, &
-      C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, &
-      C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3
+      C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3
 
     ! Initialize values to -999.
     call init_parameters_999( )
@@ -1517,8 +1515,7 @@ module parameters_tunable
                altitude_threshold, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
                C_invrs_tau_shear, C_invrs_tau_N2, &
                C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, &
-               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, &
-               param_max )
+               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, param_max )
 
     l_error = .false.
 
@@ -1571,8 +1568,7 @@ module parameters_tunable
                altitude_threshold, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
                C_invrs_tau_shear, C_invrs_tau_N2, &
                C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, &
-               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, &
-               params )
+               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, params )
 
     ! Description:
     ! Takes the list of scalar variables and puts them into a 1D vector.
@@ -1743,7 +1739,6 @@ module parameters_tunable
     params(iC7_Lscale0)         = C7_Lscale0
     params(iwpxp_L_thresh)    = wpxp_L_thresh
 
-
     params(ic_K)       = c_K
     params(ic_K1)      = c_K1
     params(inu1)       = nu1
@@ -1834,7 +1829,7 @@ module parameters_tunable
                altitude_threshold, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
                C_invrs_tau_shear, C_invrs_tau_N2, & 
                C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, &
-               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3 )
+               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3  )
 
     ! Description:
     ! Takes the 1D vector and returns the list of scalar variables.
@@ -2004,7 +1999,6 @@ module parameters_tunable
     C7_Lscale0         = params(iC7_Lscale0)
     wpxp_L_thresh      = params(iwpxp_L_thresh)
 
-
     c_K       = params(ic_K)
     c_K1      = params(ic_K1)
     nu1       = params(inu1)
@@ -2108,8 +2102,7 @@ module parameters_tunable
                altitude_threshold, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
                C_invrs_tau_shear, C_invrs_tau_N2, &
                C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, &
-               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3,&
-               params )
+               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, params )
 
     return
 
