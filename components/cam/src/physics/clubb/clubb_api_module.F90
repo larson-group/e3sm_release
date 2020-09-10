@@ -158,7 +158,7 @@ module clubb_api_module
     iup2_vp2_factor, iSkw_max_mag, iC_invrs_tau_bkgnd, &
     iC_invrs_tau_sfc, iC_invrs_tau_shear, iC_invrs_tau_N2, &
     iC_invrs_tau_N2_wp2, iC_invrs_tau_N2_xp2, iC_invrs_tau_N2_wpxp, &
-    iC_invrs_tau_N2_clear_wp3, ialt_thresh
+    iC_invrs_tau_N2_clear_wp3, ialtitude_threshold
 
 
   use pdf_parameter_module, only : &
@@ -255,7 +255,7 @@ module clubb_api_module
         iup2_vp2_factor, iSkw_max_mag, iC_invrs_tau_bkgnd, &
         iC_invrs_tau_sfc, iC_invrs_tau_shear, iC_invrs_tau_N2, &
         iC_invrs_tau_N2_wp2, iC_invrs_tau_N2_xp2, iC_invrs_tau_N2_wpxp, &
-        iC_invrs_tau_N2_clear_wp3, ialt_thresh
+        iC_invrs_tau_N2_clear_wp3, ialtitude_threshold
 
 
 

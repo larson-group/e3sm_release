@@ -214,7 +214,7 @@ module advance_clubb_core_module
         C_invrs_tau_N2_wpxp, &
         C_invrs_tau_N2_clear_wp3, &
         xp3_coef_base, &
-        xp3_coef_slope
+        xp3_coef_slope, &
         altitude_threshold
 
     use parameters_model, only: &
