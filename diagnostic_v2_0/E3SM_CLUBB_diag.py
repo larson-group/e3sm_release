@@ -51,7 +51,7 @@ drawskw          = False       # profiles for skewness functions
 drawrain         = True       # profiles for SNOW, Rain etc.
 drawbgt          = True       # budgets of CLUBB prognostic Eqs 
 drawe3smbgt      = True       # budgets of e3sm tendency
-drawmicrobgt     = False       # budgets of MG2
+drawmicrobgt     = True       # budgets of MG2
 drawaero         = False       # AERO for cloud brone
 # ONLY for SILHS
 drawhf           = False      # Tendency of holl filler 

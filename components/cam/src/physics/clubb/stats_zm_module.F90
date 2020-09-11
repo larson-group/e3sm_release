@@ -51,7 +51,6 @@ module stats_zm_module
         itau_wp3_zm, &
         itau_xp2_zm, &
         itau_wpxp_zm,&
-        ibrunt_vaisala_freq_sqd,& 
         iRi_zm, &
         iKh_zm, & 
         iK_hm, & 
@@ -312,6 +311,7 @@ module stats_zm_module
         iC6thl_Skw_fnc, &
         iC7_Skw_fnc, &
         iC1_Skw_fnc, &
+        ibrunt_vaisala_freq_sqd, &
         iRichardson_num, &
         ishear_sqd, &
         ihydrometp2, &
@@ -2451,8 +2451,8 @@ module stats_zm_module
 
       case ( 'bv_freq_sqd' )
         ibrunt_vaisala_freq_sqd = k
-        call stat_assign( var_index=ibrunt_vaisala_freq_sqd, var_name="brunt_vaisala_freq_sqd", &
-             var_description="Brunt-Vaisala freqency squared, N^2 [1/s^2]", &
+        call stat_assign( var_index=ibrunt_vaisala_freq_sqd, var_name="bv_freq_sqd", &
+             var_description="Brunt-Vaisala freqency squared [1/s^2]", &
              var_units="1/s^2", &
              l_silhs=.false., grid_kind=stats_zm )
         k = k + 1

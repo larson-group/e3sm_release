@@ -1233,8 +1233,6 @@ module advance_clubb_core_module
         invrs_tau_wp3_zm = invrs_tau_wp2_zm &
               + C_invrs_tau_N2_clear_wp3 * brunt_freq_out_cloud
 
-        Lscale = tau_zt * sqrt_em_zt
-
         invrs_tau_wpxp_zm = invrs_tau_zm & 
               + C_invrs_tau_N2_wpxp * brunt_freq_out_cloud 
 
@@ -1275,7 +1273,7 @@ module advance_clubb_core_module
 !                             sqrt( max( zero_threshold, brunt_vaisala_freq_sqd ) ) )
 !        tau_zm = max( zero_threshold, zt2zm( tau_zt ) )
 
-!        Lscale = tau_zt * sqrt_em_zt
+        Lscale = tau_zt * sqrt_em_zt
 
         ! Lscale_up and Lscale_down aren't calculated with this option.
         ! They are set to 0 for stats output.

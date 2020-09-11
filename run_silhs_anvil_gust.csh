@@ -1077,7 +1077,7 @@ clubb_nu1              = 10
 clubb_nu2              = 1
 clubb_nu8              = 60
 clubb_wpxp_l_thresh            = 100.0D0
-clubb_alt_thresh       =300.
+clubb_altitude_threshold       = 300.
 
 history_amwg = .true.
 history_budget = .true.

@@ -104,7 +104,7 @@ setenv DIAG_VERSION 140804  # version number YYMMDD
 #
 # Don t forget the trailing / when setting the paths
 
-set test_casename = anvil.default.clubb_silhs_test.ne16_ne16
+set test_casename = anvil.default.clubb_silhs_test.ne30_ne30
 set test_filetype = monthly_history 
 #set test_filetype = time_series
 
