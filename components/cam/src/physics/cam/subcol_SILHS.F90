@@ -256,7 +256,7 @@ contains
                                          initialize_silhs_config_flags_type_api, &
                                          print_silhs_config_flags_api
 
-      use spmd_utils,              only: iam
+      use spmd_utils,              only: masterproc, iam
 
       use clubb_intr,              only: init_clubb_config_flags, &
                                          clubb_config_flags
