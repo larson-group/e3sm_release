@@ -144,7 +144,27 @@ module clubb_intr
   integer            :: history_budget_histfile_num
   integer            :: edsclr_dim       ! Number of scalars to transport in CLUBB
   integer            :: offset
- 
+
+  integer :: &
+    clubb_iiPDF_type, &
+    clubb_ipdf_call_placement
+
+  logical :: &
+    clubb_l_predict_upwp_vpwp, &
+    clubb_l_min_wp2_from_corr_wx, &
+    clubb_l_min_xp2_from_corr_wx, &
+    clubb_l_vert_avg_closure, &
+    clubb_l_trapezoidal_rule_zt, &
+    clubb_l_trapezoidal_rule_zm, &
+    clubb_l_call_pdf_closure_twice, &
+    clubb_l_use_cloud_cover, &
+    clubb_l_stability_correct_tau_zm, &
+    clubb_l_damp_wp2_using_em, &
+    clubb_l_diag_Lscale_from_tau, &
+    clubb_l_use_C7_Richardson, &
+    clubb_l_rcm_supersat_adj, &
+    clubb_l_damp_wp3_Skw_squared
+
 !  define physics buffer indicies here       
   integer :: &
     wp2_idx, &          ! vertical velocity variances
@@ -489,6 +509,14 @@ end subroutine clubb_init_cnst
                                 clubb_do_adv, clubb_do_deep, clubb_timestep, clubb_stabcorrect, &
                                 clubb_rnevap_effic, clubb_liq_deep, clubb_liq_sh, clubb_ice_deep, &
                                 clubb_ice_sh, clubb_tk1, clubb_tk2, relvar_fix, clubb_use_sgv, &
+                                clubb_iiPDF_type, clubb_ipdf_call_placement, &
+                                clubb_l_predict_upwp_vpwp, clubb_l_min_wp2_from_corr_wx, &
+                                clubb_l_min_xp2_from_corr_wx, clubb_l_vert_avg_closure, &
+                                clubb_l_trapezoidal_rule_zt, clubb_l_trapezoidal_rule_zm, &
+                                clubb_l_call_pdf_closure_twice, clubb_l_use_cloud_cover, &
+                                clubb_l_stability_correct_tau_zm, clubb_l_damp_wp2_using_em, &
+                                clubb_l_diag_Lscale_from_tau, clubb_l_use_C7_Richardson, &
+                                clubb_l_rcm_supersat_adj, clubb_l_damp_wp3_Skw_squared, &
                                 clubb_do_icesuper
 
     !----- Begin Code -----
@@ -550,6 +578,22 @@ end subroutine clubb_init_cnst
       call mpibcast(clubb_tk2,                1,   mpir8,   0, mpicom)
       call mpibcast(relvar_fix,               1,   mpilog,  0, mpicom)
       call mpibcast(clubb_use_sgv,            1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_iiPDF_type,          1,   mpiint,   0, mpicom)
+      call mpibcast(clubb_ipdf_call_placement, 1,   mpiint,   0, mpicom)
+      call mpibcast(clubb_l_predict_upwp_vpwp,        1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_min_wp2_from_corr_wx,     1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_min_xp2_from_corr_wx,     1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_vert_avg_closure,         1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_trapezoidal_rule_zt,      1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_trapezoidal_rule_zm,      1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_call_pdf_closure_twice,   1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_use_cloud_cover,          1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_stability_correct_tau_zm, 1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_damp_wp2_using_em,        1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_diag_Lscale_from_tau,     1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_use_C7_Richardson,        1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_rcm_supersat_adj,         1,   mpilog,   0, mpicom)
+      call mpibcast(clubb_l_damp_wp3_Skw_squared,     1,   mpilog,   0, mpicom)
       call mpibcast(clubb_do_icesuper,        1,   mpilog,   0, mpicom)
 #endif
 
@@ -900,16 +944,20 @@ end subroutine clubb_init_cnst
            err_code )
 !$OMP END PARALLEL
 
-    ! Print the list of CLUBB parameters
-    if ( masterproc ) then
-       do j = 1, nparams, 1
-          write(*,*) params_list(j), " = ", clubb_params(j)
+    ! Print the list of CLUBB parameters, if multi-threaded, it may print by each thread
+    if (masterproc) then
+       write(iulog,*)'CLUBB tunable parameters: total ',nparams
+       write(iulog,*)'--------------------------------------------------'
+       do i = 1, nparams
+          write(iulog,*) params_list(i), " = ", clubb_params(i)
        enddo
     endif
 
     ! Print configurable CLUBB flags
-    write(iulog,'(a,i0,a)') " CLUBB configurable flags set in thread ", iam, ":"
-    call print_clubb_config_flags_api( iulog, clubb_config_flags ) ! Intent(in)
+    if (masterproc) then
+       write(iulog,'(a,i0,a)') " CLUBB configurable flags set in thread ", iam, ":"
+       call print_clubb_config_flags_api( iulog, clubb_config_flags ) ! Intent(in)
+    endif
 
     ! ----------------------------------------------------------------- !
     ! Set-up HB diffusion.  Only initialized to diagnose PBL depth      !
