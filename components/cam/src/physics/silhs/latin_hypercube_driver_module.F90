@@ -30,7 +30,7 @@ module latin_hypercube_driver_module
                l_calc_weights_all_levs_itime, &                            ! intent(in)
                pdf_params, delta_zm, rcm, Lscale, &                        ! intent(in)
                lh_seed, &                                                  ! intent(in)
-!              rho_ds_zt, &
+               rho_ds_zt, &
                mu1, mu2, sigma1, sigma2, &                                 ! intent(in)
                corr_cholesky_mtx_1, corr_cholesky_mtx_2, &                 ! intent(in)
                hydromet_pdf_params, silhs_config_flags, &                  ! intent(in)
@@ -48,6 +48,9 @@ module latin_hypercube_driver_module
 ! References:
 ! https://arxiv.org/pdf/1711.03675v1.pdf#nameddest=url:overview_silhs
 !-------------------------------------------------------------------------------
+
+    use grid_class, only: &
+        gr
 
     use array_index, only: &
       iiPDF_chi    ! Variables
@@ -127,8 +130,8 @@ module latin_hypercube_driver_module
     integer( kind = genrand_intg ), intent(in) :: &
       lh_seed      ! Random number generator seed
 
-!   real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
-!     rho_ds_zt    ! Dry, static density on thermo. levels    [kg/m^3]
+    real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
+      rho_ds_zt    ! Dry, static density on thermo. levels    [kg/m^3]
 
     logical, intent(in) :: &
       l_calc_weights_all_levs_itime ! determines if vertically correlated sample points are needed
@@ -178,7 +181,7 @@ module latin_hypercube_driver_module
       k_lh_start ! Height for preferentially sampling within cloud
       
     integer :: &
-      k, sample, p, i, j  ! Loop iterators
+      k, sample, p, i, j, km1, kp1  ! Loop iterators
 
     logical, dimension(ngrdcol,nz,num_samples) :: &
       l_in_precip   ! Whether sample is in precipitation
@@ -260,14 +263,16 @@ module latin_hypercube_driver_module
     
     ! Determine 3pt vertically averaged Lscale
     if ( silhs_config_flags%l_Lscale_vert_avg ) then
-      !do k = 1, nz, 1
-      !  kp1 = min( k+1, nz )
-      !  km1 = max( k-1, 1 )
-      !  Lscale_vert_avg(k) = vertical_avg &
-      !                       ( (kp1-km1+1), rho_ds_zt(km1:kp1), &
-      !                         Lscale(km1:kp1), gr%dzt(km1:kp1) )
-      !end do
-      stop "CLUBB ERROR: l_Lscale_vert_avg has been depricated"
+      do k = 1, nz, 1
+        kp1 = min( k+1, nz )
+        km1 = max( k-1, 1 )
+        do i = 1, ngrdcol
+           Lscale_vert_avg(i,k) = vertical_avg &
+                                  ( (kp1-km1+1), rho_ds_zt(i,km1:kp1), &
+                                    Lscale(i,km1:kp1), gr%dzt(km1:kp1) )
+        end do
+      end do
+      !stop "CLUBB ERROR: l_Lscale_vert_avg has been depricated"
     else
         Lscale_vert_avg = Lscale 
     end if

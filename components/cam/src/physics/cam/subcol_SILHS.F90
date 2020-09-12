@@ -335,6 +335,7 @@ contains
 !      l_prescribed_avg_deltaz = .false.
       clubb_config_flags%l_use_cloud_cover = .false.
       clubb_config_flags%l_const_Nc_in_cloud = .true.
+      l_Lscale_vert_avg = .true. ! Brian
 
       call initialize_silhs_config_flags_type_api( cluster_allocation_strategy, &
                                                    l_lh_importance_sampling, &

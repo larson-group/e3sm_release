@@ -281,7 +281,7 @@ contains
       l_calc_weights_all_levs_itime, & ! In
       pdf_params_col, delta_zm_col, rcm_col, Lscale_col, & ! In
       lh_seed, & ! In
-!     rho_ds_zt_col, & ! Unused
+      rho_ds_zt_col, & ! Unused
       mu1_col, mu2_col, sigma1_col, sigma2_col, & ! In
       corr_cholesky_mtx_1_col, corr_cholesky_mtx_2_col, & ! In
       hydromet_pdf_params_col, silhs_config_flags, & ! In
@@ -403,7 +403,7 @@ contains
       l_calc_weights_all_levs_itime, & ! In
       pdf_params, delta_zm, rcm, Lscale, & ! In
       lh_seed, & ! In
-!     rho_ds_zt, &
+      rho_ds_zt, &
       mu1, mu2, sigma1, sigma2, & ! In
       corr_cholesky_mtx_1, corr_cholesky_mtx_2, & ! In
       hydromet_pdf_params, silhs_config_flags, & ! In
