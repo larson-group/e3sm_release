@@ -658,8 +658,9 @@ end subroutine clubb_init_cnst
                                 stats_zt, stats_zm, stats_sfc, stats_rad_zt, stats_rad_zm, &
                                 em_min, w_tol_sqd, rt_tol, thl_tol, &
                                 iC1, iC1b, iC2rt, iC2thl, iC2rtthl, ic_K_hm, igamma_coef, igamma_coefb, &
-                                imult_coef, ic_K10, &
+                                imult_coef, ic_K10, ic_K_hmb, &
                                 iC8, iC8b, iC11, iC11b, iC4, iC14, inu1, &
+                                iomicron, iupsilon_precip_frac_rat, &
                                 iup2_vp2_factor, iSkw_max_mag, params_list, &
                                 init_pdf_params_api, init_pdf_implicit_coefs_terms_api
 
@@ -913,6 +914,9 @@ end subroutine clubb_init_cnst
     ! Brian:  these values were previously set in CLUBB's parameters_tunable.F90
     clubb_params(iC8b) = 0.0_core_rknd
     clubb_params(inu1) = 1.0_core_rknd
+    clubb_params(ic_K_hmb) = 0.1_core_rknd
+    clubb_params(iomicron) = 0.8_core_rknd
+    clubb_params(iupsilon_precip_frac_rat) = 0.9_core_rknd
 
     call init_clubb_config_flags( clubb_config_flags ) ! In/Out
     clubb_config_flags%l_uv_nudge = .false.
