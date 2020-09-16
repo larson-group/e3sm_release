@@ -47,7 +47,7 @@ set seconds_before_delete_bld_dir    = -1
 set seconds_before_delete_run_dir    = -1
 
 ### SUBMIT OPTIONS
-set submit_run       = False
+set submit_run       = True
 set debug_queue      = False
 
 ### PROCESSOR CONFIGURATION
