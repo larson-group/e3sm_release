@@ -2223,6 +2223,7 @@ subroutine micro_mg_tend ( &
            unr(i,k) = min(arn(i,k)*gamma_br_plus1/lamr(i,k)**br,9.1_r8*rhof(i,k))
            umr(i,k) = min(arn(i,k)*gamma_br_plus4/(6._r8*lamr(i,k)**br),9.1_r8*rhof(i,k))
 
+! Zhun reduced fallspeed by a factor of 4.
            umr(i,k) = umr(i,k)*0.25 
            unr(i,k) = unr(i,k)*0.25
 
@@ -2249,6 +2250,7 @@ subroutine micro_mg_tend ( &
            ums(i,k) = min(asn(i,k)*gamma_bs_plus4/(6._r8*lams(i,k)**bs),1.2_r8*rhof(i,k))
            uns(i,k) = min(asn(i,k)*gamma_bs_plus1/lams(i,k)**bs,1.2_r8*rhof(i,k))
 
+! Zhun reduced fallspeed by a factor of 4.
            ums(i,k) = ums(i,k)*0.25
            uns(i,k) = uns(i,k)*0.25
 
@@ -2479,10 +2481,13 @@ subroutine micro_mg_tend ( &
            ! sedimentation tendency for output
            qrsedten(i,k)=qrsedten(i,k)-faltndr/nstep
 
-           dumr(i,k) = dumr(i,k)-faltndr*deltat/real(nstep)
-           dumnr(i,k) = dumnr(i,k)-faltndnr*deltat/real(nstep)
-
-! Zhun copys down  
+! Added thresholding relevant for Zhun's change below.
+!           dumr(i,k) = dumr(i,k)-faltndr*deltat/real(nstep)
+!           dumnr(i,k) = dumnr(i,k)-faltndnr*deltat/real(nstep)
+           dumr(i,k) = max(dumr(i,k)-faltndr*deltat/real(nstep),0.0_r8)
+           dumnr(i,k) = max(dumnr(i,k)-faltndnr*deltat/real(nstep),1.0e-12_r8)
+!
+! Zhun copied down  
         call size_dist_param_basic(mg_rain_props, dumr(i,k), dumnr(i,k), &
              lamr(i,k))
 
@@ -2503,6 +2508,7 @@ subroutine micro_mg_tend ( &
         fr(k) = min(fr(k),frmax)
         fnr(k) = min(fnr(k),fnrmax)
 
+! End of Zhun's change
         end do
 
         ! Rain Flux
@@ -2559,8 +2565,11 @@ subroutine micro_mg_tend ( &
            ! sedimentation tendency for output
            qssedten(i,k)=qssedten(i,k)-faltnds/nstep
 
-           dums(i,k) = dums(i,k)-faltnds*deltat/real(nstep)
-           dumns(i,k) = dumns(i,k)-faltndns*deltat/real(nstep)
+! Added thresholding relevant for Zhun's change below.
+!           dums(i,k) = dums(i,k)-faltnds*deltat/real(nstep)
+!           dumns(i,k) = dumns(i,k)-faltndns*deltat/real(nstep)
+           dums(i,k) = max(dums(i,k)-faltnds*deltat/real(nstep),0.0_r8)
+           dumns(i,k) = max(dumns(i,k)-faltndns*deltat/real(nstep),1.0e-12_r8)
 !
 ! Zhun copied down
            call size_dist_param_basic(mg_snow_props, dums(i,k), dumns(i,k), &
@@ -2583,7 +2592,7 @@ subroutine micro_mg_tend ( &
 
            fs(k) = min(fs(k),fsmax)
            fns(k) = min(fns(k),fnsmax)
-
+! End of Zhun's change
         end do   !! k loop
 
         ! Snow Flux
