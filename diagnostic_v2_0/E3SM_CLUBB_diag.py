@@ -15,15 +15,15 @@ Main code to make 1) 2D plots,2) profiles, 3) budgets on selected stations,
 # Begin User Defined Settings
 # User defined name used for this comparison, this will be the name 
 #   given the directory for these diagnostics
-case='testing' # A general case name
+case='upgrade_Sept2020' # A general case name
 outdir='/lcrc/group/acme/ac.griffin/plots/' # Location of plots
 
 filepath=[ '/lcrc/group/acme/ac.griffin/E3SM_simulations/' ]
-cases=[ 'anvil.default.clubb_silhs_test.ne30_ne30' ]
+cases=[ 'anvil.default.clubb_silhs_upgrade_Sept2020.ne30_ne30' ]
        
 # Give a short name for your experiment which will appears on plots
 
-casenames=[ 'test_clubb_silhs' ]
+casenames=[ 'clubb_silhs_upgrade_Sept2020' ]
 
 years=[ 1 ]
 nyear=[ 1 ]

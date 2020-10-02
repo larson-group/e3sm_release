@@ -207,7 +207,7 @@ def draw_3D_plot (ptype,clevel,cseason, ncases, cases, casenames, nsite, lats, l
 
    for im in range(0, ncases):
        ncdfs[im]  = './data/'+cases[im]+'_site_location.nc' 
-       infiles[im]= filepath[im]+cases[im]+'/'+cases[im]+'_'+cseason+'_climo.nc'
+       infiles[im]= filepath[im]+cases[im]+'/run/climo_2/'+cases[im]+'_'+cseason+'_climo.nc'
        inptrs = Dataset(infiles[im],'r')       # pointer to file1
        lat=inptrs.variables['lat'][:]
        nlat=len(lat)
