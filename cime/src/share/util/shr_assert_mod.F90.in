@@ -321,6 +321,7 @@ subroutine shr_assert_in_domain_{DIMS}d_{TYPE}(var, varname, msg, &
      if (abs_tol_loc > 0) &
           write(shr_log_Unit,*) "Asserted with tolerance ", abs_tol_loc
   end if
+!write (*,*) "lat=" , publiclat 
 
   call shr_sys_abort(msg)
 

@@ -1222,11 +1222,14 @@ module advance_clubb_core_module
 !        where( gr%zt > alt_thresh) 
 !        invrs_tau_xp2_zm =invrs_tau_xp2_zm * &
 !                 min(max(sqrt((ddzt(um)**2+ddzt(vm)**2)/max(1e-7,brunt_vaisala_freq_sqd_smth)),0.3),3.0)
-!        invrs_tau_xp2_zm =min(invrs_tau_xp2_zm, invrs_tau_xp2_zm * &
-!               min(max(sqrt((ddzt(um)**2+ddzt(vm)**2)/max(1e-7,brunt_vaisala_freq_sqd_smth)),0.3),3.0))
+        invrs_tau_xp2_zm =min(invrs_tau_xp2_zm, invrs_tau_xp2_zm * &
+                 min(max(sqrt((ddzt(um)**2+ddzt(vm)**2)/max(1e-7,brunt_vaisala_freq_sqd_smth)),0.3),3.0))
 
-        invrs_tau_xp2_zm = min(max(sqrt((ddzt(um)**2+ddzt(vm)**2) &
-                           /max(1e-7,brunt_vaisala_freq_sqd_smth)),0.3),1.0)*invrs_tau_xp2_zm
+!        invrs_tau_xp2_zm(1:7) = min(max(sqrt((ddzt(um(1:7))**2+ddzt(vm(1:7))**2) &
+!                           /max(1e-7,brunt_vaisala_freq_sqd_smth(1:7))),1.0),1.0)*invrs_tau_xp2_zm(1:7)
+
+!        invrs_tau_xp2_zm(8:gr%nz) = min(max(sqrt((ddzt(um(8:gr%nz))**2+ddzt(vm(8:gr%nz))**2) &
+!                           /max(1e-7,brunt_vaisala_freq_sqd_smth(8:gr%nz))),0.3),1.0)*invrs_tau_xp2_zm(8:gr%nz)
 
 !        end where
 
@@ -1301,6 +1304,7 @@ module advance_clubb_core_module
 
       ! Calculate CLUBB's eddy diffusivity as
       !   CLUBB's length scale times a velocity scale.
+!      Kh_zt = c_K * zm2zt(zt2zm(Lscale)) * sqrt_em_zt
       Kh_zt = c_K * Lscale * sqrt_em_zt
       Kh_zm = c_K * max( zt2zm( Lscale ), 0.0_core_rknd  )  &
                   * sqrt( max( em, em_min ) )

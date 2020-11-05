@@ -250,7 +250,7 @@ contains
 !<
   subroutine write_darray_{DIMS}d_{TYPE} (File,varDesc,ioDesc, array, iostat, fillval)
     ! !INPUT PARAMETERS:
-
+!    use C_interface_mod, only : F_C_STRING_DUP
     type (File_desc_t), intent(inout) :: &
          File                   ! file information
 
@@ -267,13 +267,14 @@ contains
 
     integer(i4), intent(out) :: iostat
     {VTYPE} :: transvar(1), dumbvar(0)
+character(len= 32):: zname
 
 ! This code is required due to a bug in gfortran 4.7.2
 #if (__GFORTRAN__) &&  (__GNUC__ == 4) && (__GNUC_MINOR__ < 8)
     {VTYPE}, allocatable :: acopy(:)
     integer :: isize
 
-      write (*,*) "var=",varDesc
+    !  write (*,*) "var=",varDesc,F_C_String_dup(varDesc%name)
     isize= size(array)
     allocate(acopy(isize))
     acopy = reshape(array,(/isize/))
@@ -286,6 +287,8 @@ contains
     return
 #else
 ! cannot call transfer function with a 0 sized array
+!   zname= varDesc%name
+!    write(*,*)  "zhun=",zname
     if(size(array)==0) then
        call write_darray_1d_{TYPE} (File, varDesc, iodesc, dumbvar, iostat)
     else if(present(fillval)) then

@@ -2635,7 +2635,10 @@ end if
 
           call t_stopf('macrop_tend')
         end if ! l_st_mac
-
+! Zhun
+        if (state_debug_checks) &
+            call physics_state_check(state, name="aft_clubb_tend")
+! Zhun
           !===================================================
           ! Calculate cloud microphysics 
           !===================================================
@@ -2648,7 +2651,10 @@ end if
 
              ! Generate sub-columns using the requested scheme
              call subcol_gen(state, tend, state_sc, tend_sc, pbuf)
-
+! Zhun
+             if (state_debug_checks) &
+                call physics_state_check(state_sc, name="state_sc_aft_subcolgen")
+! Zhun
              !Initialize check energy for subcolumns
              call check_energy_timestep_init(state_sc, tend_sc, pbuf, col_type_subcol)
           end if
@@ -2658,7 +2664,10 @@ end if
             call t_startf('microp_aero_run')
             call microp_aero_run(state, ptend_aero, cld_macmic_ztodt, pbuf, lcldo)
             call t_stopf('microp_aero_run')
-
+! Zhun
+            if (state_debug_checks) &
+                call physics_state_check(state, name="state_aft_aero")
+! Zhun
           endif
 
           call t_startf('microp_tend')

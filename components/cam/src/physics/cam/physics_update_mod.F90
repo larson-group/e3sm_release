@@ -89,8 +89,10 @@ contains
     !and also output variables for pergro test
 
     use time_manager,  only: is_first_step
-
-    
+! Zhun
+    use physics_types,      only: physics_state, physics_tend, physics_ptend,&
+         physics_dme_adjust, set_dry_to_wet, physics_state_check
+! Zhun    
     !Arguments
     type(physics_ptend), intent(inout)  :: ptend   ! Parameterization tendencies
     type(physics_state), intent(inout)  :: state   ! Physics state variables

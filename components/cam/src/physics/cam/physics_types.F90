@@ -553,6 +553,7 @@ contains
     ! Constituent index
     integer :: m
 
+!    public  publiclat
 !-----------------------------------------------------------------------
 
     ncol = state%ncol
@@ -564,6 +565,8 @@ contains
     ! state as well, but this is not yet implemented.
 
     ! Check for NaN first to avoid any IEEE exceptions.
+
+!    publiclat = state%lat(:ncol) 
 
     if (present(name)) then
        msg = "NaN produced in physics_state by package "// &
@@ -665,15 +668,16 @@ contains
     ! 2-D variables (at midpoints)
 ! Zhun 20200909
     if (any(state%t < 0.0 )) then 
+      write(*,*) "herename=",name
       write(*,*) "totalncol=", ncol
       do i = 1, ncol
          do j = 1, 72
            if (state%t(i,j) < 0.0 ) then 
-           write(*,*) "state%t=", abs(state%t(i,j))
+           write(*,*) "state%t=", state%t(i,j)
            write(*,*) "ncol=", i  
            write(*,*) "nlev=", j
-           write(*,*) "lat=",state%lat(i)
-           write(*,*) "lon=",state%lon(i)
+           write(*,*) "lat=",state%lat(i)/3.14*180,"N"
+           write(*,*) "lon=",state%lon(i)/3.14*180,"E"
            end if 
           end do
        end do

@@ -10,8 +10,11 @@
 
 ### BASIC INFO ABOUT RUN
 set job_name       = clubb_silhs_upgrade_Sept2020
-set compset        = F2010SC5-CMIP6 # FC5CLBMG2BCL72 
+set compset        = F2010SC5-CMIP6 
+#set compset        = A_WCYCL1850S_CMIP6
+#set compset        = FC5CLBMG2BCL72 # alternative compset
 #set compset        = FAMIPC5 
+#set resolution     = ne30_oECv3_ICG
 set resolution     = ne30_ne30
 #set resolution     = ne16_ne16
 set machine        = anvil
@@ -66,16 +69,16 @@ set short_term_archive_root_dir = ${e3sm_simulations_dir}/${case_name}/archive
 
 ### LENGTH OF SIMULATION, RESTARTS, AND ARCHIVING
 set stop_units                  = nmonths
-set stop_num                    = 20
+set stop_num                    = 14
 set restart_units               = $stop_units
-set restart_num                 = $stop_num
+set restart_num                 = 6 #$stop_num
 set num_resubmits               = 0
 set do_short_term_archiving     = false
 
 ### SIMULATION OPTIONS
 set atm_output_freq             = 0
 set records_per_atm_output_file = 1
-set start_date                  = 0001-01-01#default
+set start_date                  = default
 
 ### COUPLER HISTORY FILES
 set do_cpl_hist    = false
@@ -1028,7 +1031,6 @@ cat <<EOF >> user_nl_cam
 ! clubb_liq_deep = 8.e-7
 ! clubb_liq_sh = 10.e-7
 
-
 state_debug_checks=.true.
 clubb_do_icesuper= .false.
 
@@ -1057,9 +1059,9 @@ clubb_c8               = 0.5
 
 clubb_c_invrs_tau_bkgnd                = 1.5
 clubb_c_invrs_tau_n2                   = 0.3
-clubb_c_invrs_tau_n2_clear_wp3         = 2.
+clubb_c_invrs_tau_n2_clear_wp3         = 10.
 clubb_c_invrs_tau_n2_wp2               = 0.2
-clubb_c_invrs_tau_n2_wpxp              = 2.
+clubb_c_invrs_tau_n2_wpxp              = 10.
 clubb_c_invrs_tau_n2_xp2               = 0.0  
 clubb_c_invrs_tau_sfc                  = .3
 clubb_c_invrs_tau_shear                = 0.15

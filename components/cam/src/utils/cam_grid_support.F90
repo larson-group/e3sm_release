@@ -3132,6 +3132,7 @@ contains
     integer                                  :: ierr
 
     call cam_pio_get_decomp(iodesc, adims, fdims, PIO_DOUBLE, this%map)
+!    write(*,*) "varid=",varid   
     call pio_write_darray(File, varid, iodesc, hbuf, ierr)
     call cam_pio_handle_error(ierr, 'cam_grid_write_darray_3d_double: Error writing variable')
 
