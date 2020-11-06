@@ -662,7 +662,8 @@ end subroutine clubb_init_cnst
                                 iC8, iC8b, iC11, iC11b, iC4, iC14, inu1, &
                                 iomicron, iupsilon_precip_frac_rat, &
                                 iup2_vp2_factor, iSkw_max_mag, params_list, &
-                                init_pdf_params_api, init_pdf_implicit_coefs_terms_api
+                                init_pdf_params_api, init_pdf_implicit_coefs_terms_api, &
+                                wp2_sponge_damp_settings, wp3_sponge_damp_settings
 
     use units,                     only: getunit, freeunit
     use error_messages,            only: handle_errmsg
@@ -963,6 +964,10 @@ end subroutine clubb_init_cnst
        call print_clubb_config_flags_api( iulog, clubb_config_flags ) ! Intent(in)
     endif
 
+    ! Turn on/off sponge damping above top_lev.
+    wp2_sponge_damp_settings%l_sponge_damping = .true.
+    wp3_sponge_damp_settings%l_sponge_damping = .true.
+
     ! ----------------------------------------------------------------- !
     ! Set-up HB diffusion.  Only initialized to diagnose PBL depth      !
     ! ----------------------------------------------------------------- !
@@ -1254,7 +1259,7 @@ end subroutine clubb_init_cnst
 #ifdef CLUBB_SGS
    use hb_diff,                   only: pblintd
    use scamMOD,                   only: single_column,scm_clubb_iop_name
-   use phys_grid,                 only: get_lat_p
+   use phys_grid,                 only: get_lat_p, get_gcol_p
    use cldfrc2m,                  only: aist_vector
    use cam_history,               only: outfld
    use trb_mtn_stress,            only: compute_tms
@@ -1275,7 +1280,13 @@ end subroutine clubb_init_cnst
                                         stats_sfc, stats_zm, stats_rad_zt, stats_rad_zm, l_output_rad_files, &
                                         stats_begin_timestep_api, &
                                         hydromet_dim, calculate_thlp2_rad_api, mu, update_xp2_mc_api, &
-                                        sat_mixrat_liq_api
+                                        sat_mixrat_liq_api, &
+                                        initialize_tau_sponge_damp_api, &
+                                        finalize_tau_sponge_damp_api, &
+                                        wp2_sponge_damp_settings, &
+                                        wp3_sponge_damp_settings, &
+                                        wp2_sponge_damp_profile, &
+                                        wp3_sponge_damp_profile
     
    use parameters_tunable,        only: mu
    use infnan,                    only: inf, assignment(=)
@@ -2308,6 +2319,33 @@ end subroutine clubb_init_cnst
                                  zi_g, zt_g, &
                                  clubb_config_flags%l_prescribed_avg_deltaz, &
                                  err_code )
+
+      ! Apply sponge damping starting at top_lev
+      if ( wp2_sponge_damp_settings%l_sponge_damping ) then
+
+         wp2_sponge_damp_settings%tau_sponge_damp_min = 600.0_r8
+         wp2_sponge_damp_settings%tau_sponge_damp_max = 1800.0_r8
+         wp2_sponge_damp_settings%sponge_damp_depth &
+         = ( zi_g(pverp) - zi_g(pverp-top_lev+1) ) / zi_g(pverp)
+
+         call initialize_tau_sponge_damp_api( dtime, zi_g,              & ! In
+                                              wp2_sponge_damp_settings, & ! In
+                                              wp2_sponge_damp_profile )   ! Out
+
+      endif
+
+      if ( wp3_sponge_damp_settings%l_sponge_damping ) then
+
+         wp3_sponge_damp_settings%tau_sponge_damp_min = 600.0_r8
+         wp3_sponge_damp_settings%tau_sponge_damp_max = 1800.0_r8
+         wp3_sponge_damp_settings%sponge_damp_depth &
+         = ( zi_g(pverp) - zi_g(pverp-top_lev+1) ) / zi_g(pverp)
+
+         call initialize_tau_sponge_damp_api( dtime, zt_g,              & ! In
+                                              wp3_sponge_damp_settings, & ! In
+                                              wp3_sponge_damp_profile )   ! Out
+
+      endif
  
       !  Define forcings from CAM to CLUBB as zero for momentum and thermo,
       !  forcings already applied through CAM
@@ -2338,11 +2376,34 @@ end subroutine clubb_init_cnst
       wpthlp_mc_zt(i,:) = 0.0_r8
       rtpthlp_mc_zt(i,:) = 0.0_r8
  
+      ! Calculate air density on momentum levels using the same formula,
+      ! rho = - (1/g) * dp/dz, that was used to calculate air density on
+      ! thermodynamic grid levels.  A one-side derivative is used at the
+      ! endpoints.
+      do k = 2, pver, 1
+         rho_zm(k) &
+         = - ( 1.0_r8 / gravit ) &
+             * ( ( state1%pmid(i,pver-k+1) - state1%pmid(i,pver-k+2) ) &
+                 / ( state1%zm(i,pver-k+1) - state1%zm(i,pver-k+2) ) )
+      enddo ! k = 2, pver, 1
+
+      ! At the surface
+      rho_zm(1) &
+      = - ( 1.0_r8 / gravit ) &
+          * ( ( state1%pmid(i,pver) - state1%pint(i,pverp) ) &
+              / ( state1%zm(i,pver) - state1%zi(i,pverp) ) )
+
+      ! At the upper boundary
+      rho_zm(pverp) &
+      = - ( 1.0_r8 / gravit ) &
+          * ( ( state1%pint(i,1) - state1%pmid(i,1) ) &
+              / ( state1%zi(i,1) - state1%zm(i,1) ) )
+
+      rho_ds_zm = rho_zm
+      invrs_rho_ds_zm = 1.0_r8 / rho_ds_zm
+
       !  Compute some inputs from the thermodynamic grid
       !  to the momentum grid
-      rho_ds_zm       = zt2zm_api(rho_ds_zt)
-      rho_zm          = zt2zm_api(rho_zt)
-      invrs_rho_ds_zm = zt2zm_api(invrs_rho_ds_zt)
       thv_ds_zm       = zt2zm_api(thv_ds_zt)
       wm_zm           = zt2zm_api(wm_zt)
  
@@ -2620,7 +2681,12 @@ end subroutine clubb_init_cnst
          call t_stopf('advance_clubb_core')
 
          if ( err_code == clubb_fatal_error ) then
-             write(fstderr,*) "Fatal error in CLUBB: at timestep ", get_nstep(), "LAT: ", state1%lat(i), " LON: ", state1%lon(i)
+             write(fstderr,*) "Fatal error in CLUBB: at timestep ", get_nstep(), &
+                              "LAT (radians): ", state1%lat(i), &
+                              "LON (radians): ", state1%lon(i), &
+                              "LAT (degrees): ", (180.0_r8/3.14159_r8)*state1%lat(i), &
+                              "LON (degrees): ", (180.0_r8/3.14159_r8)*state1%lon(i), &
+                              "Global Column Number: ", get_gcol_p(lchnk,i)
              call endrun('clubb_tend_cam:  Fatal error in CLUBB library')
          end if
 
@@ -2786,7 +2852,16 @@ end subroutine clubb_init_cnst
               edsclr_out(k,ixind) = edsclr_in(pverp-k+1,ixind)
           enddo
 
-      enddo 
+      enddo
+
+      ! Cleanup the sponge damping code.
+      if ( wp2_sponge_damp_settings%l_sponge_damping ) then
+         call finalize_tau_sponge_damp_api( wp2_sponge_damp_profile )
+      endif
+
+      if ( wp3_sponge_damp_settings%l_sponge_damping ) then
+         call finalize_tau_sponge_damp_api( wp3_sponge_damp_profile )
+      endif
 
       !  Fill up arrays needed for McICA.  Note we do not want the ghost point,
       !   thus why the second loop is needed.

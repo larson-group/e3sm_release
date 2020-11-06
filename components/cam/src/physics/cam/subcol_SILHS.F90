@@ -335,7 +335,7 @@ contains
 !      l_prescribed_avg_deltaz = .false.
       clubb_config_flags%l_use_cloud_cover = .false.
       clubb_config_flags%l_const_Nc_in_cloud = .true.
-      l_Lscale_vert_avg = .true. ! Brian
+      l_Lscale_vert_avg = .false. ! Brian
 
       call initialize_silhs_config_flags_type_api( cluster_allocation_strategy, &
                                                    l_lh_importance_sampling, &
@@ -1154,7 +1154,8 @@ contains
 
          if ( iiPDF_rr > 0 ) then
              ! Calc subcolumn precipitating liq water for output (rrm)
-             rain_all_pts = real( X_nl_all_levs(:,:,iiPDF_rr), kind=r8 )
+             rain_all_pts = min( real( X_nl_all_levs(:,:,iiPDF_rr), kind=r8 ), &
+                                 0.015_r8 )
          end if
 
          if ( iiPDF_Nr > 0 ) then
@@ -1164,7 +1165,8 @@ contains
 
          if ( iiPDF_rs > 0 ) then
              ! Calc subcolumn precipitating snow      for output (rsm)
-             snow_all_pts = real( X_nl_all_levs(:,:,iiPDF_rs), kind=r8 )
+             snow_all_pts = min( real( X_nl_all_levs(:,:,iiPDF_rs), kind=r8 ), &
+                                 0.015_r8 )
          end if
 
          if ( iiPDF_Ns > 0 ) then
@@ -1174,7 +1176,8 @@ contains
 
          if ( iiPDF_ri > 0 ) then
              ! Calc subcolumn cloud ice mixing ratio
-             ice_all_pts = real( X_nl_all_levs(:,:,iiPDF_ri), kind=r8)
+             ice_all_pts = min( real( X_nl_all_levs(:,:,iiPDF_ri), kind=r8), &
+                                0.015_r8 )
          end if
 
          if ( iiPDF_Ni > 0 ) then
