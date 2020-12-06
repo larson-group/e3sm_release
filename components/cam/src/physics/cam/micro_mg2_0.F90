@@ -1478,8 +1478,8 @@ subroutine micro_mg_tend ( &
         ums(:,k) = 0._r8
         uns(:,k) = 0._r8
      end where
-        ums(:,k) = ums(:,k) *0.25
-        uns(:,k) = uns(:,k) *0.25
+!        ums(:,k) = ums(:,k) *0.25
+!        uns(:,k) = uns(:,k) *0.25
 
 
      if (do_cldice) then
