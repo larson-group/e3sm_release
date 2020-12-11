@@ -67,9 +67,11 @@ module advance_xm_wpxp_module
                               l_upwind_xm_ma, &
                               l_uv_nudge, &
                               l_tke_aniso, &
+                              l_diag_Lscale_from_tau, &
                               l_use_C7_Richardson, &
                               l_brunt_vaisala_freq_moist, &
                               l_use_thvm_in_bv_freq, &
+                              l_lmm_stepping, &
                               rtm, wprtp, thlm, wpthlp, &
                               sclrm, wpsclrp, um, upwp, vm, vpwp )
 
@@ -165,8 +167,8 @@ module advance_xm_wpxp_module
         iC7_Skw_fnc, &
         iC6rt_Skw_fnc, &
         iC6thl_Skw_fnc, &
-        l_stats_samp, &
-        iC6_term
+        iC6_term, &
+        l_stats_samp
 
     use sponge_layer_damping, only: &
         rtm_sponge_damp_settings, &
@@ -297,10 +299,13 @@ module advance_xm_wpxp_module
       l_uv_nudge,                   & ! For wind speed nudging
       l_tke_aniso,                  & ! For anisotropic turbulent kinetic energy, i.e. TKE = 1/2
                                       ! (u'^2 + v'^2 + w'^2)
+      l_diag_Lscale_from_tau,       & ! First diagnose dissipation time tau, and then diagnose the
+                                      ! mixing length scale as Lscale = tau * tke
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
                                       ! saturated atmospheres (from Durran and Klemp, 1982)
-      l_use_thvm_in_bv_freq           ! Use thvm in the calculation of Brunt-Vaisala frequency
+      l_use_thvm_in_bv_freq,        & ! Use thvm in the calculation of Brunt-Vaisala frequency
+      l_lmm_stepping                  ! Apply Linear Multistep Method (LMM) Stepping
 
     ! -------------------- Input/Output Variables --------------------
     
@@ -436,21 +441,37 @@ module advance_xm_wpxp_module
        vpwp_old = vpwp
     endif ! l_predict_upwp_vpwp
 
-    ! Compute C6 and C7 as a function of Skw
-    ! The if...then is just here to save compute time
-    if ( abs(C6rt-C6rtb) > abs(C6rt+C6rtb)*eps/2 ) then
-      C6rt_Skw_fnc(1:gr%nz) = C6rtb + (C6rt-C6rtb) & 
-        *EXP( -one_half * (Skw_zm(1:gr%nz)/C6rtc)**2 )
-    else
-      C6rt_Skw_fnc(1:gr%nz) = C6rtb
-    endif
+    if ( .not. l_diag_Lscale_from_tau ) then
 
-    if ( abs(C6thl-C6thlb) > abs(C6thl+C6thlb)*eps/2 ) then
-      C6thl_Skw_fnc(1:gr%nz) = C6thlb + (C6thl-C6thlb) & 
-        *EXP( -one_half * (Skw_zm(1:gr%nz)/C6thlc)**2 )
-    else
-      C6thl_Skw_fnc(1:gr%nz) = C6thlb
-    endif
+       ! Compute C6 and C7 as a function of Skw
+       ! The if...then is just here to save compute time
+       if ( abs(C6rt-C6rtb) > abs(C6rt+C6rtb)*eps/2 ) then
+         C6rt_Skw_fnc(1:gr%nz) = C6rtb + (C6rt-C6rtb) & 
+           *EXP( -one_half * (Skw_zm(1:gr%nz)/C6rtc)**2 )
+       else
+         C6rt_Skw_fnc(1:gr%nz) = C6rtb
+       endif
+
+       if ( abs(C6thl-C6thlb) > abs(C6thl+C6thlb)*eps/2 ) then
+         C6thl_Skw_fnc(1:gr%nz) = C6thlb + (C6thl-C6thlb) & 
+           *EXP( -one_half * (Skw_zm(1:gr%nz)/C6thlc)**2 )
+       else
+         C6thl_Skw_fnc(1:gr%nz) = C6thlb
+       endif
+
+       ! Damp C6 as a function of Lscale in stably stratified regions
+       C6rt_Skw_fnc = damp_coefficient( C6rt, C6rt_Skw_fnc, &
+                                        C6rt_Lscale0, wpxp_L_thresh, Lscale )
+
+       C6thl_Skw_fnc = damp_coefficient( C6thl, C6thl_Skw_fnc, &
+                                         C6thl_Lscale0, wpxp_L_thresh, Lscale )
+
+    else ! l_diag_Lscale_from_tau
+
+       C6rt_Skw_fnc = C6rt
+       C6thl_Skw_fnc = C6thl
+
+    endif ! .not. l_diag_Lscale_from_tau
 
     ! Compute C7_Skw_fnc
     if ( l_use_C7_Richardson ) then
@@ -469,16 +490,7 @@ module advance_xm_wpxp_module
                                      C7_Lscale0, wpxp_L_thresh, Lscale )
     end if ! l_use_C7_Richardson
 
-    ! Damp C6 as a function of Lscale in stably stratified regions
-!    C6rt_Skw_fnc = damp_coefficient( C6rt, C6rt_Skw_fnc, &
-!                                     C6rt_Lscale0, wpxp_L_thresh, Lscale )
-
-!    C6thl_Skw_fnc = damp_coefficient( C6thl, C6thl_Skw_fnc, &
-!                                      C6thl_Lscale0, wpxp_L_thresh, Lscale )
-
-            C6rt_Skw_fnc = C6rt
-            C6thl_Skw_fnc = C6thl
-    !        C7_Skw_fnc = C7
+!   C7_Skw_fnc = C7
 
     if ( l_stats_samp ) then
 
@@ -607,7 +619,20 @@ module advance_xm_wpxp_module
     endif ! l_clip_semi_implicit &
           ! .or. ( ( iiPDF_type == iiPDF_new ) &
           !        .and. ( .not. l_explicit_turbulent_adv_wpxp ) )
-          
+
+    if ( l_lmm_stepping ) then
+      thlm = one_half * ( thlm_old + thlm )
+      rtm = one_half * ( rtm_old + rtm )
+      um = one_half * ( um_old + um )
+      vm = one_half * ( vm_old + vm )
+      wpthlp = one_half * ( wpthlp_old + wpthlp ) 
+      wprtp = one_half * ( wprtp_old + wprtp )
+      if ( l_predict_upwp_vpwp ) then
+        upwp = one_half * ( upwp_old + upwp )
+        vpwp = one_half * ( vpwp_old + vpwp )    
+      end if ! l_predict_upwp_vpwp 
+    end if ! l_lmm_stepping
+
     if ( clubb_at_least_debug_level( 0 ) ) then
       if ( err_code == clubb_fatal_error ) then
         call error_prints_xm_wpxp( dt, sigma_sqd_w, wm_zm, wm_zt, wp2, &
@@ -2560,13 +2585,19 @@ module advance_xm_wpxp_module
        endif ! .not. l_implemented
 
        ! Add "extra term" and optional Coriolis term for <u'w'> and <v'w'>.
-       upwp_forcing = C7_Skw_fnc * wp2 * ddzt( um )
-       vpwp_forcing = C7_Skw_fnc * wp2 * ddzt( vm )
+       !upwp_forcing = C7_Skw_fnc * wp2 * ddzt( um )
+       !vpwp_forcing = C7_Skw_fnc * wp2 * ddzt( vm )
+       upwp_forcing = 0.7_core_rknd * wp2 * ddzt( um )
+       vpwp_forcing = 0.7_core_rknd * wp2 * ddzt( vm )
 
        if ( l_stats_samp ) then
-          call stat_update_var( iupwp_pr4, C7_Skw_fnc * wp2 * ddzt( um ), &
+          !call stat_update_var( iupwp_pr4, C7_Skw_fnc * wp2 * ddzt( um ), &
+          !                      stats_zm )
+          !call stat_update_var( ivpwp_pr4, C7_Skw_fnc * wp2 * ddzt( vm ), &
+          !                      stats_zm )
+          call stat_update_var( iupwp_pr4, 0.7_core_rknd * wp2 * ddzt( um ), &
                                 stats_zm )
-          call stat_update_var( ivpwp_pr4, C7_Skw_fnc * wp2 * ddzt( vm ), &
+          call stat_update_var( ivpwp_pr4, 0.7_core_rknd * wp2 * ddzt( vm ), &
                                 stats_zm )
        endif ! l_stats_samp
 

@@ -925,6 +925,10 @@ end subroutine clubb_init_cnst
     ! Brian:  these flags were previously set in CLUBB's model_flags.F90
     clubb_config_flags%l_predict_upwp_vpwp = .false.
     clubb_config_flags%l_diag_Lscale_from_tau = .true.
+    clubb_config_flags%l_min_wp2_from_corr_wx = .false.
+    clubb_config_flags%l_min_xp2_from_corr_wx = .false.
+    clubb_config_flags%l_use_shear_Richardson = .true.
+    clubb_config_flags%l_lmm_stepping = .false.
    
     !  Set up CLUBB core.  Note that some of these inputs are overwrote
     !  when clubb_tend_cam is called.  The reason is that heights can change
@@ -3520,7 +3524,7 @@ end subroutine clubb_init_cnst
       
       do i=1,stats_zt%num_output_fields
    
-         temp1 = trim(stats_zt%file%var(i)%name)
+         temp1 = trim(stats_zt%file%grid_avg_var(i)%name)
          sub   = temp1
          if (len(temp1) .gt. 16) sub = temp1(1:16)
    
@@ -3529,7 +3533,7 @@ end subroutine clubb_init_cnst
    
       do i=1,stats_zm%num_output_fields
    
-         temp1 = trim(stats_zm%file%var(i)%name)
+         temp1 = trim(stats_zm%file%grid_avg_var(i)%name)
          sub   = temp1
          if (len(temp1) .gt. 16) sub = temp1(1:16)
       
@@ -3538,16 +3542,16 @@ end subroutine clubb_init_cnst
 
       if (l_output_rad_files) then  
          do i=1,stats_rad_zt%num_output_fields
-            call outfld(trim(stats_rad_zt%file%var(i)%name), out_radzt(:,:,i), pcols, lchnk)
+            call outfld(trim(stats_rad_zt%file%grid_avg_var(i)%name), out_radzt(:,:,i), pcols, lchnk)
          enddo
    
          do i=1,stats_rad_zm%num_output_fields
-            call outfld(trim(stats_rad_zm%file%var(i)%name), out_radzm(:,:,i), pcols, lchnk)
+            call outfld(trim(stats_rad_zm%file%grid_avg_var(i)%name), out_radzm(:,:,i), pcols, lchnk)
          enddo
       endif
    
       do i=1,stats_sfc%num_output_fields
-         call outfld(trim(stats_sfc%file%var(i)%name), out_sfc(:,:,i), pcols, lchnk)
+         call outfld(trim(stats_sfc%file%grid_avg_var(i)%name), out_sfc(:,:,i), pcols, lchnk)
       enddo
    
    endif
@@ -4347,7 +4351,7 @@ end function diag_ustar
     call stats_zero( stats_zt%kk, stats_zt%num_output_fields, stats_zt%accum_field_values, &
                      stats_zt%accum_num_samples, stats_zt%l_in_update )
 
-    allocate( stats_zt%file%var( stats_zt%num_output_fields ) )
+    allocate( stats_zt%file%grid_avg_var( stats_zt%num_output_fields ) )
     allocate( stats_zt%file%z( stats_zt%kk ) )
 
     !  Allocate scratch space
@@ -4429,7 +4433,7 @@ end function diag_ustar
     call stats_zero( stats_zm%kk, stats_zm%num_output_fields, stats_zm%accum_field_values, &
                      stats_zm%accum_num_samples, stats_zm%l_in_update )
 
-    allocate( stats_zm%file%var( stats_zm%num_output_fields ) )
+    allocate( stats_zm%file%grid_avg_var( stats_zm%num_output_fields ) )
     allocate( stats_zm%file%z( stats_zm%kk ) )
 
     !  Allocate scratch space
@@ -4504,7 +4508,7 @@ end function diag_ustar
       call stats_zero( stats_rad_zt%kk, stats_rad_zt%num_output_fields, stats_rad_zt%accum_field_values, &
                      stats_rad_zt%accum_num_samples, stats_rad_zt%l_in_update )
 
-      allocate( stats_rad_zt%file%var( stats_rad_zt%num_output_fields ) )
+      allocate( stats_rad_zt%file%grid_avg_var( stats_rad_zt%num_output_fields ) )
       allocate( stats_rad_zt%file%z( stats_rad_zt%kk ) )
 
        fname = trim( fname_rad_zt )
@@ -4541,7 +4545,7 @@ end function diag_ustar
        call stats_zero( stats_rad_zm%kk, stats_rad_zm%num_output_fields, stats_rad_zm%accum_field_values, &
                      stats_rad_zm%accum_num_samples, stats_rad_zm%l_in_update )
 
-       allocate( stats_rad_zm%file%var( stats_rad_zm%num_output_fields ) )
+       allocate( stats_rad_zm%file%grid_avg_var( stats_rad_zm%num_output_fields ) )
        allocate( stats_rad_zm%file%z( stats_rad_zm%kk ) )
    
        fname = trim( fname_rad_zm )
@@ -4580,7 +4584,7 @@ end function diag_ustar
     call stats_zero( stats_sfc%kk, stats_sfc%num_output_fields, stats_sfc%accum_field_values, &
                      stats_sfc%accum_num_samples, stats_sfc%l_in_update )
 
-    allocate( stats_sfc%file%var( stats_sfc%num_output_fields ) )
+    allocate( stats_sfc%file%grid_avg_var( stats_sfc%num_output_fields ) )
     allocate( stats_sfc%file%z( stats_sfc%kk ) )
 
     fname = trim( fname_sfc )
@@ -4596,40 +4600,40 @@ end function diag_ustar
 !   Now call add fields
     do i = 1, stats_zt%num_output_fields
     
-      temp1 = trim(stats_zt%file%var(i)%name)
+      temp1 = trim(stats_zt%file%grid_avg_var(i)%name)
       sub   = temp1
       if (len(temp1) .gt. 16) sub = temp1(1:16)
      
 !!XXgoldyXX: Probably need a hist coord for nnzp for the vertical     
        call addfld(trim(sub),(/ 'ilev' /),&
-            'A',trim(stats_zt%file%var(i)%units),trim(stats_zt%file%var(i)%description))
+            'A',trim(stats_zt%file%grid_avg_var(i)%units),trim(stats_zt%file%grid_avg_var(i)%description))
     enddo
     
     do i = 1, stats_zm%num_output_fields
     
-      temp1 = trim(stats_zm%file%var(i)%name)
+      temp1 = trim(stats_zm%file%grid_avg_var(i)%name)
       sub   = temp1
       if (len(temp1) .gt. 16) sub = temp1(1:16)
     
       call addfld(trim(sub),(/ 'ilev' /),&
-           'A',trim(stats_zm%file%var(i)%units),trim(stats_zm%file%var(i)%description))
+           'A',trim(stats_zm%file%grid_avg_var(i)%units),trim(stats_zm%file%grid_avg_var(i)%description))
     enddo
 
     if (l_output_rad_files) then     
       do i = 1, stats_rad_zt%num_output_fields
-        call addfld(trim(stats_rad_zt%file%var(i)%name),(/ 'ilev' /),&
-           'A',trim(stats_rad_zt%file%var(i)%units),trim(stats_rad_zt%file%var(i)%description))
+        call addfld(trim(stats_rad_zt%file%grid_avg_var(i)%name),(/ 'ilev' /),&
+           'A',trim(stats_rad_zt%file%grid_avg_var(i)%units),trim(stats_rad_zt%file%grid_avg_var(i)%description))
       enddo
     
       do i = 1, stats_rad_zm%num_output_fields
-        call addfld(trim(stats_rad_zm%file%var(i)%name),(/ 'ilev' /),&
-           'A',trim(stats_rad_zm%file%var(i)%units),trim(stats_rad_zm%file%var(i)%description))
+        call addfld(trim(stats_rad_zm%file%grid_avg_var(i)%name),(/ 'ilev' /),&
+           'A',trim(stats_rad_zm%file%grid_avg_var(i)%units),trim(stats_rad_zm%file%grid_avg_var(i)%description))
       enddo
     endif 
     
     do i = 1, stats_sfc%num_output_fields
-      call addfld(trim(stats_sfc%file%var(i)%name),horiz_only,&
-           'A',trim(stats_sfc%file%var(i)%units),trim(stats_sfc%file%var(i)%description))
+      call addfld(trim(stats_sfc%file%grid_avg_var(i)%name),horiz_only,&
+           'A',trim(stats_sfc%file%grid_avg_var(i)%units),trim(stats_sfc%file%grid_avg_var(i)%description))
     enddo
 
     return
@@ -4715,7 +4719,7 @@ end function diag_ustar
 
           if ( clubb_at_least_debug_level_api( 1 ) ) then
             write(fstderr,*) 'Possible sampling error for variable ',  &
-                             trim(stats_zt%file%var(i)%name), ' in zt ',  &
+                             trim(stats_zt%file%grid_avg_var(i)%name), ' in zt ',  &
                              'at k = ', k,  &
                              '; stats_zt%accum_num_samples(',k,',',i,') = ', stats_zt%accum_num_samples(1,1,k,i)
           endif
@@ -4737,7 +4741,7 @@ end function diag_ustar
 
           if ( clubb_at_least_debug_level_api( 1 ) ) then
             write(fstderr,*) 'Possible sampling error for variable ',  &
-                             trim(stats_zm%file%var(i)%name), ' in zm ',  &
+                             trim(stats_zm%file%grid_avg_var(i)%name), ' in zm ',  &
                              'at k = ', k,  &
                              '; stats_zm%accum_num_samples(',k,',',i,') = ', stats_zm%accum_num_samples(1,1,k,i)
           endif
@@ -4760,7 +4764,7 @@ end function diag_ustar
 
             if ( clubb_at_least_debug_level_api( 1 ) ) then
               write(fstderr,*) 'Possible sampling error for variable ',  &
-                               trim(stats_rad_zt%file%var(i)%name), ' in rad_zt ',  &
+                               trim(stats_rad_zt%file%grid_avg_var(i)%name), ' in rad_zt ',  &
                                'at k = ', k,  &
                                '; stats_rad_zt%accum_num_samples(',k,',',i,') = ', stats_rad_zt%accum_num_samples(1,1,k,i)
             endif
@@ -4782,7 +4786,7 @@ end function diag_ustar
 
             if ( clubb_at_least_debug_level_api( 1 ) ) then
               write(fstderr,*) 'Possible sampling error for variable ',  &
-                               trim(stats_rad_zm%file%var(i)%name), ' in rad_zm ',  &
+                               trim(stats_rad_zm%file%grid_avg_var(i)%name), ' in rad_zm ',  &
                                'at k = ', k,  &
                                '; stats_rad_zm%accum_num_samples(',k,',',i,') = ', stats_rad_zm%accum_num_samples(1,1,k,i)
             endif
@@ -4805,7 +4809,7 @@ end function diag_ustar
 
           if ( clubb_at_least_debug_level_api( 1 ) ) then
             write(fstderr,*) 'Possible sampling error for variable ',  &
-                             trim(stats_sfc%file%var(i)%name), ' in sfc ',  &
+                             trim(stats_sfc%file%grid_avg_var(i)%name), ' in sfc ',  &
                              'at k = ', k,  &
                              '; stats_sfc%accum_num_samples(',k,',',i,') = ', stats_sfc%accum_num_samples(1,1,k,i)
           endif
@@ -5093,6 +5097,7 @@ end function diag_ustar
                                       ! mixing length scale as Lscale = tau * tke
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
+      l_use_shear_Richardson,       & ! Use shear in the calculation of Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
                                       ! saturated atmospheres (from Durran and Klemp, 1982)
       l_use_thvm_in_bv_freq,        & ! Use thvm in the calculation of Brunt-Vaisala frequency
@@ -5101,7 +5106,8 @@ end function diag_ustar
                                       ! rtpthlp
       l_damp_wp3_Skw_squared,       & ! Set damping on wp3 to use Skw^2 rather than Skw^4
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
-      l_update_pressure               ! Flag for having CLUBB update pressure and exner
+      l_update_pressure,            & ! Flag for having CLUBB update pressure and exner
+      l_lmm_stepping                  ! Apply Linear Multistep Method (LMM) Stepping
 
     logical, save :: first_call = .true.
 
@@ -5141,13 +5147,15 @@ end function diag_ustar
                                                l_diag_Lscale_from_tau, & ! Out
                                                l_use_C7_Richardson, & ! Out
                                                l_use_C11_Richardson, & ! Out
+                                               l_use_shear_Richardson, & ! Out
                                                l_brunt_vaisala_freq_moist, & ! Out
                                                l_use_thvm_in_bv_freq, & ! Out
                                                l_rcm_supersat_adj, & ! Out
                                                l_single_C2_Skw, & ! Out
                                                l_damp_wp3_Skw_squared, & ! Out
                                                l_prescribed_avg_deltaz, & ! Out
-                                               l_update_pressure ) ! Out
+                                               l_update_pressure, & ! Out
+                                               l_lmm_stepping ) ! Out
 
       call initialize_clubb_config_flags_type_api( iiPDF_type, & ! In
                                                    ipdf_call_placement, & ! In
@@ -5183,6 +5191,7 @@ end function diag_ustar
                                                    l_diag_Lscale_from_tau, & ! In
                                                    l_use_C7_Richardson, & ! In
                                                    l_use_C11_Richardson, & ! In
+                                                   l_use_shear_Richardson, & ! In
                                                    l_brunt_vaisala_freq_moist, & ! In
                                                    l_use_thvm_in_bv_freq, & ! In
                                                    l_rcm_supersat_adj, & ! In
@@ -5190,6 +5199,7 @@ end function diag_ustar
                                                    l_damp_wp3_Skw_squared, & ! In
                                                    l_prescribed_avg_deltaz, & ! In
                                                    l_update_pressure, & ! In
+                                                   l_lmm_stepping, & ! In
                                                    clubb_config_flags_in ) ! Out
 
       first_call = .false.

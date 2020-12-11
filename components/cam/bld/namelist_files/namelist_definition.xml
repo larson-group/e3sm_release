@@ -3493,6 +3493,12 @@ Altitude above which damping should occur for turbulent fluxes (wpxp)
 Default: 100.0
 </entry>
 
+<entry id="clubb_rtp2_clip_coef" type="real" category="pblrad"
+       group="clubb_param_nl" valid_values="" >
+Coefficient applied to the clipping threshold on rtp2
+Default: 0.5
+</entry>
+
 <entry id="clubb_C_invrs_tau_bkgnd"  type="real" category="pblrad"
        group="clubb_param_nl" valid_values="" >
 Coefficient of inverse tau term contributed by background constant value [-]
@@ -3539,6 +3545,26 @@ Default: 0.0D0
        group="clubb_param_nl" valid_values="" >
 Coefficient of inverse tau term contributed by Brunt Vaisala frequency [-]
 Default: 0.0D0
+</entry>
+
+<entry id="clubb_Richardson_num_min"  type="real" category="pblrad"
+       group="clubb_param_nl" valid_values="" >
+Minimum value of Richardson number used in Cx function calculations
+</entry>
+
+<entry id="clubb_Richardson_num_max"  type="real" category="pblrad"
+       group="clubb_param_nl" valid_values="" >
+Maximum value of Richardson number used in Cx function calculations
+</entry>
+
+<entry id="clubb_Cx_min"  type="real" category="pblrad"
+       group="clubb_param_nl" valid_values="" >
+Threshold value on Cx_fnc_Richardson
+</entry>
+
+<entry id="clubb_Cx_max"  type="real" category="pblrad"
+       group="clubb_param_nl" valid_values="" >
+Threshold value on Cx_fnc_Richardson
 </entry>
 
 <entry id="clubb_iiPDF_type" type="integer"  category="pblrad"

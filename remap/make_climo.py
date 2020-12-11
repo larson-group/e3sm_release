@@ -17,7 +17,7 @@ filepath=[ \
 '/lcrc/group/acme/ac.griffin/E3SM_simulations/',\
           ]
 cases=[ \
-'anvil.default.clubb_silhs_test.ne30_ne30',\
+'anvil.default.clubb_silhs_upgrade_Dec2020.ne30_ne30',\
 ]
 
 years=[\

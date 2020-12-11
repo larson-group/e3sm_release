@@ -30,7 +30,7 @@ module latin_hypercube_driver_module
                l_calc_weights_all_levs_itime, &                            ! intent(in)
                pdf_params, delta_zm, rcm, Lscale, &                        ! intent(in)
                lh_seed, &                                                  ! intent(in)
-               rho_ds_zt, &
+!              rho_ds_zt, &
                mu1, mu2, sigma1, sigma2, &                                 ! intent(in)
                corr_cholesky_mtx_1, corr_cholesky_mtx_2, &                 ! intent(in)
                hydromet_pdf_params, silhs_config_flags, &                  ! intent(in)
@@ -48,9 +48,6 @@ module latin_hypercube_driver_module
 ! References:
 ! https://arxiv.org/pdf/1711.03675v1.pdf#nameddest=url:overview_silhs
 !-------------------------------------------------------------------------------
-
-    use grid_class, only: &
-        gr
 
     use array_index, only: &
       iiPDF_chi    ! Variables
@@ -130,8 +127,8 @@ module latin_hypercube_driver_module
     integer( kind = genrand_intg ), intent(in) :: &
       lh_seed      ! Random number generator seed
 
-    real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
-      rho_ds_zt    ! Dry, static density on thermo. levels    [kg/m^3]
+!   real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
+!     rho_ds_zt    ! Dry, static density on thermo. levels    [kg/m^3]
 
     logical, intent(in) :: &
       l_calc_weights_all_levs_itime ! determines if vertically correlated sample points are needed
@@ -181,14 +178,14 @@ module latin_hypercube_driver_module
       k_lh_start ! Height for preferentially sampling within cloud
       
     integer :: &
-      k, sample, p, i, j, km1, kp1  ! Loop iterators
+      k, sample, p, i, j  ! Loop iterators
 
     logical, dimension(ngrdcol,nz,num_samples) :: &
       l_in_precip   ! Whether sample is in precipitation
 
     logical :: l_error, l_error_in_sub
     
-    real( kind = core_rknd ), dimension(ngrdcol,pdf_dim,pdf_dim,nz) :: &
+    real( kind = core_rknd ), dimension(pdf_dim,ngrdcol,nz,pdf_dim) :: &
       Sigma_Cholesky1, &  ! Correlations Cholesky matrix 1 [-]
       Sigma_Cholesky2     ! Correlations Cholesky matrix 2 [-]
       
@@ -254,8 +251,8 @@ module latin_hypercube_driver_module
         do j = 1, p
           do i = 1, ngrdcol
             ! Calculate possible Sigma_Cholesky values
-            Sigma_Cholesky1(i,p,j,k) = corr_cholesky_mtx_1(i,p,j,k) * sigma1(i,p,k)
-            Sigma_Cholesky2(i,p,j,k) = corr_cholesky_mtx_2(i,p,j,k) * sigma2(i,p,k)
+            Sigma_Cholesky1(j,i,k,p) = corr_cholesky_mtx_1(i,p,j,k) * sigma1(i,p,k)
+            Sigma_Cholesky2(j,i,k,p) = corr_cholesky_mtx_2(i,p,j,k) * sigma2(i,p,k)
           end do
         end do
       end do
@@ -263,16 +260,14 @@ module latin_hypercube_driver_module
     
     ! Determine 3pt vertically averaged Lscale
     if ( silhs_config_flags%l_Lscale_vert_avg ) then
-      do k = 1, nz, 1
-        kp1 = min( k+1, nz )
-        km1 = max( k-1, 1 )
-        do i = 1, ngrdcol
-           Lscale_vert_avg(i,k) = vertical_avg &
-                                  ( (kp1-km1+1), rho_ds_zt(i,km1:kp1), &
-                                    Lscale(i,km1:kp1), gr%dzt(km1:kp1) )
-        end do
-      end do
-      !stop "CLUBB ERROR: l_Lscale_vert_avg has been depricated"
+      !do k = 1, nz, 1
+      !  kp1 = min( k+1, nz )
+      !  km1 = max( k-1, 1 )
+      !  Lscale_vert_avg(k) = vertical_avg &
+      !                       ( (kp1-km1+1), rho_ds_zt(km1:kp1), &
+      !                         Lscale(km1:kp1), gr%dzt(km1:kp1) )
+      !end do
+      stop "CLUBB ERROR: l_Lscale_vert_avg has been depricated"
     else
         Lscale_vert_avg = Lscale 
     end if
@@ -467,23 +462,6 @@ module latin_hypercube_driver_module
     
     !$acc end data
     !$acc end data
-
-    ! This code lets precip fall through the cloud not clear sky.
-!    do k=1, nz
-!      if ( pdf_params%ice_supersat_frac_1(k) >= 0.01_core_rknd .or.  &
-!           pdf_params%ice_supersat_frac_2(k) >= 0.01_core_rknd .or.  &
-!           pdf_params%cloud_frac_1(k) >= 0.01_core_rknd .or.   &
-!           pdf_params%cloud_frac_2(k) >= 0.01_core_rknd ) then
-!        do sample=1, num_samples
-!           if ( X_nl_all_levs(k,sample,iiPDF_chi) .lt. 0.0_core_rknd ) then 
-!                X_nl_all_levs(k,sample,iiPDF_chi) = &
-!                X_nl_all_levs(k,sample,iiPDF_chi) * 0.3_core_rknd 
-!           end if
-!!           X_nl_all_levs(k,sample,iiPDF_chi) &
-!!                = max( X_nl_all_levs(k,sample,iiPDF_chi), 0.0_core_rknd)
-!        end do
-!      end if
-!    end do
 
     ! Stop the run if an error occurred
     if ( l_error ) then
@@ -1533,7 +1511,8 @@ module latin_hypercube_driver_module
 !-------------------------------------------------------------------------------
   subroutine latin_hypercube_2D_output &
              ( fname_prefix, fdir, stats_tout, nz, &
-               stats_zt, time_initial, num_samples )
+               stats_zt, time_initial, num_samples, &
+               nlon, nlat, lon_vals, lat_vals )
 !-------------------------------------------------------------------------------
 
     use array_index, only: &
@@ -1585,6 +1564,16 @@ module latin_hypercube_driver_module
       stats_zt ! Altitudes [m]
 
     integer, intent(in) :: num_samples
+
+    integer, intent(in) :: &
+      nlon, & ! Number of points in the X direction [-]
+      nlat    ! Number of points in the Y direction [-]
+
+    real( kind = core_rknd ), dimension(nlon), intent(in) ::  &
+      lon_vals  ! Longitude values [Degrees E]
+
+    real( kind = core_rknd ), dimension(nlat), intent(in) ::  &
+      lat_vals  ! Latitude values  [Degrees N]
 
     ! Local Variables
     character(len=100), allocatable, dimension(:) :: &
@@ -1643,7 +1632,7 @@ module latin_hypercube_driver_module
         variable_units(iiPDF_Ncn)        = "count/kg"
       end if
       if ( iiPDF_Ni > 0 ) then
-        variable_names(iiPDF_Ni)        = "ngrdcol"
+        variable_names(iiPDF_Ni)        = "Ni"
         variable_descriptions(iiPDF_Ni) = "Ice number concentration"
         variable_units(iiPDF_Ni)        = "count/kg"
       end if
@@ -1662,6 +1651,7 @@ module latin_hypercube_driver_module
                                  trim( fname_prefix )//"_nl", fdir, & ! In
                                  time_initial, stats_tout, stats_zt, variable_names, & ! In
                                  variable_descriptions, variable_units, & ! In
+                                 nlon, nlat, lon_vals, lat_vals, & ! In
                                  lognormal_sample_file ) ! In/Out
 
       deallocate( variable_names, variable_descriptions, variable_units )
@@ -1718,7 +1708,7 @@ module latin_hypercube_driver_module
         variable_units(iiPDF_Ncn)        = "count/kg"
       end if
       if ( iiPDF_Ni > 0 ) then
-        variable_names(iiPDF_Ni)        = "ngrdcol"
+        variable_names(iiPDF_Ni)        = "Ni"
         variable_descriptions(iiPDF_Ni) = "Ice number concentration"
         variable_units(iiPDF_Ni)        = "count/kg"
       end if
@@ -1757,6 +1747,7 @@ module latin_hypercube_driver_module
                                  time_initial, stats_tout, stats_zt, & ! In
                                  variable_names(1:p), variable_descriptions(1:p), & ! In
                                  variable_units(1:p), & ! In
+                                 nlon, nlat, lon_vals, lat_vals, & ! In
                                  uniform_sample_file ) ! In/Out
 
       deallocate( variable_names, variable_descriptions, variable_units )
@@ -2214,7 +2205,7 @@ module latin_hypercube_driver_module
         enddo ! k = 1, nz
       end if
 
-      ! Sample of lh_cloud_frac th`at is not weighted
+      ! Sample of lh_cloud_frac that is not weighted
       if ( ilh_cloud_frac_unweighted > 0 ) then
         lh_cloud_frac(:) = zero
         do sample = 1, num_samples
@@ -2530,7 +2521,7 @@ module latin_hypercube_driver_module
   !-----------------------------------------------------------------------
 
     !----- Begin Code -----
-     
+
     ! Switch back to using stat_update_var once the code is generalized
     ! to pass in the number of vertical levels.
 

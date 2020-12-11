@@ -158,7 +158,8 @@ module clubb_api_module
     iup2_vp2_factor, iSkw_max_mag, iC_invrs_tau_bkgnd, &
     iC_invrs_tau_sfc, iC_invrs_tau_shear, iC_invrs_tau_N2, &
     iC_invrs_tau_N2_wp2, iC_invrs_tau_N2_xp2, iC_invrs_tau_N2_wpxp, &
-    iC_invrs_tau_N2_clear_wp3, ialtitude_threshold
+    iC_invrs_tau_N2_clear_wp3, ialtitude_threshold, irtp2_clip_coef, &
+    iRichardson_num_min, iRichardson_num_max, iCx_min, iCx_max
 
 
   use pdf_parameter_module, only : &
@@ -269,8 +270,8 @@ module clubb_api_module
         iup2_vp2_factor, iSkw_max_mag, iC_invrs_tau_bkgnd, &
         iC_invrs_tau_sfc, iC_invrs_tau_shear, iC_invrs_tau_N2, &
         iC_invrs_tau_N2_wp2, iC_invrs_tau_N2_xp2, iC_invrs_tau_N2_wpxp, &
-        iC_invrs_tau_N2_clear_wp3, ialtitude_threshold
-
+        iC_invrs_tau_N2_clear_wp3, ialtitude_threshold, irtp2_clip_coef, &
+        iRichardson_num_min, iRichardson_num_max, iCx_min, iCx_max
 
 
 
@@ -726,13 +727,13 @@ contains
 
     real( kind = core_rknd ), intent(out), dimension(gr%nz) ::  &
       rcm_in_layer, & ! rcm in cloud layer                              [kg/kg]
-      cloud_cover,&     ! cloud cover                                     [-]
-      invrs_tau_zm
+      cloud_cover     ! cloud cover                                     [-]
 
     ! Variables that need to be output for use in host models
     real( kind = core_rknd ), intent(out), dimension(gr%nz) ::  &
-      wprcp,            & ! w'r_c' (momentum levels)                  [(kg/kg) m/s]
-      ice_supersat_frac   ! ice cloud fraction (thermodynamic levels) [-]
+      wprcp,             & ! w'r_c' (momentum levels)                  [(kg/kg) m/s]
+      ice_supersat_frac, & ! ice cloud fraction (thermodynamic levels) [-]
+      invrs_tau_zm         ! One divided by tau on zm levels           [1/s]
 
     real( kind = core_rknd ), dimension(gr%nz), intent(out) :: &
       Kh_zt, & ! Eddy diffusivity coefficient on thermodynamic levels   [m^2/s]
@@ -1815,7 +1816,7 @@ contains
     stats_fmt_in, stats_tsamp_in, stats_tout_in, fnamelist, &
     nzmax, nlon, nlat, gzt, gzm, nnrad_zt, &
     grad_zt, nnrad_zm, grad_zm, day, month, year, &
-    rlon, rlat, time_current, delt, l_silhs_out_in )
+    lon_vals, lat_vals, time_current, delt, l_silhs_out_in )
 
     use stats_clubb_utilities, only : stats_init
 
@@ -1860,10 +1861,10 @@ contains
     integer, intent(in) :: day, month, year  ! Time of year
 
     real( kind = core_rknd ), dimension(nlon), intent(in) ::  &
-      rlon  ! Longitude(s) [Degrees E]
+      lon_vals  ! Longitude values [Degrees E]
 
     real( kind = core_rknd ), dimension(nlat), intent(in) ::  &
-      rlat  ! Latitude(s)  [Degrees N]
+      lat_vals  ! Latitude values  [Degrees N]
 
     real( kind = time_precision ), intent(in) ::  &
       time_current ! Model time                         [s]
@@ -1879,7 +1880,7 @@ contains
       stats_fmt_in, stats_tsamp_in, stats_tout_in, fnamelist, &
       nzmax, nlon, nlat, gzt, gzm, nnrad_zt, &
       grad_zt, nnrad_zm, grad_zm, day, month, year, &
-      rlon, rlat, time_current, delt, l_silhs_out_in )
+      lon_vals, lat_vals, time_current, delt, l_silhs_out_in )
 
     if ( err_code == clubb_fatal_error ) stop
     
@@ -2601,13 +2602,15 @@ contains
                                                  l_diag_Lscale_from_tau, & ! Out
                                                  l_use_C7_Richardson, & ! Out
                                                  l_use_C11_Richardson, & ! Out
+                                                 l_use_shear_Richardson, & ! Out
                                                  l_brunt_vaisala_freq_moist, & ! Out
                                                  l_use_thvm_in_bv_freq, & ! Out
                                                  l_rcm_supersat_adj, & ! Out
                                                  l_single_C2_Skw, & ! Out
                                                  l_damp_wp3_Skw_squared, & ! Out
                                                  l_prescribed_avg_deltaz, & ! Out
-                                                 l_update_pressure ) ! Out
+                                                 l_update_pressure, & ! Out
+                                                 l_lmm_stepping ) ! Out
 
     use model_flags, only: &
       set_default_clubb_config_flags  ! Procedure
@@ -2705,6 +2708,7 @@ contains
                                       ! mixing length scale as Lscale = tau * tke
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
+      l_use_shear_Richardson,       & ! Use shear in the calculation of Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
                                       ! saturated atmospheres (from Durran and Klemp, 1982)
       l_use_thvm_in_bv_freq,        & ! Use thvm in the calculation of Brunt-Vaisala frequency
@@ -2713,7 +2717,8 @@ contains
                                       ! rtpthlp
       l_damp_wp3_Skw_squared,       & ! Set damping on wp3 to use Skw^2 rather than Skw^4
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
-      l_update_pressure               ! Flag for having CLUBB update pressure and exner
+      l_update_pressure,            & ! Flag for having CLUBB update pressure and exner
+      l_lmm_stepping                  ! Apply Linear Multistep Method (LMM) Stepping
 
     call set_default_clubb_config_flags( iiPDF_type, & ! Out
                                          ipdf_call_placement, & ! Out
@@ -2749,13 +2754,15 @@ contains
                                          l_diag_Lscale_from_tau, & ! Out
                                          l_use_C7_Richardson, & ! Out
                                          l_use_C11_Richardson, & ! Out
+                                         l_use_shear_Richardson, & ! Out
                                          l_brunt_vaisala_freq_moist, & ! Out
                                          l_use_thvm_in_bv_freq, & ! Out
                                          l_rcm_supersat_adj, & ! Out
                                          l_single_C2_Skw, & ! Out
                                          l_damp_wp3_Skw_squared, & ! Out
                                          l_prescribed_avg_deltaz, & ! Out
-                                         l_update_pressure ) ! Out
+                                         l_update_pressure, & ! Out
+                                         l_lmm_stepping ) ! Out
 
   end subroutine set_default_clubb_config_flags_api
 
@@ -2796,6 +2803,7 @@ contains
                                                      l_diag_Lscale_from_tau, & ! In
                                                      l_use_C7_Richardson, & ! In
                                                      l_use_C11_Richardson, & ! In
+                                                     l_use_shear_Richardson, & ! In
                                                      l_brunt_vaisala_freq_moist, & ! In
                                                      l_use_thvm_in_bv_freq, & ! In
                                                      l_rcm_supersat_adj, & ! In
@@ -2803,6 +2811,7 @@ contains
                                                      l_damp_wp3_Skw_squared, & ! In
                                                      l_prescribed_avg_deltaz, & ! In
                                                      l_update_pressure, & ! In
+                                                     l_lmm_stepping, & ! In
                                                      clubb_config_flags ) ! Out
 
     use model_flags, only: &
@@ -2902,6 +2911,7 @@ contains
                                       ! mixing length scale as Lscale = tau * tke
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
+      l_use_shear_Richardson,       & ! Use shear in the calculation of Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
                                       ! saturated atmospheres (from Durran and Klemp, 1982)
       l_use_thvm_in_bv_freq,        & ! Use thvm in the calculation of Brunt-Vaisala frequency
@@ -2910,7 +2920,8 @@ contains
                                       ! rtpthlp
       l_damp_wp3_Skw_squared,       & ! Set damping on wp3 to use Skw^2 rather than Skw^4
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
-      l_update_pressure               ! Flag for having CLUBB update pressure and exner
+      l_update_pressure,            & ! Flag for having CLUBB update pressure and exner
+      l_lmm_stepping                  ! Apply Linear Multistep Method (LMM) Stepping
 
     ! Output variables
     type(clubb_config_flags_type), intent(out) :: &
@@ -2950,6 +2961,7 @@ contains
                                              l_diag_Lscale_from_tau, & ! In
                                              l_use_C7_Richardson, & ! In
                                              l_use_C11_Richardson, & ! In
+                                             l_use_shear_Richardson, & ! In
                                              l_brunt_vaisala_freq_moist, & ! In
                                              l_use_thvm_in_bv_freq, & ! In
                                              l_rcm_supersat_adj, & ! In
@@ -2957,6 +2969,7 @@ contains
                                              l_damp_wp3_Skw_squared, & ! In
                                              l_prescribed_avg_deltaz, & ! In
                                              l_update_pressure, & ! In
+                                             l_lmm_stepping, & ! In
                                              clubb_config_flags ) ! Out
 
   end subroutine initialize_clubb_config_flags_type_api

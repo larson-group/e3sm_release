@@ -1,4 +1,4 @@
-set case = anvil.default.clubb_silhs_test
+set case = anvil.default.clubb_silhs_upgrade_Dec2020
  
 set nmember = 512
 cd /lcrc/group/acme/ac.griffin/E3SM_simulations/$case.ne30_ne30/run/

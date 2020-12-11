@@ -127,8 +127,9 @@ module stats_variables
      itau_wp2_zm   = 0,     &
      itau_wp3_zm   = 0,     &
      itau_wpxp_zm  = 0
-!$omp threadprivate( itau_no_N2_zm,itau_wp2_zm, itau_xp2_zm, itau_wp3_zm )
-!$omp threadprivate( iinvrs_tau_bkgnd,iinvrs_tau_sfc, iinvrs_tau_shear)
+!$omp threadprivate( iinvrs_tau_bkgnd, iinvrs_tau_sfc, iinvrs_tau_shear, &
+!$omp                itau_no_N2_zm, itau_xp2_zm, itau_wp2_zm, itau_wp3_zm, &
+!$omp                itau_wpxp_zm )
 
 
   integer, dimension(:), allocatable, public :: & 

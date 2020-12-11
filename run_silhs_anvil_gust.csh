@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = clubb_silhs_upgrade_Sept2020
+set job_name       = clubb_silhs_upgrade_Dec2020
 set compset        = F2010SC5-CMIP6 
 #set compset        = A_WCYCL1850S_CMIP6
 #set compset        = FC5CLBMG2BCL72 # alternative compset
@@ -1059,15 +1059,20 @@ clubb_c8               = 0.5
 
 clubb_c_invrs_tau_bkgnd                = 1.5
 clubb_c_invrs_tau_n2                   = 0.3
-clubb_c_invrs_tau_n2_clear_wp3         = 10.
+clubb_c_invrs_tau_n2_clear_wp3         = 2.0
 clubb_c_invrs_tau_n2_wp2               = 0.2
-clubb_c_invrs_tau_n2_wpxp              = 10.
+clubb_c_invrs_tau_n2_wpxp              = 2.0
 clubb_c_invrs_tau_n2_xp2               = 0.0  
 clubb_c_invrs_tau_sfc                  = .3
 clubb_c_invrs_tau_shear                = 0.15
+clubb_Richardson_num_min               = 100.0
+clubb_Richardson_num_max               = 400.0
+clubb_Cx_min                           = 0.95
+clubb_Cx_max                           = 0.6
 
 clubb_c_k1             = 1
 clubb_c_k10            = 0.5
+clubb_c_k10h           = 0.35
 clubb_c_k2             = 0.1
 clubb_c_k8             = 10
 clubb_c_k9             = 0.25
@@ -1084,6 +1089,7 @@ clubb_nu9              = 20
 clubb_wpxp_l_thresh            = 100.0D0
 clubb_up2_vp2_factor           = 2.0
 clubb_altitude_threshold       = 300.
+clubb_rtp2_clip_coef           = 10.0
 
 history_amwg = .true.
 history_budget = .true.

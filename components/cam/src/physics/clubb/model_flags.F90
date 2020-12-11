@@ -233,6 +233,7 @@ module model_flags
                                       ! mixing length scale as Lscale = tau * tke
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
+      l_use_shear_Richardson,       & ! Use shear in the calculation of Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
                                       ! saturated atmospheres (from Durran and Klemp, 1982)
       l_use_thvm_in_bv_freq,        & ! Use thvm in the calculation of Brunt-Vaisala frequency
@@ -241,7 +242,8 @@ module model_flags
                                       ! rtpthlp
       l_damp_wp3_Skw_squared,       & ! Set damping on wp3 to use Skw^2 rather than Skw^4
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
-      l_update_pressure               ! Flag for having CLUBB update pressure and exner
+      l_update_pressure,            & ! Flag for having CLUBB update pressure and exner
+      l_lmm_stepping                  ! Apply Linear Multistep Method (LMM) Stepping
 
   end type clubb_config_flags_type
 
@@ -345,13 +347,15 @@ module model_flags
                                              l_diag_Lscale_from_tau, &
                                              l_use_C7_Richardson, &
                                              l_use_C11_Richardson, &
+                                             l_use_shear_Richardson, &
                                              l_brunt_vaisala_freq_moist, &
                                              l_use_thvm_in_bv_freq, &
                                              l_rcm_supersat_adj, &
                                              l_single_C2_Skw, &
                                              l_damp_wp3_Skw_squared, &
                                              l_prescribed_avg_deltaz, &
-                                             l_update_pressure )
+                                             l_update_pressure, &
+                                             l_lmm_stepping )
 
 ! Description:
 !   Sets all CLUBB flags to a default setting.
@@ -453,6 +457,7 @@ module model_flags
                                       ! mixing length scale as Lscale = tau * tke
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
+      l_use_shear_Richardson,       & ! Use shear in the calculation of Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
                                       ! saturated atmospheres (from Durran and Klemp, 1982)
       l_use_thvm_in_bv_freq,        & ! Use thvm in the calculation of Brunt-Vaisala frequency
@@ -461,7 +466,8 @@ module model_flags
                                       ! rtpthlp
       l_damp_wp3_Skw_squared,       & ! Set damping on wp3 to use Skw^2 rather than Skw^4
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
-      l_update_pressure               ! Flag for having CLUBB update pressure and exner
+      l_update_pressure,            & ! Flag for having CLUBB update pressure and exner
+      l_lmm_stepping                  ! Apply Linear Multistep Method (LMM) Stepping
 
 !-----------------------------------------------------------------------
     ! Begin code
@@ -470,8 +476,8 @@ module model_flags
     ipdf_call_placement = ipdf_pre_advance_fields
     l_use_precip_frac = .true.
     l_predict_upwp_vpwp = .true.
-    l_min_wp2_from_corr_wx = .false.
-    l_min_xp2_from_corr_wx = .false.
+    l_min_wp2_from_corr_wx = .true.
+    l_min_xp2_from_corr_wx = .true.
     l_C2_cloud_frac = .false.
     l_diffuse_rtm_and_thlm = .false.
     l_stability_correct_Kh_N2_zm = .false.
@@ -500,6 +506,7 @@ module model_flags
     l_diag_Lscale_from_tau = .true.
     l_use_C7_Richardson = .true.
     l_use_C11_Richardson = .false.
+    l_use_shear_Richardson = .true.
     l_brunt_vaisala_freq_moist = .false.
     l_use_thvm_in_bv_freq = .false.
     l_rcm_supersat_adj = .true.
@@ -511,6 +518,7 @@ module model_flags
     l_prescribed_avg_deltaz = .false.
 #endif
     l_update_pressure = .true.
+    l_lmm_stepping = .false.
 
     return
   end subroutine set_default_clubb_config_flags
@@ -550,6 +558,7 @@ module model_flags
                                                  l_diag_Lscale_from_tau, &
                                                  l_use_C7_Richardson, &
                                                  l_use_C11_Richardson, &
+                                                 l_use_shear_Richardson, &
                                                  l_brunt_vaisala_freq_moist, &
                                                  l_use_thvm_in_bv_freq, &
                                                  l_rcm_supersat_adj, &
@@ -557,6 +566,7 @@ module model_flags
                                                  l_damp_wp3_Skw_squared, &
                                                  l_prescribed_avg_deltaz, &
                                                  l_update_pressure, &
+                                                 l_lmm_stepping, &
                                                  clubb_config_flags )
 
 ! Description:
@@ -659,6 +669,7 @@ module model_flags
                                       ! mixing length scale as Lscale = tau * tke
       l_use_C7_Richardson,          & ! Parameterize C7 based on Richardson number
       l_use_C11_Richardson,         & ! Parameterize C11 and C16 based on Richardson number
+      l_use_shear_Richardson,       & ! Use shear in the calculation of Richardson number
       l_brunt_vaisala_freq_moist,   & ! Use a different formula for the Brunt-Vaisala frequency in
                                       ! saturated atmospheres (from Durran and Klemp, 1982)
       l_use_thvm_in_bv_freq,        & ! Use thvm in the calculation of Brunt-Vaisala frequency
@@ -667,7 +678,8 @@ module model_flags
                                       ! rtpthlp
       l_damp_wp3_Skw_squared,       & ! Set damping on wp3 to use Skw^2 rather than Skw^4
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
-      l_update_pressure               ! Flag for having CLUBB update pressure and exner
+      l_update_pressure,            & ! Flag for having CLUBB update pressure and exner
+      l_lmm_stepping                  ! Apply Linear Multistep Method (LMM) Stepping
 
     ! Output variables
     type(clubb_config_flags_type), intent(out) :: &
@@ -710,6 +722,7 @@ module model_flags
     clubb_config_flags%l_diag_Lscale_from_tau = l_diag_Lscale_from_tau
     clubb_config_flags%l_use_C7_Richardson = l_use_C7_Richardson
     clubb_config_flags%l_use_C11_Richardson = l_use_C11_Richardson
+    clubb_config_flags%l_use_shear_Richardson = l_use_shear_Richardson
     clubb_config_flags%l_brunt_vaisala_freq_moist = l_brunt_vaisala_freq_moist
     clubb_config_flags%l_use_thvm_in_bv_freq = l_use_thvm_in_bv_freq
     clubb_config_flags%l_rcm_supersat_adj = l_rcm_supersat_adj
@@ -717,6 +730,7 @@ module model_flags
     clubb_config_flags%l_damp_wp3_Skw_squared = l_damp_wp3_Skw_squared
     clubb_config_flags%l_prescribed_avg_deltaz = l_prescribed_avg_deltaz
     clubb_config_flags%l_update_pressure = l_update_pressure
+    clubb_config_flags%l_lmm_stepping = l_lmm_stepping
 
     return
   end subroutine initialize_clubb_config_flags_type
@@ -779,6 +793,7 @@ module model_flags
     write(iunit,*) "l_diag_Lscale_from_tau = ", clubb_config_flags%l_diag_Lscale_from_tau
     write(iunit,*) "l_use_C7_Richardson = ", clubb_config_flags%l_use_C7_Richardson
     write(iunit,*) "l_use_C11_Richardson = ", clubb_config_flags%l_use_C11_Richardson
+    write(iunit,*) "l_use_shear_Richardson = ", clubb_config_flags%l_use_shear_Richardson
     write(iunit,*) "l_brunt_vaisala_freq_moist = ", clubb_config_flags%l_brunt_vaisala_freq_moist
     write(iunit,*) "l_use_thvm_in_bv_freq = ", clubb_config_flags%l_use_thvm_in_bv_freq
     write(iunit,*) "l_rcm_supersat_adj = ", clubb_config_flags%l_rcm_supersat_adj
@@ -786,6 +801,7 @@ module model_flags
     write(iunit,*) "l_damp_wp3_Skw_squared = ", clubb_config_flags%l_damp_wp3_Skw_squared
     write(iunit,*) "l_prescribed_avg_deltaz = ", clubb_config_flags%l_prescribed_avg_deltaz
     write(iunit,*) "l_update_pressure = ", clubb_config_flags%l_update_pressure
+    write(iunit,*) "l_lmm_stepping = ", clubb_config_flags%l_lmm_stepping
 
     return
   end subroutine print_clubb_config_flags

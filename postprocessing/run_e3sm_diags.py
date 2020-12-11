@@ -8,12 +8,12 @@ from acme_diags.run import runner
 param = CoreParameter()
 
 param.reference_data_path = '/lcrc/soft/climate/e3sm_diags_data/obs_for_e3sm_diags/climatology/'
-param.test_data_path = '/lcrc/group/acme/ac.griffin/E3SM_simulations/anvil.default.clubb_silhs_test.ne30_ne30/run/climo/'
-param.test_name = 'anvil.default.clubb_silhs_test.ne30_ne30'
+param.test_data_path = '/lcrc/group/acme/ac.griffin/E3SM_simulations/anvil.default.clubb_silhs_upgrade_Dec2020.ne30_ne30/run/climo/'
+param.test_name = 'anvil.default.clubb_silhs_upgrade_Dec2020.ne30_ne30'
 param.seasons = ["ANN"]   #all seasons ["ANN","DJF", "MAM", "JJA", "SON"] will run,if comment out"
 
 prefix = '/lcrc/group/acme/public_html/diagnostic_output/griffinb/'
-param.results_dir = os.path.join(prefix, 'clubb_silhs_test_ne30')
+param.results_dir = os.path.join(prefix, 'clubb_silhs_upgrade_Dec2020')
 # Use the following if running in parallel:
 #param.multiprocessing = True
 #param.num_workers = 32
