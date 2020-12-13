@@ -1,66 +1,80 @@
-commit 98f1803e2a4242c96a439a42fdd778e0bfc9280f
-Author: System Administrator <larsongroupgithub@gmail.com>
-Date:   Tue Dec 1 23:16:49 2020 -0600
+commit f9269638ed3d641ebe98d6ace0e8fcc80a3a30de
+Author: bmg929 <bmg2@uwm.edu>
+Date:   Thu Dec 10 17:08:20 2020 -0600
 
-    Updating the clubb core and silhs version files
+    I am committing a bug fix to the invrs_tau_zm equation that was
+    introduced with the code merge from E3SM.  I am also adding some
+    changes to the clubb_api_module that should have been brought over
+    at that time.  This commit is BIT_CHANGING with the bug fix.
 
-commit 80c85d3e78dd06a88f60cf243aa74d2177b47a87
-Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
-Date:   Tue Dec 1 16:25:28 2020 -0600
-
-    Update README.md
-    
-    Adding note about the --priority-variables option.
-
-commit 3b48ece0bd1623abf2f099816fe4274a4794c48d
+commit 24b0e2ad62c03197029fff969a57e4ea7abf9a0d
 Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
-Date:   Tue Dec 1 15:13:50 2020 -0600
+Date:   Thu Dec 10 09:48:22 2020 -0600
 
-    Adding some minor updates so that the user has a sense of possibly important error messages in error.log at the end of the run.  For example if time or heights were requested outside of the netcdf range, they will see an alert on the screen as well as in the error.log file.
+    This commit replaces division by tau with multiplication by inverse tau in most cases.  It is BIT_CHANGING, not only because the results change (only very slightly in some cases, but more significantly in sensitive cases like ARM_97, RICO, etc.) but also because some of the old tau_*_zm or tau_*_zt output variables are replaced with invrs_tau_* variables, hence the netcdf files will differ and there are minor changes to stats input files.  Spurious source test also needed to be slightly modified to accommodate a new variable fed into the advance_xm_wpxp subroutine.
+    
+    There is also some minor cleanup.
+    
+    See issue #899.
 
-commit 0a452a79e4d2810af73a847bc201ad93d8ba59b6
-Merge: 7d533e6 3c6da39
+commit 5f7dafc136b5b6e152260a63ac0f3f136f6902a7
+Author: System Administrator <31322814+LarsonGroupSysAdmin@users.noreply.github.com>
+Date:   Wed Dec 9 12:53:41 2020 -0600
+
+    First version of a CLUBB Jenkins test, compile and run with gfortran
+
+commit 056829e488e17517baa079948d8d38d747366404
+Merge: c83f3f3 0fa795e
+Author: IsenfireLDC <isenfireldc@gmail.com>
+Date:   Tue Dec 8 16:17:52 2020 -0600
+
+    Revert changes to the mkl-lapack compiling flags
+    Added the issue tag
+
+commit c83f3f3b325abcaf9de0de646276de6f56e61c2e
+Author: IsenfireLDC <isenfireldc@gmail.com>
+Date:   Tue Dec 8 16:15:21 2020 -0600
+
+    Revert changes to the mkl-lapack compiling flags
+    Issue #872
+    
+    This reverts commit 4067c44de41b6b043c267b556a2616f134e00c4d.
+
+commit 0fa795e6f0f91c17567f692f2db02d4965348dec
+Author: IsenfireLDC <isenfireldc@gmail.com>
+Date:   Tue Dec 8 16:15:21 2020 -0600
+
+    Revert changes to the mkl-lapack compiling flags
+    
+    This reverts commit 4067c44de41b6b043c267b556a2616f134e00c4d.
+
+commit f0b5b570e54393fb6884556115a62316c018b98b
+Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
+Date:   Mon Dec 7 16:45:34 2020 -0600
+
+    Pyplotgen changes:
+    
+    1. Adding VariableGroupTaus variable group to all cases so we can see Brunt-Vaisala freq. squared and the invrs_tau_* quantities for all cases.
+    2. Minor change to output handling: Still displays the # of TOTAL plotted, but I got rid of the percentage, since it doesn't carry much information when the threads keep starting new cases and increasing the total number of cases to be plotted.
+
+commit 779b51b0a5efcd04269fd68f2ed3bd583d186045
 Author: huebler <huebler@uwm.edu>
-Date:   Tue Dec 1 14:56:32 2020 -0600
+Date:   Fri Dec 4 13:50:45 2020 -0600
 
-    Merge branch 'master' of https://github.com/larson-group/clubb
+    Making commit because 7d533e6ce939f1d15ddaf3a515cdf96187ff9f8f was actually BIT_CHANGING, larson-group/cam#129
 
-commit 7d533e6ce939f1d15ddaf3a515cdf96187ff9f8f
-Author: huebler <huebler@uwm.edu>
-Date:   Tue Dec 1 14:56:13 2020 -0600
-
-    Modifying some array dimensions to speed up multiply_Cholesky. This cuts the cost of multiply_Cholesky by about 60% in cam but only about 15% in clubb_standalone. larson-group/cam#129
-
-commit 3c6da39dfe1e1f64b1dffbf040fea6c5e39cd8b2
+commit 0f0b2736f24960489fd02dd855054ef56a367e79
 Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
-Date:   Tue Dec 1 12:37:15 2020 -0600
+Date:   Thu Dec 3 10:33:09 2020 -0600
 
     Update run_clubb_conv_test.bash
     
-    Adding line to ensure plot_result is false unless called.
+    Updating comments to reflect changes I just made.
 
-commit 5398218a25d1584c6d311a9ecf54fcfd34b3b7a0
-Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
-Date:   Tue Dec 1 12:34:15 2020 -0600
-
-    Adding command line option for the CLUBB converence test, so that the user can plot the results if they want to.  Results not plotted by default. See issue #896.
-
-commit d90dd03abd5df25ae23fe2fe4e4adb31fb704906
-Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
-Date:   Mon Nov 30 15:49:23 2020 -0600
-
-    Adding some comments describing zm and zt for the new interface functions, and fixing a problem in the "array_sclr" versions of the functions.  See issue #894.
-
-commit 722a33398947c06ced96413ab2b3071e7b3bae6d
-Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
-Date:   Mon Nov 30 13:07:09 2020 -0600
-
-    Adding the smooth_min and smooth_max functions to the repo.  These are not yet implemented in CLUBB but are now available for use and testing. See issue #894.
-
-commit e3249a503f8bc5119bae1489e81c9bad2dd6bd7d
+commit dd277d6cf376bf937f6b5e99ef7792a5c92fc324
 Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
-Date:   Mon Nov 30 10:19:08 2020 -0600
+Date:   Thu Dec 3 10:31:27 2020 -0600
 
     Update run_clubb_conv_test.bash
     
-    Minor adjustments to comments.
+    It occurred to me that some of the time steps we'd been using don't divide evenly into 1 hour, meaning they are not all ending on the same time step.  Slightly modifying some of the time steps so that all divide into 3600 and all runs end on the same time step, so we are comparing apples to apples.
