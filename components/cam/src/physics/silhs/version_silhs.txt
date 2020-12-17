@@ -1,3 +1,54 @@
+commit a62f284ab0ee7fb170b81feacbb203a0b810df07
+Author: bmg929 <bmg2@uwm.edu>
+Date:   Wed Dec 16 18:40:25 2020 -0600
+
+    Fixed alignment.
+
+commit b3d69d07a52199c3f22632f838e5628c9d0bb0d8
+Merge: 878ede9 6ffa56b
+Author: bmg929 <bmg2@uwm.edu>
+Date:   Wed Dec 16 18:38:04 2020 -0600
+
+    Merge branch 'master' of https://github.com/larson-group/clubb
+
+commit 878ede9df1f223ecc50c6452e3feac9d3708e2c5
+Author: bmg929 <bmg2@uwm.edu>
+Date:   Wed Dec 16 18:35:33 2020 -0600
+
+    I fixed the LMM stepping bug that was affecting E3SM (because
+    l_predict_upwp_vpwp is false over there) in advance_xm_wpxp_module.F90.
+    I also added it to all predictive fields.
+    
+    The results in NetCDF output files from this revision is an exact match to the
+    results in NetCDF output files from the previous revision for all cases because
+    LMM stepping is turned off by default.
+
+commit 6ffa56bef58b90c48ce1852c30316834ec853f44
+Author: IsenfireLDC <isenfireldc@gmail.com>
+Date:   Wed Dec 16 15:12:18 2020 -0600
+
+    Removed references to unused atlas blas libraries in default config file
+    
+    Issue #872
+
+commit 05083adb50bd926fb3eab458c75a16d2f1e5651b
+Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
+Date:   Mon Dec 14 16:22:14 2020 -0600
+
+    CLUBB and pyplotgen changes:
+    
+    1. Putting smoothing on thlm before the Brunt-Vaisala frequency calculation.  We find this helps smooth oscillations in that variable, see issue #894.  Also fixing spelling mistake in stats_zm_module.F90, and adding bv_freq_sqd to nightly_stats.in.  For all these reasons this commit is BIT_CHANGING, but only the thlm smoothing will change the physical results.
+    
+    2. Pyplotgen:  I moved Brunt-Vaisala to VariableGroupBase.py so it should show up in the nightly plots, I got rid of VariableGroupTaus from the default Case definitions, and made a couple other minor changes including making the solid line thicker for standard CLUBB plots.
+
+commit 1a7eb6a1ed103ee66d411e56d52d090a27dd3c75
+Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
+Date:   Mon Dec 14 08:24:42 2020 -0600
+
+    Update Case_definitions.py
+    
+    Adding VariableGroupTaus to a case that got missed.
+
 commit f9269638ed3d641ebe98d6ace0e8fcc80a3a30de
 Author: bmg929 <bmg2@uwm.edu>
 Date:   Thu Dec 10 17:08:20 2020 -0600
@@ -30,51 +81,3 @@ Date:   Tue Dec 8 16:17:52 2020 -0600
 
     Revert changes to the mkl-lapack compiling flags
     Added the issue tag
-
-commit c83f3f3b325abcaf9de0de646276de6f56e61c2e
-Author: IsenfireLDC <isenfireldc@gmail.com>
-Date:   Tue Dec 8 16:15:21 2020 -0600
-
-    Revert changes to the mkl-lapack compiling flags
-    Issue #872
-    
-    This reverts commit 4067c44de41b6b043c267b556a2616f134e00c4d.
-
-commit 0fa795e6f0f91c17567f692f2db02d4965348dec
-Author: IsenfireLDC <isenfireldc@gmail.com>
-Date:   Tue Dec 8 16:15:21 2020 -0600
-
-    Revert changes to the mkl-lapack compiling flags
-    
-    This reverts commit 4067c44de41b6b043c267b556a2616f134e00c4d.
-
-commit f0b5b570e54393fb6884556115a62316c018b98b
-Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
-Date:   Mon Dec 7 16:45:34 2020 -0600
-
-    Pyplotgen changes:
-    
-    1. Adding VariableGroupTaus variable group to all cases so we can see Brunt-Vaisala freq. squared and the invrs_tau_* quantities for all cases.
-    2. Minor change to output handling: Still displays the # of TOTAL plotted, but I got rid of the percentage, since it doesn't carry much information when the threads keep starting new cases and increasing the total number of cases to be plotted.
-
-commit 779b51b0a5efcd04269fd68f2ed3bd583d186045
-Author: huebler <huebler@uwm.edu>
-Date:   Fri Dec 4 13:50:45 2020 -0600
-
-    Making commit because 7d533e6ce939f1d15ddaf3a515cdf96187ff9f8f was actually BIT_CHANGING, larson-group/cam#129
-
-commit 0f0b2736f24960489fd02dd855054ef56a367e79
-Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
-Date:   Thu Dec 3 10:33:09 2020 -0600
-
-    Update run_clubb_conv_test.bash
-    
-    Updating comments to reflect changes I just made.
-
-commit dd277d6cf376bf937f6b5e99ef7792a5c92fc324
-Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
-Date:   Thu Dec 3 10:31:27 2020 -0600
-
-    Update run_clubb_conv_test.bash
-    
-    It occurred to me that some of the time steps we'd been using don't divide evenly into 1 hour, meaning they are not all ending on the same time step.  Slightly modifying some of the time steps so that all divide into 3600 and all runs end on the same time step, so we are comparing apples to apples.
