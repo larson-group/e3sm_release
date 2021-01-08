@@ -986,7 +986,7 @@ $xmlchange_exe --id DEBUG --val `uppercase $debug_compile`
 #$xmlchange_exe  -file env_run.xml -id  CAM_NML_USE_CASE -val '2000_cam5_av1c-04p2_gust'
 #$xmlchange_exe  ATM_NCPL='96'
 
-cat <<EOF >> user_nl_clm
+cat <<EOF >> user_nl_elm
 ! finidat=''
 EOF
 
@@ -1000,7 +1000,7 @@ EOF
 
 #EOF
 
-cat <<EOF >> user_nl_cam 
+cat <<EOF >> user_nl_eam 
 
  state_debug_checks=.true.
  clubb_do_icesuper= .false.
@@ -1525,7 +1525,7 @@ e3sm_newline
 # 1.0.33   2016-01-08    Changed default tag to master_detached to improve clarity. (PJC)
 #                        Now sets up E3SM git hooks when fetch_code=true.
 # 1.0.33p  2016-01-08    Changed compset from A_B1850CN to A_B1850 (pre-e3sm script only).  (PJC)
-#                        Added finidat = '' to user_nl_clm, which allows A_B1850 to run.
+#                        Added finidat = '' to user_nl_elm, which allows A_B1850 to run.
 # 1.0.34   2016-01-12    Commented out the input_data_dir user configuration, so it defaults to the E3SM settings.   (PJC)
 # 1.0.35   2016-01-13    Improved an error message.   (PJC)
 # 1.0.36   2016-01-21    Reordered options to better match workflow. (PJC)

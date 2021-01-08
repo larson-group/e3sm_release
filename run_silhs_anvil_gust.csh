@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = clubb_silhs_upgrade_a62f284
+set job_name       = clubb_silhs_E3SMv2_merge_fox1
 set compset        = F2010SC5-CMIP6 
 #set compset        = A_WCYCL1850S_CMIP6
 #set compset        = FC5CLBMG2BCL72 # alternative compset
@@ -1012,7 +1012,7 @@ $xmlchange_exe --id DEBUG --val `uppercase $debug_compile`
 $xmlchange_exe  -file env_run.xml -id  CAM_NML_USE_CASE -val '2000_cam5_av1c-04p2_gust'
 #$xmlchange_exe  ATM_NCPL='96'
 
-cat <<EOF >> user_nl_clm
+cat <<EOF >> user_nl_elm
 ! finidat=''
 EOF
 
@@ -1024,7 +1024,7 @@ cat <<EOF >> user_nl_cpl
 ! finidat=''
 EOF
 
-cat <<EOF >> user_nl_cam 
+cat <<EOF >> user_nl_eam 
 
 ! clubb_ice_deep = 25.e-7 ! -6
 ! clubb_ice_sh = 50.e-7
@@ -1361,7 +1361,7 @@ hmp2_ip_on_hmm2_ip_intrcpt%Ni = 1.0
 EOF
 
 if ($init_aero_type == cons_droplet) then
-cat <<EOF >> user_nl_cam
+cat <<EOF >> user_nl_eam
   micro_do_nccons = .true.
   micro_do_nicons = .true.
   micro_nccons = $micro_nccons_val 
@@ -1372,7 +1372,7 @@ endif
 # if prescribed or observed aerosols set then need to put in settings for prescribed aerosol model
 
 if ($init_aero_type == prescribed ||$init_aero_type == observed) then
-cat <<EOF >> user_nl_cam
+cat <<EOF >> user_nl_eam
   use_hetfrz_classnuc = .false.
   aerodep_flx_type = 'CYCLICAL'
   aerodep_flx_datapath = '$input_data_dir/$presc_aero_path' 
@@ -1794,7 +1794,7 @@ e3sm_newline
 # 1.0.33   2016-01-08    Changed default tag to master_detached to improve clarity. (PJC)
 #                        Now sets up E3SM git hooks when fetch_code=true.
 # 1.0.33p  2016-01-08    Changed compset from A_B1850CN to A_B1850 (pre-e3sm script only).  (PJC)
-#                        Added finidat = '' to user_nl_clm, which allows A_B1850 to run.
+#                        Added finidat = '' to user_nl_elm, which allows A_B1850 to run.
 # 1.0.34   2016-01-12    Commented out the input_data_dir user configuration, so it defaults to the E3SM settings.   (PJC)
 # 1.0.35   2016-01-13    Improved an error message.   (PJC)
 # 1.0.36   2016-01-21    Reordered options to better match workflow. (PJC)

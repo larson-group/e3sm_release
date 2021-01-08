@@ -238,14 +238,6 @@ module clubb_intr
   integer up2m_laststep_idx, up2t_laststep_idx, up2t_advtend_idx
   integer vp2m_laststep_idx, vp2t_laststep_idx, vp2t_advtend_idx
 
- integer :: &          ! newly added pbuf fields for CLUBB
-    wpthvp_idx, &       ! < w'th_v' >
-    wp2thvp_idx, &      ! < w'^2 th_v' >
-    rtpthvp_idx, &      ! < r_t'th_v' >
-    thlpthvp_idx, &     ! < th_l'th_v' >
-    rcm_idx, &          ! Cloud water mixing ratio
-    cloud_frac_idx !, & ! Cloud fraction
-
   integer :: &          !PMA adds pbuf fields for ZM gustiness
     prec_dp_idx, &
     snow_dp_idx, &
@@ -607,7 +599,6 @@ end subroutine clubb_init_cnst
 #endif
 
     !  Overwrite defaults if they are true
-    if (clubb_ipdf_call_placement > 0) ipdf_call_placement = clubb_ipdf_call_placement
     if (clubb_history) l_stats = .true.
     if (clubb_rad_history) l_output_rad_files = .true. 
     if (clubb_cloudtop_cooling) do_cldcool = .true.
@@ -623,18 +614,6 @@ end subroutine clubb_init_cnst
      clubb_config_flags%l_stability_correct_Kh_N2_zm = .true.   ! CLUBB flag set to true
     endif
 
-    if (clubb_l_vert_avg_closure) then
-      l_vert_avg_closure       = .true.   ! CLUBB flag set to true
-      l_trapezoidal_rule_zt    = .true.   ! CLUBB flag set to true
-      l_trapezoidal_rule_zm    = .true.   ! CLUBB flag set to true
-      l_call_pdf_closure_twice = .true.   ! CLUBB flag set to true
-    else
-      l_vert_avg_closure       = .false.   ! CLUBB flag set to false
-      l_trapezoidal_rule_zt    = .false.   ! CLUBB flag set to false
-      l_trapezoidal_rule_zm    = .false.   ! CLUBB flag set to false
-      l_call_pdf_closure_twice = .false.   ! CLUBB flag set to false
-    endif
-    
     ! read tunable parameters from namelist, handlings of masterproc vs others
     ! are done within clubb_param_readnl
     call clubb_param_readnl(nlfile)
@@ -1238,13 +1217,6 @@ end subroutine clubb_init_cnst
        call pbuf_set_field(pbuf2d, rcm_idx,        0.0_r8)
        call pbuf_set_field(pbuf2d, cloud_frac_idx, 0.0_r8)
 
-       call pbuf_set_field(pbuf2d, wpthvp_idx,     0.0_r8)
-       call pbuf_set_field(pbuf2d, wp2thvp_idx,    0.0_r8)
-       call pbuf_set_field(pbuf2d, rtpthvp_idx,    0.0_r8)
-       call pbuf_set_field(pbuf2d, thlpthvp_idx,   0.0_r8)
-       call pbuf_set_field(pbuf2d, rcm_idx,        0.0_r8)
-       call pbuf_set_field(pbuf2d, cloud_frac_idx, 0.0_r8)
-
       ! Initialize SILHS covariance contributions
        call pbuf_set_field(pbuf2d, rtp2_mc_zt_idx,    0.0_r8)
        call pbuf_set_field(pbuf2d, thlp2_mc_zt_idx,   0.0_r8)
@@ -1641,14 +1613,6 @@ end subroutine clubb_init_cnst
    real(r8), pointer, dimension(:,:) :: vp2      ! north-south wind variance                    [m^2/s^2]
    real(r8), pointer, dimension(:,:) :: up3      ! east-west wind 3rd order                     [m^3/s^3]
    real(r8), pointer, dimension(:,:) :: vp3      ! north-south wind 3rd order                   [m^3/s^3]
-
-   real(r8), pointer, dimension(:,:) :: wpthvp     ! < w'th_v' > (momentum levels)                [m/s K]
-   real(r8), pointer, dimension(:,:) :: wp2thvp    ! < w'^2 th_v' > (thermodynamic levels)        [m^2/s^2 K]
-   real(r8), pointer, dimension(:,:) :: rtpthvp    ! < r_t'th_v' > (momentum levels)              [kg/kg K]
-   real(r8), pointer, dimension(:,:) :: thlpthvp   ! < th_l'th_v' > (momentum levels)             [K^2]
-   real(r8), pointer, dimension(:,:) :: rcm        ! CLUBB cloud water mixing ratio               [kg/kg]
-   real(r8), pointer, dimension(:,:) :: cloud_frac ! CLUBB cloud fraction                       [-]
-
    real(r8), pointer, dimension(:,:) :: upwp     ! east-west momentum flux                      [m^2/s^2]
    real(r8), pointer, dimension(:,:) :: vpwp     ! north-south momentum flux                    [m^2/s^2]
    real(r8), pointer, dimension(:,:) :: thlm     ! mean temperature                             [K]
@@ -2898,7 +2862,7 @@ end subroutine clubb_init_cnst
 
           ice_supersat_frac(i,k) = ice_supersat_frac_out(pverp-k+1)
 
-          sclrpthvp(i,k,:)  = sclrpthvp_inout(pverp-k+1,:)
+!          sclrpthvp(i,k,:)  = sclrpthvp_inout(pverp-k+1,:)
      
           do ixind=1,edsclr_dim
               edsclr_out(k,ixind) = edsclr_in(pverp-k+1,ixind)

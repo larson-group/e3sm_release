@@ -71,7 +71,7 @@ set clubb_vars_zm_list = "'wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 
 ####### END USER DEFINED SETTINGS
 ####### Likely POSSIBLE EXCEPTION (not limited to):  
 #######  - If the user wants to add addition output, for example, the CAM
-#######	   namelist (user_nl_cam) should be modified below to accomodate for this
+#######	   namelist (user_nl_eam) should be modified below to accomodate for this
 ###########################################################################
 ###########################################################################
 ###########################################################################
@@ -189,7 +189,7 @@ set clubb_vars_zm_list = "'wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 
 
 # User enter CAM namelist options
 #  Add additional output here for example
-cat <<EOF >> user_nl_cam
+cat <<EOF >> user_nl_eam
  cld_macmic_num_steps = $clubb_micro_steps
  cosp_lite = .true.
  use_gw_front = .true.
@@ -211,7 +211,7 @@ EOF
 #  Future implementations this block will not be needed
 #  Match settings in compset 2000_cam5_av1c-04p2
 
-cat <<EOF >> user_nl_cam
+cat <<EOF >> user_nl_eam
    clubb_c1               = 2.4
    clubb_c11              = 0.70
    clubb_c11b             = 0.20
@@ -314,7 +314,7 @@ EOF
 
 # if constant droplet was selected then modify name list to reflect this
 if ($init_aero_type == cons_droplet) then
-cat <<EOF >> user_nl_cam
+cat <<EOF >> user_nl_eam
   micro_do_nccons = .true.
   micro_do_nicons = .true.
   micro_nccons = $micro_nccons_val 
@@ -325,7 +325,7 @@ endif
 # if prescribed or observed aerosols set then need to put in settings for prescribed aerosol model
 
 if ($init_aero_type == prescribed ||$init_aero_type == observed) then
-cat <<EOF >> user_nl_cam
+cat <<EOF >> user_nl_eam
   use_hetfrz_classnuc = .false.
   aerodep_flx_type = 'CYCLICAL'
   aerodep_flx_datapath = '$input_data_dir/$presc_aero_path' 
@@ -342,14 +342,14 @@ endif
 # if observed aerosols then set flag
 if ($init_aero_type == observed) then
 
-cat <<EOF >> user_nl_cam
+cat <<EOF >> user_nl_eam
   scm_observed_aero = .true.
 EOF
 
 endif
 
 if ($init_aero_type == none) then
-cat <<EOF >> user_nl_cam
+cat <<EOF >> user_nl_eam
 !  ice_supersat = .true.
 !  micro_do_icesupersat  =  .true.
   macrop_scheme = 'CLUBB_SGS'
@@ -388,7 +388,7 @@ EOF
 endif
 
 if ($gust == true) then
-cat <<EOF >> user_nl_cam
+cat <<EOF >> user_nl_eam
   cld_macmic_num_steps           =  6 
   cld_sed                        =  1.8D0 
   conv_water_in_rad              =  1                                                                   
