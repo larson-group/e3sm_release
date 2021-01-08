@@ -906,16 +906,6 @@ end subroutine clubb_init_cnst
     call read_parameters_api( -99, "", clubb_params )
 !$OMP END PARALLEL
 
-    ! Print the list of CLUBB parameters, if multi-threaded, it may print by each thread
-    if (masterproc) then
-       write(iulog,*)'CLUBB tunable parameters: total ',nparams
-       write(iulog,*)'--------------------------------------------------'
-       do i = 1, nparams
-          write(iulog,*) params_list(i), " = ", clubb_params(i)
-       enddo
-    endif
- 
-      
     !  Fill in dummy arrays for height.  Note that these are overwrote
     !  at every CLUBB step to physical values.    
     do k=1,pverp
