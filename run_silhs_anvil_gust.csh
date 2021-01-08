@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = clubb_silhs_E3SMv2_merge_fox1
+set job_name       = clubb_silhs_E3SM_master_merge
 set compset        = F2010SC5-CMIP6 
 #set compset        = A_WCYCL1850S_CMIP6
 #set compset        = FC5CLBMG2BCL72 # alternative compset

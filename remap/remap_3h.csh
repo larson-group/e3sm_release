@@ -19,9 +19,9 @@ set fdy = `printf "%02d\n" $day`
 set k = 1
 while ( $k <= 8 )
 echo ${foo}
-rm -f climo/$case.ne16_ne16.cam.h0.${yrs}-${foo}-${fdy}-${aff[$k]}.nc
-ncks --map=/home/ac.griffin/amwg/mapping/map_ne16np4_to_ne30np4_aave.20160601.nc $case.ne16_ne16.cam.h0.${yrs}-${foo}-${fdy}-${aff[$k]}.nc $case.tmp.nc
-ncks --map=/home/ac.griffin/amwg/mapping/map_ne30np4_to_fv129x256_aave.150418.nc $case.tmp.nc climo/$case.ne16_ne16.cam.h0.${yrs}-${foo}-${fdy}-${aff[$k]}.nc
+rm -f climo/$case.ne16_ne16.eam.h0.${yrs}-${foo}-${fdy}-${aff[$k]}.nc
+ncks --map=/home/ac.griffin/amwg/mapping/map_ne16np4_to_ne30np4_aave.20160601.nc $case.ne16_ne16.eam.h0.${yrs}-${foo}-${fdy}-${aff[$k]}.nc $case.tmp.nc
+ncks --map=/home/ac.griffin/amwg/mapping/map_ne30np4_to_fv129x256_aave.150418.nc $case.tmp.nc climo/$case.ne16_ne16.eam.h0.${yrs}-${foo}-${fdy}-${aff[$k]}.nc
 rm $case.tmp.nc
 @ k++
 end
