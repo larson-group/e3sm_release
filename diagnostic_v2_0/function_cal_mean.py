@@ -31,26 +31,26 @@ def cal_mean(ncases, cases,years,nyear, nsite,lats, lons,area, filepath):
      outfile=datalocal+'climo_2/'+cases[im]+'_DJF_climo.nc'
      infile=' '
      for yr in range (0, nyear[im] ):
-         infile=infile+datalocal+cases[im]+'.cam.h0.'+str(years[im]+1+yr).rjust(4,'0')+'-01.nc '+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+1+yr).rjust(4,'0')+'-02.nc '+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+yr).rjust(4,'0')+'-12.nc '
+         infile=infile+datalocal+cases[im]+'.eam.h0.'+str(years[im]+1+yr).rjust(4,'0')+'-01.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+1+yr).rjust(4,'0')+'-02.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-12.nc '
      os.system(ncea_str+infile +' -O '+outfile)
      
      outfile=datalocal+'climo_2/'+cases[im]+'_MAM_climo.nc'
      infile=' '
      for yr in range (0, nyear[im]):
-         infile=infile+datalocal+cases[im]+'.cam.h0.'+str(years[im]+yr).rjust(4,'0')+'-03.nc '+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+yr).rjust(4,'0')+'-04.nc '+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+yr).rjust(4,'0')+'-05.nc '
+         infile=infile+datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-03.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-04.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-05.nc '
      os.system(ncea_str+infile +' -O '+outfile)
    
      outfile=datalocal+'climo_2/'+cases[im]+'_JJA_climo.nc'
      infile=' '
      for yr in range (0, nyear[im]):
-         infile=infile+datalocal+cases[im]+'.cam.h0.'+str(years[im]+yr).rjust(4,'0')+'-06.nc '+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+yr).rjust(4,'0')+'-07.nc '+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+yr).rjust(4,'0')+'-08.nc '
+         infile=infile+datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-06.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-07.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-08.nc '
 
      os.system(ncea_str+infile +' -O '+outfile)
    
      outfile=datalocal+'climo_2/'+cases[im]+'_SON_climo.nc'
      infile=' '
      for yr in range (0, nyear[im]):
-         infile=infile+datalocal+cases[im]+'.cam.h0.'+str(years[im]+yr).rjust(4,'0')+'-09.nc '+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+yr).rjust(4,'0')+'-10.nc '+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+yr).rjust(4,'0')+'-11.nc '
+         infile=infile+datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-09.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-10.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-11.nc '
 
      os.system(ncea_str+infile +' -O '+outfile)
    
@@ -65,42 +65,42 @@ def cal_mean(ncases, cases,years,nyear, nsite,lats, lons,area, filepath):
      os.system(ln_str+ datalocal+'climo_2/'+cases[im]+'_DJF_climo.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_DJF_budget_climo.nc' )
      os.system(ln_str+ datalocal+'climo_2/'+cases[im]+'_ANN_climo.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_ANN_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-10.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_10_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-10.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_10_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-10.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_10_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-10.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_10_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-11.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_11_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-11.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_11_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-11.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_11_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-11.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_11_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-12.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_12_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-12.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_12_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-12.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_12_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-12.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_12_budget_climo.nc' )
    
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+1).rjust(4,'0')+'-01.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_01_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+1).rjust(4,'0')+'-01.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_01_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+1).rjust(4,'0')+'-01.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_01_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+1).rjust(4,'0')+'-01.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_01_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+1).rjust(4,'0')+'-02.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_02_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]+1).rjust(4,'0')+'-02.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_02_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+1).rjust(4,'0')+'-02.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_02_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+1).rjust(4,'0')+'-02.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_02_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-03.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_03_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-03.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_03_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-03.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_03_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-03.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_03_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-04.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_04_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-04.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_04_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-04.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_04_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-04.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_04_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-05.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_05_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-05.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_05_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-05.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_05_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-05.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_05_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-06.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_06_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-06.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_06_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-06.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_06_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-06.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_06_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-07.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_07_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-07.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_07_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-07.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_07_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-07.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_07_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-08.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_08_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-08.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_08_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-08.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_08_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-08.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_08_budget_climo.nc' )
    
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-09.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_09_climo.nc' )
-     os.system(ln_str+ datalocal+cases[im]+'.cam.h0.'+str(years[im]).rjust(4,'0')+'-09.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_09_budget_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-09.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_09_climo.nc' )
+     os.system(ln_str+ datalocal+cases[im]+'.eam.h0.'+str(years[im]).rjust(4,'0')+'-09.nc' +' '+ datalocal+'climo_2/'+cases[im]+'_09_budget_climo.nc' )
 
 
 
