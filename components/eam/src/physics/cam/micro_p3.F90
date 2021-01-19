@@ -2798,7 +2798,10 @@ subroutine cloud_rain_accretion(rho,inv_rho,qc_incld,nc_incld,qr_incld,inv_qc_re
         ! microp_uniform flag found in MG microphysics.
         sbgrd_var_coef = 1.0_rtype
 #endif /*SILHS*/
-        qc2qr_accret_tend = sbgrd_var_coef*67._rtype*bfb_pow(qc_incld*qr_incld, 1.15_rtype) !p3_qc_accret_expon
+        !qc2qr_accret_tend = sbgrd_var_coef*67._rtype*bfb_pow(qc_incld*qr_incld, 1.15_rtype) !p3_qc_accret_expon
+! +++ E3SMv2 tuning +++        
+        qc2qr_accret_tend = 1.75_rtype*sbgrd_var_coef*67._rtype*bfb_pow(qc_incld*qr_incld, 1.15_rtype) !p3_qc_accret_expon
+
         nc_accret_tend = qc2qr_accret_tend*nc_incld/qc_incld
      endif
 
@@ -2875,13 +2878,19 @@ subroutine cloud_water_autoconversion(rho,qc_incld,nc_incld,inv_qc_relvar,    &
       !Khroutdinov and Kogan (2000)
       !print*,'p3_qc_autocon_expon = ',p3_qc_autocon_expon
 #ifndef SILHS
-      sbgrd_var_coef = subgrid_variance_scaling(inv_qc_relvar, 2.47_rtype)
+      !sbgrd_var_coef = subgrid_variance_scaling(inv_qc_relvar, 2.47_rtype)
+! +++ E3SMv2 tunning +++
+      sbgrd_var_coef = subgrid_variance_scaling(inv_qc_relvar, 3.19_rtype)
 #else
       ! For SILHS subcolumn sampling, use the equivalent of the
       ! microp_uniform flag found in MG microphysics.
       sbgrd_var_coef = 1.0_rtype
 #endif /*SILHS*/
-      qc2qr_autoconv_tend = sbgrd_var_coef*1350._rtype*bfb_pow(qc_incld,2.47_rtype)*bfb_pow(nc_incld*1.e-6_rtype*rho,-1.79_rtype)
+      !qc2qr_autoconv_tend = sbgrd_var_coef*1350._rtype*bfb_pow(qc_incld,2.47_rtype)*bfb_pow(nc_incld*1.e-6_rtype*rho,-1.79_rtype)
+
+! +++ E3SMv2 tunning +++
+      qc2qr_autoconv_tend = sbgrd_var_coef*30500.0_rtype*bfb_pow(qc_incld,3.19_rtype)*bfb_pow(nc_incld*1.e-6_rtype*rho,-1.40_rtype)
+      
       ! note: ncautr is change in Nr; nc2nr_autoconv_tend is change in Nc
       ncautr = qc2qr_autoconv_tend*cons3
       nc2nr_autoconv_tend = qc2qr_autoconv_tend*nc_incld/qc_incld
