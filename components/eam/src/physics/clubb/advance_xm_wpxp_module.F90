@@ -2315,6 +2315,9 @@ module advance_xm_wpxp_module
     use parameters_model, only: & 
       sclr_dim, &  ! Variable(s)
       sclr_tol
+
+!    use parameters_tunable, only: &
+!      C_uu_shr    ! Parameter(s)
         
     use clubb_precision, only:  & 
         core_rknd ! Variable(s)
@@ -2602,6 +2605,8 @@ module advance_xm_wpxp_module
        !vpwp_forcing = C7_Skw_fnc * wp2 * ddzt( vm )
        upwp_forcing = 0.7_core_rknd * wp2 * ddzt( um )
        vpwp_forcing = 0.7_core_rknd * wp2 * ddzt( vm )
+!       upwp_forcing = C_uu_shr * wp2 * ddzt( um )
+!       vpwp_forcing = C_uu_shr * wp2 * ddzt( vm )
 
        if ( l_stats_samp ) then
           !call stat_update_var( iupwp_pr4, C7_Skw_fnc * wp2 * ddzt( um ), &
@@ -2612,6 +2617,10 @@ module advance_xm_wpxp_module
                                 stats_zm )
           call stat_update_var( ivpwp_pr4, 0.7_core_rknd * wp2 * ddzt( vm ), &
                                 stats_zm )
+!          call stat_update_var( iupwp_pr4, C_uu_shr * wp2 * ddzt( um ), &
+!                                stats_zm )
+!          call stat_update_var( ivpwp_pr4, C_uu_shr * wp2 * ddzt( vm ), &
+!                                stats_zm )
        endif ! l_stats_samp
 
        ! need tau_C6_zm for these calls
@@ -3889,8 +3898,8 @@ module advance_xm_wpxp_module
       if ( clubb_at_least_debug_level( 3 ) ) then
         do k = 1, gr%nz
           if ( xm(k) < zero ) then
-!            write(fstderr,*) solve_type_str//" < ", xm_threshold, &
-!              " in advance_xm_wpxp_module at k= ", k
+            write(fstderr,*) solve_type_str//" < ", xm_threshold, &
+              " in advance_xm_wpxp_module at k= ", k
           end if
         end do
       end if

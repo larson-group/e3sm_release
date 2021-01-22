@@ -203,7 +203,7 @@ module advance_clubb_core_module
         gamma_coefc, &
         c_K10, &
         c_K10h, &
-        C5, C4, &
+        C_uu_shr, C4, &
         C_wp2_splat, &
         C_invrs_tau_bkgnd, &
         C_invrs_tau_sfc, & 
@@ -213,6 +213,8 @@ module advance_clubb_core_module
         C_invrs_tau_N2_wp2, &
         C_invrs_tau_N2_wpxp, &
         C_invrs_tau_N2_clear_wp3, &
+        C_invrs_tau_wpxp_Ri, &
+        C_invrs_tau_wpxp_N2_thresh, &
         xp3_coef_base, &
         xp3_coef_slope, &
         altitude_threshold
@@ -1215,39 +1217,51 @@ module advance_clubb_core_module
            brunt_freq_out_cloud = 0.0_core_rknd
         end where
 
-        invrs_tau_zm &
-        = 0.5_core_rknd &
-          * ( invrs_tau_no_N2_zm + C_invrs_tau_N2 * brunt_freq_pos )
+        invrs_tau_wp2_zm = invrs_tau_no_N2_zm + C_invrs_tau_N2_wp2 * brunt_freq_pos
 
-        invrs_tau_wp2_zm = invrs_tau_no_N2_zm &
-              + C_invrs_tau_N2_wp2 * brunt_freq_pos
+        invrs_tau_zm = invrs_tau_no_N2_zm + C_invrs_tau_N2 * brunt_freq_pos
 
-        invrs_tau_xp2_zm &
-        = invrs_tau_bkgnd + invrs_tau_sfc + invrs_tau_shear &
-          + C_invrs_tau_N2_xp2 * brunt_freq_pos & ! 0
-          + C_invrs_tau_sfc * 2.0_core_rknd &
-            * sqrt(em) / ( gr%zm - sfc_elevation + z_displace )  ! small
 
-        invrs_tau_xp2_zm &
-        = min( max( sqrt( ( ddzt(um)**2 + ddzt(vm)**2 ) &
-                          / max( 1.0e-7_core_rknd, brunt_vaisala_freq_sqd_smth ) ), &
-                    0.3_core_rknd ), &
-               1.0_core_rknd ) * invrs_tau_xp2_zm
+        if ( clubb_config_flags%l_e3sm_config ) then
 
-        invrs_tau_wp3_zm = invrs_tau_wp2_zm &
-              + C_invrs_tau_N2_clear_wp3 * brunt_freq_out_cloud
+          invrs_tau_zm = 0.5_core_rknd * invrs_tau_zm
 
-        invrs_tau_wpxp_zm = 2.0_core_rknd * invrs_tau_zm &
-              + C_invrs_tau_N2_wpxp * brunt_freq_out_cloud
+          invrs_tau_xp2_zm = invrs_tau_bkgnd + invrs_tau_sfc + invrs_tau_shear &
+                            + C_invrs_tau_N2_xp2 * brunt_freq_pos & ! 0
+                            + C_invrs_tau_sfc * 2.0_core_rknd &
+                            * sqrt(em) / ( gr%zm - sfc_elevation + z_displace )  ! small
+
+          invrs_tau_xp2_zm = min( max( sqrt( ( ddzt(um)**2 + ddzt(vm)**2 ) &
+                            / max( 1.0e-7_core_rknd, brunt_vaisala_freq_sqd_smth ) ), &
+                            0.3_core_rknd ), 1.0_core_rknd ) * invrs_tau_xp2_zm
+
+          invrs_tau_wpxp_zm = 2.0_core_rknd * invrs_tau_zm &
+                             + C_invrs_tau_N2_wpxp * brunt_freq_out_cloud
+
+        else ! l_e3sm_config = false
+
+          invrs_tau_xp2_zm =  0.1_core_rknd * invrs_tau_bkgnd + invrs_tau_sfc &
+                + invrs_tau_shear + C_invrs_tau_N2_xp2 * brunt_freq_pos
+
+          invrs_tau_xp2_zm = merge(0.003_core_rknd, invrs_tau_xp2_zm, &
+                zt2zm(ice_supersat_frac) <= 0.01_core_rknd &
+                .and. invrs_tau_xp2_zm  >= 0.003_core_rknd)
+
+          invrs_tau_wpxp_zm = invrs_tau_zm + C_invrs_tau_N2_wpxp * brunt_freq_out_cloud
+
+        end if ! l_e3sm_config
+
 
         where( gr%zt > altitude_threshold &
-               .and. brunt_vaisala_freq_sqd_smth > 3.3E-4_core_rknd )
+               .and. brunt_vaisala_freq_sqd_smth > C_invrs_tau_wpxp_N2_thresh )
            invrs_tau_wpxp_zm &
            = invrs_tau_wpxp_zm &
              * ( 1.0_core_rknd &
-                 + 3.0_core_rknd * min( max( Ri_zm, 0.0_core_rknd ), &
-                                        12.0_core_rknd ) )
+                 + C_invrs_tau_wpxp_Ri * min( max( Ri_zm, 0.0_core_rknd ), &
+                                      12.0_core_rknd ) )
         end where
+
+        invrs_tau_wp3_zm = invrs_tau_wp2_zm + C_invrs_tau_N2_clear_wp3 * brunt_freq_out_cloud
 
         if ( gr%zm(1) - sfc_elevation + z_displace < eps ) then
              stop  "Lowest zm grid level is below ground in CLUBB."
@@ -1629,7 +1643,7 @@ module advance_clubb_core_module
            ( dt_advance, sfc_elevation, sigma_sqd_w, wm_zm,             & ! intent(in)
              wm_zt, a3_coef, a3_coef_zt, wp3_on_wp2, wp4,               & ! intent(in)
              wpthvp, wp2thvp, um, vm, upwp, vpwp,                       & ! intent(in)
-             up2, vp2, Kh_zm, Kh_zt, invrs_tau_wp2_zm,                  & ! intent(in)
+             up2, vp2, em, Kh_zm, Kh_zt, invrs_tau_wp2_zm,              & ! intent(in)
              invrs_tau_wp3_zt, invrs_tau_C1_zm, Skw_zm,                 & ! intent(in)
              Skw_zt, rho_ds_zm, rho_ds_zt, invrs_rho_ds_zm,             & ! intent(in)
              invrs_rho_ds_zt, radf, thv_ds_zm,                          & ! intent(in)
@@ -1647,6 +1661,7 @@ module advance_clubb_core_module
              clubb_config_flags%l_use_C11_Richardson,                   & ! intent(in)
              clubb_config_flags%l_damp_wp3_Skw_squared,                 & ! intent(in)
              clubb_config_flags%l_lmm_stepping,                         & ! intent(in)
+             clubb_config_flags%l_use_tke_in_wp3_pr_turb_term,          & ! intent(in)
              wp2, wp3, wp3_zm, wp2_zt )                                   ! intent(inout)
 
       if ( clubb_at_least_debug_level( 0 ) ) then
@@ -1832,7 +1847,7 @@ module advance_clubb_core_module
 
       if ( l_use_buoy_mod_Km_zm ) then
 
-         tau_factor = ( ( one - C5 ) / C4 ) * tau_zm
+         tau_factor = ( ( one - C_uu_shr ) / C4 ) * tau_zm
          Km_zm_denom_term = tau_factor * ( grav / T0 ) * &
                               wpthvp / max( 10._core_rknd*w_tol_sqd, wp2 )
          Km_zm_numerator_term = 0.02_core_rknd * 0.5_core_rknd * ( grav / T0 ) &
@@ -4436,8 +4451,8 @@ module advance_clubb_core_module
         if ( rtm(k) < rcm(k) ) then
 
           if ( clubb_at_least_debug_level( 3 ) ) then
-!            write(fstderr,*) message, ' at k=', k, 'rcm(k) = ', rcm(k), &
-!              'rtm(k) = ', rtm(k), '.',  ' Clipping rcm.'
+            write(fstderr,*) message, ' at k=', k, 'rcm(k) = ', rcm(k), &
+              'rtm(k) = ', rtm(k), '.',  ' Clipping rcm.'
 
           end if ! clubb_at_least_debug_level( 3 )
 

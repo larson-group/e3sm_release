@@ -80,8 +80,13 @@ module silhs_api_module
 #ifdef SILHS
 
   use parameters_silhs, only: &
-    silhs_config_flags_type ! Type
+      silhs_config_flags_type, & ! Type(s)
+      vert_decorr_coef    ! Variable(s)
 
+#ifdef E3SM
+  use parameters_silhs, only: &
+      read_silhs_parameters    ! Variable(s)
+#endif /*E3SM*/
 #endif
 
   implicit none
@@ -104,7 +109,15 @@ module silhs_api_module
   public  & ! to print 2D lh samples
     latin_hypercube_2D_output_api, &
     latin_hypercube_2D_close_api
+
+  public  & ! SILHS tunable parameter(s)
+    vert_decorr_coef
     
+#ifdef E3SM
+  public &
+    read_silhs_parameters_api
+
+#endif /*E3SM*/
   private &
     generate_silhs_sample_api_single_col, &
     generate_silhs_sample_api_multi_col, &
@@ -140,6 +153,7 @@ contains
     l_tke_aniso, & ! In
     l_standard_term_ta, & ! In
     l_single_C2_Skw, & ! In
+    vert_decorr_coef, & ! In
     X_nl_all_levs, X_mixt_comp_all_levs, & ! Out
     lh_sample_point_weights ) ! Out
 
@@ -226,6 +240,9 @@ contains
                             ! advance_xp2_xpyp_module.F90.
       l_single_C2_Skw       ! Use a single Skewness dependent C2 for rtp2, thlp2, and rtpthlp
 
+    real( kind = core_rknd ), intent(in) :: &
+      vert_decorr_coef    ! Empirically defined de-correlation constant [-]
+    
     ! -------------- Local Variables --------------
     
     type(pdf_parameter), dimension(1) :: &
@@ -293,6 +310,7 @@ contains
       l_tke_aniso, & ! In
       l_standard_term_ta, & ! In
       l_single_C2_Skw, & ! In
+      vert_decorr_coef, & ! In
       X_nl_all_levs_col, X_mixt_comp_all_levs_col, & ! Out
       lh_sample_point_weights_col ) ! Out
       
@@ -315,6 +333,7 @@ contains
     l_tke_aniso, & ! In
     l_standard_term_ta, & ! In
     l_single_C2_Skw, & ! In
+    vert_decorr_coef, & ! In
     X_nl_all_levs, X_mixt_comp_all_levs, & ! Out
     lh_sample_point_weights ) ! Out
 
@@ -402,6 +421,9 @@ contains
                             ! advance_xp2_xpyp_module.F90.
       l_single_C2_Skw       ! Use a single Skewness dependent C2 for rtp2, thlp2, and rtpthlp
 
+    real( kind = core_rknd ), intent(in) :: &
+      vert_decorr_coef    ! Empirically defined de-correlation constant [-]
+    
     call generate_silhs_sample( &
       iter, pdf_dim, num_samples, sequence_length, nz, ngrdcol, & ! In
       l_calc_weights_all_levs_itime, & ! In
@@ -415,6 +437,7 @@ contains
       l_tke_aniso, & ! In
       l_standard_term_ta, & ! In
       l_single_C2_Skw, & ! In
+      vert_decorr_coef, & ! In
       X_nl_all_levs, X_mixt_comp_all_levs, & ! Out
       lh_sample_point_weights ) ! Out
 
@@ -914,6 +937,33 @@ contains
 
   end subroutine print_silhs_config_flags_api
 
+#ifdef E3SM
+  !================================================================================================
+  ! read_silhs_parameters - Reads tunable parameters used in SILHS
+  !================================================================================================
+  subroutine read_silhs_parameters_api( filename, vert_decorr_coef_out )
+
+    use parameters_silhs, only: &
+        read_silhs_parameters    ! Procedure(s)
+
+    use clubb_precision, only: &
+        core_rknd    ! Variable(s)
+
+    implicit none
+
+    ! Input Variables
+    character(len=*), intent(in) :: &
+      filename
+
+    ! Output Variables
+    real( kind = core_rknd ), intent(out) :: &
+      vert_decorr_coef_out    ! Empirically defined de-correlation constant [-]
+
+    call read_silhs_parameters( filename, vert_decorr_coef_out )
+
+  end subroutine read_silhs_parameters_api
+
+#endif /*E3SM*/
   !================================================================================================
   ! latin_hypercube_2D_output - Creates and opens the SILHS 2D output files.
   !================================================================================================
