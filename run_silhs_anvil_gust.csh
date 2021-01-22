@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = clubb_silhs_E3SM_master_merge
+set job_name       = clubb_silhs_upgrade_f2dc5c2_test
 set compset        = F2010SC5-CMIP6 
 #set compset        = A_WCYCL1850S_CMIP6
 #set compset        = FC5CLBMG2BCL72 # alternative compset
@@ -1040,14 +1040,15 @@ clubb_c11              = .5
 clubb_c11b             = .5
 clubb_c11c             = 0.85
 clubb_c14              = 1.0
-clubb_c15              = 1
+clubb_c_wp3_turb       = 1
 clubb_c1b              = 1.0
 clubb_c1c              = 0.75
 clubb_c2rt             = 1
 clubb_c2rtthl          = 1
 clubb_c2thl            = 1
 clubb_c4               = 1
-clubb_c5               = 0
+clubb_c_uu_shr         = 0
+clubb_c_uu_buoy        = 0
 clubb_c6rt             = 1
 clubb_c6rtb            = 1
 clubb_c6rtc            = 0.50

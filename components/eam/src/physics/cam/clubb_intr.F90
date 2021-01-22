@@ -5113,7 +5113,9 @@ end function diag_ustar
       l_damp_wp3_Skw_squared,       & ! Set damping on wp3 to use Skw^2 rather than Skw^4
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
       l_update_pressure,            & ! Flag for having CLUBB update pressure and exner
-      l_lmm_stepping                  ! Apply Linear Multistep Method (LMM) Stepping
+      l_lmm_stepping,               & ! Apply Linear Multistep Method (LMM) Stepping
+      l_e3sm_config,                & ! Run model with E3SM settings
+      l_use_tke_in_wp3_pr_turb_term   ! Use TKE formulation for wp3 pr_turb term
 
     logical, save :: first_call = .true.
 
@@ -5161,7 +5163,9 @@ end function diag_ustar
                                                l_damp_wp3_Skw_squared, & ! Out
                                                l_prescribed_avg_deltaz, & ! Out
                                                l_update_pressure, & ! Out
-                                               l_lmm_stepping ) ! Out
+                                               l_lmm_stepping, & ! Out
+                                               l_e3sm_config, & ! Out
+                                               l_use_tke_in_wp3_pr_turb_term ) ! Out
 
       call initialize_clubb_config_flags_type_api( iiPDF_type, & ! In
                                                    ipdf_call_placement, & ! In
@@ -5206,6 +5210,8 @@ end function diag_ustar
                                                    l_prescribed_avg_deltaz, & ! In
                                                    l_update_pressure, & ! In
                                                    l_lmm_stepping, & ! In
+                                                   l_e3sm_config, & ! In
+                                                   l_use_tke_in_wp3_pr_turb_term, & ! In
                                                    clubb_config_flags_in ) ! Out
 
       first_call = .false.

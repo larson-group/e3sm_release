@@ -3230,12 +3230,17 @@ C4 coefficient in the wp2 return-to-isotropy term.  A higher value of C4
 tends wp2 more towards the value of subgrid TKE.
 </entry>
 
-<entry id="clubb_C5" type="real" category="pblrad"
+<entry id="clubb_C_uu_shr" type="real" category="pblrad"
        group="clubb_param_nl" valid_values="" >
-Constant in wp2 pressure term 2. Units [-]
+Constant in shear portion of wp2 pressure term 2. Units [-]
 Default: 0.3
 </entry>
 
+<entry id="clubb_C_uu_buoy" type="real" category="pblrad"
+       group="clubb_param_nl" valid_values="" >
+Constant in buoyancy portion of wp2 pressure term 2. Units [-]
+Default: 0.3
+</entry>
 
 <entry id="clubb_C6rt" type="real" category="pblrad"
        group="clubb_param_nl" valid_values="" >
@@ -3321,7 +3326,7 @@ Constant of Newtonian damping of the variances of u-wind and v-wind
 Default: 1.0
 </entry>
 
-<entry id="clubb_C15" type="real" category="pblrad"
+<entry id="clubb_C_wp3_turb" type="real" category="pblrad"
        group="clubb_param_nl" valid_values="" >
 Constant in buoyancy production term for CLUBB's 3rd-order vertical velocity, wp3
 Default: 0.0
