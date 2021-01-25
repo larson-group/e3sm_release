@@ -83,6 +83,8 @@ module subcol_SILHS
 
    real(r8) :: subcol_SILHS_ncnp2_on_ncnm2
 
+   real(r8) :: subcol_SILHS_vert_decorr_coef
+
    ! There may or may not be a better place to put this.
    real(r8), parameter :: p0_clubb = 100000._r8
 
@@ -137,6 +139,7 @@ contains
       use spmd_utils,      only: masterproc, masterprocid, mpicom
       use spmd_utils,      only: mpi_integer, mpi_logical, mpi_character, mpir8
       use clubb_api_module,only: core_rknd
+      use silhs_api_module,only: vert_decorr_coef
 #endif
 #endif
       character(len=*), intent(in) :: nlfile  ! filepath for file containing namelist input
@@ -156,7 +159,8 @@ contains
                                  hmp2_ip_on_hmm2_ip_intrcpt, &
                                  subcol_SILHS_meanice, &
                                  subcol_SILHS_use_clear_col, &
-                                 subcol_SILHS_constrainmn
+                                 subcol_SILHS_constrainmn, &
+                                 subcol_SILHS_vert_decorr_coef
 !                                 subcol_SILHS_c6rt, subcol_SILHS_c7, &
 !                                 subcol_SILHS_c8, subcol_SILHS_c11, subcol_SILHS_c11b, &
 !                                 subcol_SILHS_gamma_coef, subcol_SILHS_mult_coef, subcol_SILHS_mu
@@ -165,6 +169,7 @@ contains
       ! Set defaults
       subcol_SILHS_var_covar_src = .true.  ! TODO: put this in namelist
       subcol_SILHS_destroy_massless_droplets = .true.  ! TODO: put this in namelist
+      subcol_SILHS_vert_decorr_coef = vert_decorr_coef
 
       ! Eric Raut changed a default.
       hmp2_ip_on_hmm2_ip_slope%Ni = 0.0_core_rknd
@@ -212,6 +217,7 @@ contains
       call mpi_bcast(hmp2_ip_on_hmm2_ip_intrcpt%Ni, 1, mpir8, masterprocid, mpicom, ierr)
       call mpi_bcast(hmp2_ip_on_hmm2_ip_intrcpt%rs, 1, mpir8, masterprocid, mpicom, ierr)
       call mpi_bcast(hmp2_ip_on_hmm2_ip_intrcpt%Ns, 1, mpir8, masterprocid, mpicom, ierr)
+      call mpi_bcast(subcol_SILHS_vert_decorr_coef, 1, mpir8, masterprocid, mpicom, ierr)
 !      call mpi_bcast(subcol_SILHS_c6rt, 1, mpir8, masterprocid, mpicom, ierr)
 !      call mpi_bcast(subcol_SILHS_c7, 1, mpir8, masterprocid, mpicom, ierr)
 !      call mpi_bcast(subcol_SILHS_c8, 1, mpir8, masterprocid, mpicom, ierr)
@@ -1129,6 +1135,7 @@ contains
                 clubb_config_flags%l_tke_aniso, &                  ! In
                 clubb_config_flags%l_standard_term_ta, &           ! In
                 clubb_config_flags%l_single_C2_Skw, &              ! In
+                subcol_SILHS_vert_decorr_coef, &                   ! In
                 X_nl_all_levs, X_mixt_comp_all_levs, &             ! Out
                 lh_sample_point_weights)                           ! Out
 

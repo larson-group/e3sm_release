@@ -1344,6 +1344,7 @@ subcol_silhs_n_to_micro = .true. ! if .false. gridbox means are used instead of 
 subcol_silhs_use_clear_col = .false.
 subcol_SILHS_constrainmn = .false.
 subcol_silhs_ncnp2_on_ncnm2 = 0.05,
+subcol_SILHS_vert_decorr_coef = 0.001,
 
 hmp2_ip_on_hmm2_ip_slope%rr = 0.0,
 hmp2_ip_on_hmm2_ip_slope%Nr = 0.0,
