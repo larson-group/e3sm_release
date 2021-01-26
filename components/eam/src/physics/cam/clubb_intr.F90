@@ -843,7 +843,7 @@ end subroutine clubb_init_cnst
     ! Set the debug level.  Level 2 has additional computational expense since
     ! it checks the array variables in CLUBB for invalid values.
     ! ----------------------------------------------------------------- !
-    call set_clubb_debug_level_api( 3 )
+    call set_clubb_debug_level_api( 2 )
 
     ! ----------------------------------------------------------------- !
     ! use pbuf_get_fld_idx to get existing physics buffer fields from other
