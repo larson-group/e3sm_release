@@ -1,3 +1,50 @@
+commit c689c7ea3afdf52ae339bed55a04c18523cbe31e
+Author: bmg929 <bmg2@uwm.edu>
+Date:   Mon Jan 25 15:16:16 2021 -0600
+
+    I updated silhs_api_module so that vert_decorr_coef is publically available
+    for some host models (e.g. SAM and WRF).
+
+commit 778133ad076fbc057f00e8fb50ca16f86bd80dd3
+Author: bmg929 <bmg2@uwm.edu>
+Date:   Mon Jan 25 15:04:57 2021 -0600
+
+    Revert "This will allow for a better interface of SILHS parameter"
+    
+    This reverts commit 47032b78a9fd8ddf19c30483abff933e099c9e43.
+
+commit 7ca99a9587b3ff40237ec07dfc2cebd4e88dc843
+Author: bmg929 <bmg2@uwm.edu>
+Date:   Mon Jan 25 15:04:42 2021 -0600
+
+    Revert "Fixed a preprocessor command."
+    
+    This reverts commit b349140012f53280aaf8294c1c3d6bc95f8d85b2.
+
+commit 785a18ee89e5b16f1f1de725d7d1d59b3591bb03
+Author: bmg929 <bmg2@uwm.edu>
+Date:   Mon Jan 25 15:04:27 2021 -0600
+
+    Revert "I'm adding the api entry for read_silhs_parameters, called"
+    
+    This reverts commit f2dc5c25386fd37bc1bf8ccff7844c66ee79ac36.
+
+commit f941d8616092085ec75c64085200304fb0ae82c4
+Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
+Date:   Fri Jan 22 08:26:56 2021 -0600
+
+    Create linux_x86_64_ifort_compy.bash
+    
+    Copying this file from Shixuan Zhang and Chris Vogl's pull request (https://github.com/larson-group/clubb_release/pull/1/files).
+
+commit abd2c7a25e075d4314870c91ce01cc136dd0e1a3
+Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
+Date:   Fri Jan 22 08:25:46 2021 -0600
+
+    Create linux_x86_64_gfortran_compy.bash
+    
+    Copying this file from Shixuan Zhang and Chris Vogl's [pull request](https://github.com/larson-group/clubb_release/pull/1/files).
+
 commit f2dc5c25386fd37bc1bf8ccff7844c66ee79ac36
 Author: bmg929 <bmg2@uwm.edu>
 Date:   Thu Jan 21 22:14:47 2021 -0600
@@ -23,46 +70,3 @@ Author: pbroels <pbroels@uwm.edu>
 Date:   Thu Jan 21 14:20:00 2021 -0600
 
     Removing Jenkinsfile from root directory.
-
-commit 4817d3a1e8d5e918fe9bf515444dd868f3c0c6ca
-Author: pbroels <pbroels@uwm.edu>
-Date:   Thu Jan 21 14:19:22 2021 -0600
-
-    Adding the github_nightly_update_scripts to production. Also editted error_test to have more descriptive stage names.
-
-commit 04ce8d4c2eb99f05ad84518425c2f17ccd2b8214
-Author: Vincent Larson <vlarson@users.noreply.github.com>
-Date:   Thu Jan 21 09:22:47 2021 -0600
-
-    I deleted an unneeded identification file left over from svn.
-
-commit 358c554f694b8df3b15cf9bdd748ff310d1bbd02
-Merge: 7387870 54cab0b
-Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
-Date:   Wed Jan 20 15:04:51 2021 -0600
-
-    Merge branch 'master' of https://github.com/larson-group/clubb
-
-commit 73878700ca11afca77705ae383914fe04be0f72c
-Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
-Date:   Wed Jan 20 15:02:46 2021 -0600
-
-    This commit renames the wp3 budget term from "bp2" to "pr_turb", and renames the related parameter "C15" to "C_wp3_turb".  The majority of files changed are supplemental files such as postprocessing files for plotgen and pyplotgen and tuner files and input files.
-    
-    This commit is BIT_CHANGING, but only because it renames a variable and a parameter.  Results should be bit-for-bit with previous results.
-    
-    See issue #901.
-
-commit 54cab0b10b347549c6fe8df025bc57f96a61c534
-Author: Vincent Larson <vlarson@users.noreply.github.com>
-Date:   Wed Jan 20 14:50:06 2021 -0600
-
-    I added comments on parameters for Gunther's esa_driver.
-    
-    These parameters determine how many iterations of CLUBB will occur before the solution is deemed to converge.
-
-commit 5394962fbca3a661dad84bce66a9a8cab5ceb91d
-Author: pbroels <pbroels@uwm.edu>
-Date:   Wed Jan 20 12:57:54 2021 -0600
-
-    Updating backwards compatibility parameter values because the name of the C5 parameter changed. #901
