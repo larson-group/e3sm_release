@@ -3534,6 +3534,18 @@ Coefficient of inverse tau term contributed by Brunt Vaisala frequency [-]
 Default: 0.0D0
 </entry>
 
+<entry id="clubb_C_invrs_tau_wpxp_Ri"  type="real" category="pblrad"
+       group="clubb_param_nl" valid_values="" >
+Coefficient of inverse tau term contributed by Brunt Vaisala frequency [-]
+Default: 0.0D0
+</entry>
+
+<entry id="clubb_C_invrs_tau_wpxp_N2_thresh"  type="real" category="pblrad"
+       group="clubb_param_nl" valid_values="" >
+Threshold of inverse tau term contributed by Brunt Vaisala frequency [-]
+Default: 0.0D0
+</entry>
+
 <entry id="clubb_Richardson_num_min"  type="real" category="pblrad"
        group="clubb_param_nl" valid_values="" >
 Minimum value of Richardson number used in Cx function calculations

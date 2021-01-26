@@ -933,6 +933,7 @@ end subroutine clubb_init_cnst
     clubb_config_flags%l_min_xp2_from_corr_wx = .false.
     clubb_config_flags%l_use_shear_Richardson = .true.
     clubb_config_flags%l_lmm_stepping = .false.
+    clubb_config_flags%l_e3sm_config = .true.
    
     !  Set up CLUBB core.  Note that some of these inputs are overwrote
     !  when clubb_tend_cam is called.  The reason is that heights can change
