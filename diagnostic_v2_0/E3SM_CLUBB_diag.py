@@ -19,7 +19,7 @@ case='upgrade_Sept2020' # A general case name
 outdir='/lcrc/group/acme/ac.griffin/plots/' # Location of plots
 
 filepath=[ '/lcrc/group/acme/ac.griffin/E3SM_simulations/' ]
-cases=[ 'anvil.default.clubb_silhs_E3SM_master_merge.ne30_ne30' ]
+cases=[ 'anvil.default.clubb_silhs_upgrade_c689c7e_test.ne30_ne30' ]
        
 # Give a short name for your experiment which will appears on plots
 

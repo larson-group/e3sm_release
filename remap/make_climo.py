@@ -17,7 +17,7 @@ filepath=[ \
 '/lcrc/group/acme/ac.griffin/E3SM_simulations/',\
           ]
 cases=[ \
-'anvil.default.clubb_silhs_E3SM_master_merge.ne30_ne30',\
+'anvil.default.clubb_silhs_upgrade_c689c7e_test.ne30_ne30',\
 ]
 
 years=[\
