@@ -754,10 +754,27 @@ end subroutine micro_p3_readnl
        cld_frac_l(:,:) = mincld
        do k = kbot,ktop,kdir
           do i=its,ite
+#ifndef SILHS
              cldm(i,k)  = max(ast(i,k), mincld)
              cld_frac_i(i,k) = max(ast(i,k), mincld)
              cld_frac_l(i,k) = max(ast(i,k), mincld)
              cld_frac_r(i,k) = cldm(i,k)
+#else
+             ! For SILHS subcolumn sampling, use the equivalent of the
+             ! microp_uniform flag found in MG microphysics.
+             if ( qi(i,k) >= qsmall ) then
+                cld_frac_i(i,k) = 1.0_rtype
+             else
+                cld_frac_i(i,k) = mincld
+             endif ! qi(i,k) >= qsmall
+             if ( qc(i,k) >= qsmall ) then
+                cld_frac_l(i,k) = 1.0_rtype
+             else
+                cld_frac_l(i,k) = mincld
+             endif ! qc(i,k) >= qsmall
+             cldm(i,k)  = max( cld_frac_l(i,k), cld_frac_i(i,k) )
+             cld_frac_r(i,k) = cldm(i,k)
+#endif /*SILHS*/
           end do
        end do
 
