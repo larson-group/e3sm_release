@@ -1202,6 +1202,9 @@ end function bfb_expm1
        dpres,exner,qv2qi_depos_tend,precip_total_tend,nevapr,qr_evap_tend,precip_liq_flux,precip_ice_flux,cld_frac_r,cld_frac_l,cld_frac_i,  &
        p3_tend_out,mu_c,lamc,liq_ice_exchange,vap_liq_exchange, &
        vap_ice_exchange,qv_prev,t_prev,col_location &
+#ifdef SILHS
+       ,qmsedten,V_qc_out,V_qr_out,V_qi_out
+#endif /*SILHS*/
 #ifdef SCREAM_CONFIG_IS_CMAKE
        ,elapsed_s &
 #endif
@@ -1272,6 +1275,12 @@ end function bfb_expm1
     real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: liq_ice_exchange ! sum of liq-ice phase change tendenices
     real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: vap_liq_exchange ! sum of vap-liq phase change tendenices
     real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: vap_ice_exchange ! sum of vap-ice phase change tendenices
+#ifdef SILHS
+    real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: qmsedten    ! qm sedimentation tendency
+    real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: V_qc_out    ! Sedimentation velocity for qc
+    real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: V_qr_out    ! Sedimentation velocity for qr
+    real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: V_qi_out    ! Sedimentation velocity for qi and qm
+#endif /*SILHS*/
 
     ! INPUT for prescribed CCN option
     logical(btype), intent(in)                                  :: do_prescribed_CCN
@@ -1492,7 +1501,12 @@ end function bfb_expm1
        call cloud_sedimentation(kts,kte,ktop,kbot,kdir, &
          qc_incld(i,:),rho(i,:),inv_rho(i,:),cld_frac_l(i,:),acn(i,:),inv_dz(i,:), &
          dt,inv_dt,dnu,do_predict_nc, &
+#ifndef SILHS
          qc(i,:),nc(i,:),nc_incld(i,:),mu_c(i,:),lamc(i,:),precip_liq_surf(i),p3_tend_out(i,:,36),p3_tend_out(i,:,37))
+#else
+         qc(i,:),nc(i,:),nc_incld(i,:),mu_c(i,:),lamc(i,:),precip_liq_surf(i),p3_tend_out(i,:,36),p3_tend_out(i,:,37), &
+         V_qc_out(i,:))
+#endif /*SILHS*/
 
        !------------------------------------------------------------------------------------------!
        ! Rain sedimentation:  (adaptive substepping)
@@ -1501,8 +1515,13 @@ end function bfb_expm1
 
        call rain_sedimentation(kts,kte,ktop,kbot,kdir, &
          qr_incld(i,:),rho(i,:),inv_rho(i,:),rhofacr(i,:),cld_frac_r(i,:),inv_dz(i,:),dt,inv_dt, &
+#ifndef SILHS
          qr(i,:),nr(i,:),nr_incld(i,:),mu_r(i,:),lamr(i,:),precip_liq_surf(i),precip_liq_flux(i,:),p3_tend_out(i,:,38), &
          p3_tend_out(i,:,39))
+#else
+         qr(i,:),nr(i,:),nr_incld(i,:),mu_r(i,:),lamr(i,:),precip_liq_surf(i),precip_liq_flux(i,:),p3_tend_out(i,:,38), &
+         p3_tend_out(i,:,39),V_qr_out(i,:))
+#endif /*SILHS*/
 
        !------------------------------------------------------------------------------------------!
        ! Ice sedimentation:  (adaptive substepping)
@@ -1511,8 +1530,13 @@ end function bfb_expm1
 
        call ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
          rho(i,:),inv_rho(i,:),rhofaci(i,:),cld_frac_i(i,:),inv_dz(i,:),dt,inv_dt, &
+#ifndef SILHS
          qi(i,:),qi_incld(i,:),ni(i,:),qm(i,:),qm_incld(i,:),bm(i,:),bm_incld(i,:),ni_incld(i,:), &
          precip_ice_surf(i),p3_tend_out(i,:,40),p3_tend_out(i,:,41))
+#else
+         qi(i,:),qi_incld(i,:),ni(i,:),qm(i,:),qm_incld(i,:),bm(i,:),bm_incld(i,:),ni_incld(i,:), &
+         precip_ice_surf(i),p3_tend_out(i,:,40),p3_tend_out(i,:,41),qmsedten(i,:),V_qi_out(i,:))
+#endif /*SILHS*/
 
        !.......................................
        ! homogeneous freezing of cloud and rain
@@ -3630,7 +3654,11 @@ end subroutine get_time_space_phys_variables
 subroutine cloud_sedimentation(kts,kte,ktop,kbot,kdir,   &
    qc_incld,rho,inv_rho,cld_frac_l,acn,inv_dz,&
    dt,inv_dt,dnu,do_predict_nc, &
+#ifndef SILHS
    qc, nc, nc_incld,mu_c,lamc,precip_liq_surf,qc_tend,nc_tend)
+#else
+   qc, nc, nc_incld,mu_c,lamc,precip_liq_surf,qc_tend,nc_tend,V_qc_out)
+#endif /*SILHS*/
 
    implicit none
    integer, intent(in) :: kts, kte
@@ -3655,6 +3683,9 @@ subroutine cloud_sedimentation(kts,kte,ktop,kbot,kdir,   &
    real(rtype), intent(inout) :: precip_liq_surf
    real(rtype), intent(inout), dimension(kts:kte) :: qc_tend
    real(rtype), intent(inout), dimension(kts:kte) :: nc_tend
+#ifdef SILHS
+   real(rtype), intent(out), dimension(kts:kte) :: V_qc_out
+#endif /*SILHS*/
 
    logical(btype) :: log_qxpresent
    integer :: k
@@ -3733,6 +3764,13 @@ subroutine cloud_sedimentation(kts,kte,ktop,kbot,kdir,   &
 
             enddo kloop_sedi_c2
 
+#ifdef SILHS
+            ! Output V_qc for use in SILHS hole filler.
+            if ( dt_left == dt ) then
+               V_qc_out = V_qc
+            endif
+#endif /*SILHS*/
+
             call generalized_sedimentation(kts, kte, kdir, k_qxtop, k_qxbot, kbot, Co_max, dt_left, &
                  prt_accum, inv_dz, inv_rho, rho, num_arrays, vs, fluxes, qnr)
 
@@ -3766,6 +3804,13 @@ subroutine cloud_sedimentation(kts,kte,ktop,kbot,kdir,   &
                Co_max = max(Co_max, V_qc(k)*dt_left*inv_dz(k))
             enddo kloop_sedi_c1
 
+#ifdef SILHS
+            ! Output V_qc for use in SILHS hole filler.
+            if ( dt_left == dt ) then
+               V_qc_out = V_qc
+            endif
+#endif /*SILHS*/
+
             call generalized_sedimentation(kts, kte, kdir, k_qxtop, k_qxbot, kbot, Co_max, dt_left, &
                  prt_accum, inv_dz, inv_rho, rho, 1, vs, fluxes, qnr)
 
@@ -3791,7 +3836,11 @@ end subroutine cloud_sedimentation
 
 subroutine rain_sedimentation(kts,kte,ktop,kbot,kdir,   &
    qr_incld,rho,inv_rho,rhofacr,cld_frac_r,inv_dz,dt,inv_dt,  &
+#ifndef SILHS
    qr,nr,nr_incld,mu_r,lamr,precip_liq_surf,precip_liq_flux,qr_tend,nr_tend)
+#else
+   qr,nr,nr_incld,mu_r,lamr,precip_liq_surf,precip_liq_flux,qr_tend,nr_tend,V_qr_out)
+#endif /*SILHS*/
 
    implicit none
    integer, intent(in) :: kts, kte
@@ -3815,6 +3864,9 @@ subroutine rain_sedimentation(kts,kte,ktop,kbot,kdir,   &
    real(rtype), intent(inout), dimension(kts:kte+1) :: precip_liq_flux
    real(rtype), intent(inout), dimension(kts:kte) :: qr_tend
    real(rtype), intent(inout), dimension(kts:kte) :: nr_tend
+#ifdef SILHS
+   real(rtype), intent(out), dimension(kts:kte) :: V_qr_out
+#endif /*SILHS*/
 
    logical(btype) :: log_qxpresent
    integer :: k
@@ -3887,6 +3939,13 @@ subroutine rain_sedimentation(kts,kte,ktop,kbot,kdir,   &
 
          enddo kloop_sedi_r1
 
+#ifdef SILHS
+         ! Output V_qr for use in SILHS hole filler.
+         if ( dt_left == dt ) then
+            V_qr_out = V_qr
+         endif
+#endif /*SILHS*/
+
          call generalized_sedimentation(kts, kte, kdir, k_qxtop, k_qxbot, kbot, Co_max, dt_left, &
               prt_accum, inv_dz, inv_rho, rho, num_arrays, vs, fluxes, qnr)
 
@@ -3953,7 +4012,11 @@ end subroutine compute_rain_fall_velocity
 
 subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
    rho,inv_rho,rhofaci,cld_frac_i,inv_dz,dt,inv_dt,  &
+#ifndef SILHS
    qi,qi_incld,ni,qm,qm_incld,bm,bm_incld,ni_incld,precip_ice_surf,qi_tend,ni_tend)
+#else
+   qi,qi_incld,ni,qm,qm_incld,bm,bm_incld,ni_incld,precip_ice_surf,qi_tend,ni_tend,qmsedten,V_qi_out)
+#endif /*SILHS*/
 
    implicit none
    integer, intent(in) :: kts, kte
@@ -3979,6 +4042,10 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
    real(rtype), intent(inout) :: precip_ice_surf
    real(rtype), intent(inout), dimension(kts:kte) :: qi_tend
    real(rtype), intent(inout), dimension(kts:kte) :: ni_tend
+#ifdef SILHS
+   real(rtype), intent(out). dimension(kts:kte) :: qmsedten
+   real(rtype), intent(out), dimension(kts:kte) :: V_qi_out
+#endif /*SILHS*/
 
    logical(btype) :: log_qxpresent
    integer :: k
@@ -4003,6 +4070,9 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
 
    real(rtype) :: dum1, dum4, dum5, dum6
    integer dumi, dumii, dumjj, dumzz
+#ifdef SILHS
+   real(rtype), dimension(kts:kte) :: qm_start
+#endif /*SILHS*/
 
    log_qxpresent = .false.  !note: this applies to ice category 'iice' only
    k_qxtop       = kbot
@@ -4019,6 +4089,10 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
    qnr(2)%p => ni
    qnr(3)%p => qm
    qnr(4)%p => bm
+
+#ifdef SILHS
+   qm_start = qm
+#endif /*SILHS*/
 
    !find top, determine qxpresent
    do k = ktop,kbot,-kdir
@@ -4085,6 +4159,13 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
 
          enddo kloop_sedi_i1
 
+#ifdef SILHS
+         ! Output V_qit for use in SILHS hole filler.
+         if ( dt_left == dt ) then
+            V_qi_out = V_qit
+         endif
+#endif /*SILHS*/
+
          call generalized_sedimentation(kts, kte, kdir, k_qxtop, k_qxbot, kbot, Co_max, &
               dt_left, prt_accum, inv_dz, inv_rho, rho, num_arrays, vs, fluxes, qnr)
 
@@ -4104,6 +4185,9 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
 
    qi_tend(:) = ( qi(:) - qi_tend(:) ) * inv_dt ! Ice sedimentation tendency, measure
    ni_tend(:) = ( ni(:) - ni_tend(:) ) * inv_dt ! Ice # sedimentation tendency, measure
+#ifdef SILHS
+   qmsedten(:) = ( qm(:) - qm_start(:) ) * inv_dt
+#endif /*SILHS*/
 
 end subroutine ice_sedimentation
 

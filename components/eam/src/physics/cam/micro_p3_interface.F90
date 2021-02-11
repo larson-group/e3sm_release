@@ -111,6 +111,14 @@ module micro_p3_interface
       snow_pcw_idx = -1,       &
       snow_sed_idx = -1
 
+#ifdef SILHS
+! Pbuf fields needed for subcol_SILHS
+   integer :: &
+      qcsedten_idx=-1, qrsedten_idx=-1, &
+      qisedten_idx=-1, qmsedten_idx=-1, &
+      V_qc_idx=-1, V_qr_idx=-1, V_qi_idx=-1
+#endif /*SILHS*/
+
    real(rtype) :: &
       micro_mg_accre_enhan_fac = huge(1.0_rtype), & !Accretion enhancement factor from namelist
       prc_coef1_in             = huge(1.0_rtype), &
@@ -275,6 +283,17 @@ end subroutine micro_p3_readnl
    !! module clubb_intr
    call pbuf_add_field('PRER_EVAP',  'global', dtype_r8,(/pcols,pver/), qr_evap_tend_idx)
 
+#ifdef SILHS
+   ! Fields for subcol_SILHS hole filling
+   call pbuf_add_field('QCSEDTEN', 'global', dtype_r8, (/pcols,pver/), qcsedten_idx)
+   call pbuf_add_field('QRSEDTEN', 'global', dtype_r8, (/pcols,pver/), qrsedten_idx)
+   call pbuf_add_field('QISEDTEN', 'global', dtype_r8, (/pcols,pver/), qisedten_idx)
+   call pbuf_add_field('QMSEDTEN', 'global', dtype_r8, (/pcols,pver/), qmsedten_idx)
+   call pbuf_add_field('V_QC', 'global', dtype_r8, (/pcols,pver/), V_qc_idx)
+   call pbuf_add_field('V_QR', 'global', dtype_r8, (/pcols,pver/), V_qr_idx)
+   call pbuf_add_field('V_QI', 'global', dtype_r8, (/pcols,pver/), V_qi_idx)
+#endif /*SILHS*/
+
    !! module radiation_data & module cloud_rad_props
    call pbuf_add_field('DEI',        'physpkg',dtype_r8,(/pcols,pver/), dei_idx)
    call pbuf_add_field('MU',         'physpkg',dtype_r8,(/pcols,pver/), mu_idx)
@@ -425,6 +444,17 @@ end subroutine micro_p3_readnl
     prec_pcw_idx = pbuf_get_index('PREC_PCW') !! from physpkg 
     snow_pcw_idx = pbuf_get_index('SNOW_PCW') !! from physpkg 
 
+#ifdef SILHS
+    ! Fields for subcol_SILHS hole filling
+    qcsedten_idx = pbuf_get_index('QCSEDTEN', ierr)
+    qrsedten_idx = pbuf_get_index('QRSEDTEN', ierr)
+    qisedten_idx = pbuf_get_index('QISEDTEN', ierr)
+    qmsedten_idx = pbuf_get_index('QMSEDTEN', ierr)
+    V_qc_idx = pbuf_get_index('V_QC', ierr)
+    V_qr_idx = pbuf_get_index('V_QR', ierr)
+    V_qi_idx = pbuf_get_index('V_QI', ierr)
+#endif /*SILHS*/
+
     call p3_init(micro_p3_lookup_dir,micro_p3_tableversion)
 
     ! Initialize physics buffer grid fields for accumulating precip and
@@ -438,6 +468,16 @@ end subroutine micro_p3_readnl
        call pbuf_set_field(pbuf2d, qv_prev_idx,  0._rtype)
        call pbuf_set_field(pbuf2d, t_prev_idx,  0._rtype)
  
+#ifdef SILHS
+       ! Fields for subcol_SILHS hole filling
+       if (qcsedten_idx > 0) call pbuf_set_field(pbuf2d, qcsedten_idx, 0._rtype)
+       if (qrsedten_idx > 0) call pbuf_set_field(pbuf2d, qrsedten_idx, 0._rtype)
+       if (qisedten_idx > 0) call pbuf_set_field(pbuf2d, qisedten_idx, 0._rtype)
+       if (qmsedten_idx > 0) call pbuf_set_field(pbuf2d, qmsedten_idx, 0._rtype)
+       if (V_qc_idx > 0) call pbuf_set_field(pbuf2d, V_qc_idx, 0._rtype)
+       if (V_qr_idx > 0) call pbuf_set_field(pbuf2d, V_qr_idx, 0._rtype)
+       if (V_qi_idx > 0) call pbuf_set_field(pbuf2d, V_qi_idx, 0._rtype)
+#endif /*SILHS*/
     end if
 
     ! INITIALIZE OUTPUT
@@ -977,6 +1017,16 @@ end subroutine micro_p3_readnl
     real(rtype), pointer :: dei(:,:)          ! Ice effective diameter (um)
     real(rtype), pointer :: mu(:,:)           ! Size distribution shape parameter for radiation
     real(rtype), pointer :: lambdac(:,:)      ! Size distribution slope parameter for radiation
+#ifdef SILHS
+    !! SILHS
+    real(rtype), pointer :: qcsedten(:,:)     ! Cloud water sedimentation tendency
+    real(rtype), pointer :: qrsedten(:,:)     ! Rain water sedimentation tendency
+    real(rtype), pointer :: qisedten(:,:)     ! Ice sedimentation tendency
+    real(rtype), pointer :: qmsedten(:,:)     ! Rimed ice (qm) sedimentation tendency
+    real(rtype), pointer :: V_qc_out(:,:)     ! Sedimentation_velocity for qc
+    real(rtype), pointer :: V_qr_out(:,:)     ! Sedimentation_velocity for qr
+    real(rtype), pointer :: V_qi_out(:,:)     ! Sedimentation_velocity for qi and qm
+#endif /*SILHS*/
     ! DONE PBUF
     ! For recording inputs/outputs to p3_main
     real(rtype) :: p3_main_inputs(pcols,pver+1,17) ! Record of inputs for p3_main
@@ -1068,6 +1118,15 @@ end subroutine micro_p3_readnl
     call pbuf_get_field(pbuf, ls_reffsnow_idx,  reffsnow                                                   ) 
     call pbuf_get_field(pbuf,  cv_reffliq_idx, cvreffliq                                                   )
     call pbuf_get_field(pbuf,  cv_reffice_idx, cvreffice                                                   )
+#ifdef SILHS
+    if (qcsedten_idx > 0) call pbuf_get_field(pbuf, qcsedten_idx, qcsedten)
+    if (qrsedten_idx > 0) call pbuf_get_field(pbuf, qrsedten_idx, qrsedten)
+    if (qisedten_idx > 0) call pbuf_get_field(pbuf, qisedten_idx, qisedten)
+    if (qmsedten_idx > 0) call pbuf_get_field(pbuf, qmsedten_idx, qmsedten)
+    if (V_qc_idx > 0) call pbuf_get_field(pbuf, V_qc_idx, V_qc_out)
+    if (V_qr_idx > 0) call pbuf_get_field(pbuf, V_qr_idx, V_qr_out)
+    if (V_qi_idx > 0) call pbuf_get_field(pbuf, V_qi_idx, V_qi_out)
+#endif /*SILHS*/
 
     ncol = state%ncol
     !==============
@@ -1257,6 +1316,12 @@ end subroutine micro_p3_readnl
          qv_prev(its:ite,kts:kte),         & ! IN  qv at end of prev p3_main call   kg kg-1
          t_prev(its:ite,kts:kte),          & ! IN  t at end of prev p3_main call    K
          col_location(its:ite,:3)          & ! IN column locations
+#ifdef SILHS
+         ,qmsedten(its:ite,kts:kte),       & ! OUT qm sedimentation tendency
+         V_qc_out(its:ite,kts:kte),        & ! OUT Sedimentation velocity of qc
+         V_qr_out(its:ite,kts:kte),        & ! OUT Sedimentation velocity of qr
+         V_qi_out(its:ite,kts:kte)         & ! OUT Sedimentation velocity of qi and qm
+#endif /*SILHS*/
          )
 
     p3_main_outputs(:,:,:) = -999._rtype
@@ -1292,6 +1357,11 @@ end subroutine micro_p3_readnl
     p3_main_outputs(1,pver+1,24) = precip_ice_flux(1,pver+1)
     call outfld('P3_input',  p3_main_inputs,  pcols, lchnk)
     call outfld('P3_output', p3_main_outputs, pcols, lchnk)
+#ifdef SILHS
+    qcsedten(:,:) = tend_out(:,:,36)
+    qrsedten(:,:) = tend_out(:,:,38)
+    qisedten(:,:) = tend_out(:,:,40)
+#endif /*SILHS*/
 
     !MASSAGE OUTPUT TO FIT E3SM EXPECTATIONS
     !============= 
