@@ -115,8 +115,8 @@ module micro_p3_interface
 ! Pbuf fields needed for subcol_SILHS
    integer :: &
       qcsedten_idx=-1, qrsedten_idx=-1, &
-      qisedten_idx=-1, qmsedten_idx=-1, &
-      V_qc_idx=-1, V_qr_idx=-1, V_qi_idx=-1
+      qisedten_idx=-1, V_qc_idx=-1, &
+      V_qr_idx=-1, V_qi_idx=-1
 #endif /*SILHS*/
 
    real(rtype) :: &
@@ -288,7 +288,6 @@ end subroutine micro_p3_readnl
    call pbuf_add_field('QCSEDTEN', 'global', dtype_r8, (/pcols,pver/), qcsedten_idx)
    call pbuf_add_field('QRSEDTEN', 'global', dtype_r8, (/pcols,pver/), qrsedten_idx)
    call pbuf_add_field('QISEDTEN', 'global', dtype_r8, (/pcols,pver/), qisedten_idx)
-   call pbuf_add_field('QMSEDTEN', 'global', dtype_r8, (/pcols,pver/), qmsedten_idx)
    call pbuf_add_field('V_QC', 'global', dtype_r8, (/pcols,pver/), V_qc_idx)
    call pbuf_add_field('V_QR', 'global', dtype_r8, (/pcols,pver/), V_qr_idx)
    call pbuf_add_field('V_QI', 'global', dtype_r8, (/pcols,pver/), V_qi_idx)
@@ -449,7 +448,6 @@ end subroutine micro_p3_readnl
     qcsedten_idx = pbuf_get_index('QCSEDTEN', ierr)
     qrsedten_idx = pbuf_get_index('QRSEDTEN', ierr)
     qisedten_idx = pbuf_get_index('QISEDTEN', ierr)
-    qmsedten_idx = pbuf_get_index('QMSEDTEN', ierr)
     V_qc_idx = pbuf_get_index('V_QC', ierr)
     V_qr_idx = pbuf_get_index('V_QR', ierr)
     V_qi_idx = pbuf_get_index('V_QI', ierr)
@@ -473,7 +471,6 @@ end subroutine micro_p3_readnl
        if (qcsedten_idx > 0) call pbuf_set_field(pbuf2d, qcsedten_idx, 0._rtype)
        if (qrsedten_idx > 0) call pbuf_set_field(pbuf2d, qrsedten_idx, 0._rtype)
        if (qisedten_idx > 0) call pbuf_set_field(pbuf2d, qisedten_idx, 0._rtype)
-       if (qmsedten_idx > 0) call pbuf_set_field(pbuf2d, qmsedten_idx, 0._rtype)
        if (V_qc_idx > 0) call pbuf_set_field(pbuf2d, V_qc_idx, 0._rtype)
        if (V_qr_idx > 0) call pbuf_set_field(pbuf2d, V_qr_idx, 0._rtype)
        if (V_qi_idx > 0) call pbuf_set_field(pbuf2d, V_qi_idx, 0._rtype)
@@ -1022,10 +1019,9 @@ end subroutine micro_p3_readnl
     real(rtype), pointer :: qcsedten(:,:)     ! Cloud water sedimentation tendency
     real(rtype), pointer :: qrsedten(:,:)     ! Rain water sedimentation tendency
     real(rtype), pointer :: qisedten(:,:)     ! Ice sedimentation tendency
-    real(rtype), pointer :: qmsedten(:,:)     ! Rimed ice (qm) sedimentation tendency
     real(rtype), pointer :: V_qc_out(:,:)     ! Sedimentation_velocity for qc
     real(rtype), pointer :: V_qr_out(:,:)     ! Sedimentation_velocity for qr
-    real(rtype), pointer :: V_qi_out(:,:)     ! Sedimentation_velocity for qi and qm
+    real(rtype), pointer :: V_qi_out(:,:)     ! Sedimentation_velocity for qi
 #endif /*SILHS*/
     ! DONE PBUF
     ! For recording inputs/outputs to p3_main
@@ -1122,7 +1118,6 @@ end subroutine micro_p3_readnl
     if (qcsedten_idx > 0) call pbuf_get_field(pbuf, qcsedten_idx, qcsedten)
     if (qrsedten_idx > 0) call pbuf_get_field(pbuf, qrsedten_idx, qrsedten)
     if (qisedten_idx > 0) call pbuf_get_field(pbuf, qisedten_idx, qisedten)
-    if (qmsedten_idx > 0) call pbuf_get_field(pbuf, qmsedten_idx, qmsedten)
     if (V_qc_idx > 0) call pbuf_get_field(pbuf, V_qc_idx, V_qc_out)
     if (V_qr_idx > 0) call pbuf_get_field(pbuf, V_qr_idx, V_qr_out)
     if (V_qi_idx > 0) call pbuf_get_field(pbuf, V_qi_idx, V_qi_out)
@@ -1317,10 +1312,9 @@ end subroutine micro_p3_readnl
          t_prev(its:ite,kts:kte),          & ! IN  t at end of prev p3_main call    K
          col_location(its:ite,:3)          & ! IN column locations
 #ifdef SILHS
-         ,qmsedten(its:ite,kts:kte),       & ! OUT qm sedimentation tendency
-         V_qc_out(its:ite,kts:kte),        & ! OUT Sedimentation velocity of qc
+         ,V_qc_out(its:ite,kts:kte),        & ! OUT Sedimentation velocity of qc
          V_qr_out(its:ite,kts:kte),        & ! OUT Sedimentation velocity of qr
-         V_qi_out(its:ite,kts:kte)         & ! OUT Sedimentation velocity of qi and qm
+         V_qi_out(its:ite,kts:kte)         & ! OUT Sedimentation velocity of qi
 #endif /*SILHS*/
          )
 

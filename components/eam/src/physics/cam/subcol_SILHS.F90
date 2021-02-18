@@ -63,7 +63,8 @@ module subcol_SILHS
               nrain_idx, nsnow_idx, ztodt_idx, tke_idx, kvh_idx, &
               prec_pcw_idx, snow_pcw_idx, prec_str_idx, snow_str_idx, &
               qcsedten_idx, qrsedten_idx, qisedten_idx, qssedten_idx, &
-              vtrmc_idx, umr_idx, vtrmi_idx, ums_idx, qcsevap_idx, qisevap_idx
+              vtrmc_idx, umr_idx, vtrmi_idx, ums_idx, qcsevap_idx, qisevap_idx, &
+              V_qc_idx, V_qr_idx, V_qi_idx ! P3
 
    logical :: subcol_SILHS_weight  ! if set, sets up weights for averaging subcolumns for SILHS
    integer :: subcol_SILHS_numsubcol ! number of subcolumns for this run
@@ -247,7 +248,8 @@ contains
       use physics_buffer,          only: physics_buffer_desc, pbuf_get_field, &
                                          dtype_r8, pbuf_get_index
       use units,                   only: getunit, freeunit 
-      use ref_pres,                only : top_lev => trop_cloud_top_lev
+      use ref_pres,                only: top_lev => trop_cloud_top_lev
+      use phys_control,            only: phys_getopts
 #ifdef CLUBB_SGS
 #ifdef SILHS
       use clubb_api_module,        only: core_rknd, &
@@ -281,6 +283,8 @@ contains
             cloud_file_ext  = "_corr_array_cloud.in", & ! File extensions for corr files
             below_file_ext  = "_corr_array_below.in"
       character(len=256) :: corr_file_path_cloud, corr_file_path_below
+
+      character(len=16) :: microp_scheme
 
       ! To set up CLUBB hydromet indices
       integer :: &
@@ -380,6 +384,8 @@ contains
 
       !call set_clubb_debug_level( 0 )  !#KTCtodo: Add a namelist variable to set debug level
      
+      call phys_getopts( microp_scheme_out = microp_scheme )
+
       !-------------------------------
       ! Define physics buffer indexes
       !-------------------------------
@@ -400,31 +406,54 @@ contains
       qcsedten_idx = pbuf_get_index('QCSEDTEN')
       qrsedten_idx = pbuf_get_index('QRSEDTEN')
       qisedten_idx = pbuf_get_index('QISEDTEN')
-      qssedten_idx = pbuf_get_index('QSSEDTEN')
-      vtrmc_idx = pbuf_get_index('VTRMC')
-      umr_idx = pbuf_get_index('UMR')
-      vtrmi_idx = pbuf_get_index('VTRMI')
-      ums_idx = pbuf_get_index('UMS')
-      qcsevap_idx = pbuf_get_index('QCSEVAP')
-      qisevap_idx = pbuf_get_index('QISEVAP')
+      if ( microp_scheme == 'MG' ) then
+         qssedten_idx = pbuf_get_index('QSSEDTEN')
+         vtrmc_idx = pbuf_get_index('VTRMC')
+         umr_idx = pbuf_get_index('UMR')
+         vtrmi_idx = pbuf_get_index('VTRMI')
+         ums_idx = pbuf_get_index('UMS')
+         qcsevap_idx = pbuf_get_index('QCSEVAP')
+         qisevap_idx = pbuf_get_index('QISEVAP')
+      elseif ( microp_scheme == 'P3' ) then
+         V_qc_idx = pbuf_get_index('V_QC')
+         V_qr_idx = pbuf_get_index('V_QR')
+         V_qi_idx = pbuf_get_index('V_QI')
+      endif ! microp_scheme
      
       !-------------------------------
       ! Set up SILHS hydrometeors #KTCtodo: move microphys specification to config time,
       !        Steve wants to set up a microphysics query so I can ask the microphysics
       !        scheme which hydrometeors to use. For the future.
       !-------------------------------
-      iirr = 1
-      iirs = 3
-      iiri  = 5
-      iirg = -1
+      if ( microp_scheme == 'MG' ) then
 
-      iiNr    = 2
-      iiNs = 4
-      iiNi    = 6
-      iiNg = -1
+         iirr = 1
+         iirs = 3
+         iiri = 5
+         iirg = -1
 
-      hydromet_dim = 6
+         iiNr  = 2
+         iiNs = 4
+         iiNi = 6
+         iiNg = -1
 
+         hydromet_dim = 6
+
+      elseif ( microp_scheme == 'P3' ) then
+
+         iirr = 1
+         iirs = -1
+         iiri = 3
+         iirg = -1
+
+         iiNr = 2
+         iiNs = -1
+         iiNi = 4
+         iiNg = -1
+
+         hydromet_dim = 4
+
+      endif ! microp_scheme
  
       ! Set up pdf indices, hydromet indicies, hydromet arrays, and hydromet variance ratios
       call init_pdf_hydromet_arrays_api( 1.0_core_rknd, 1.0_core_rknd,  & ! intent(in)
@@ -527,6 +556,7 @@ contains
      call addfld ('QRHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Rain water mixing ratio tendency from hole filling')
      call addfld ('QIHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Cloud ice mixing ratio tendency from hole filling')
      call addfld ('QSHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Snow mixing ratio tendency from hole filling')
+     call addfld ('QMHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Rimed ice mixing ratio tendency from hole filling (P3 micro)')
      call addfld ('THFTEN', (/ 'lev' /), 'A', 'K/s', 'Temperature tendency from hole filling')
 
       !call add_default('SILHS_NCLD_SCOL', 1, ' ')
@@ -636,13 +666,17 @@ contains
       real(r8), parameter :: qsmall = 1.0e-18  ! Microphysics cut-off for cloud
 
       integer :: i, j, k, ngrdcol, ncol, lchnk, stncol
-      integer :: ixcldice, ixnumice, ixq, ixcldliq, ixnumliq, ixrain, ixnumrain, ixsnow, ixnumsnow
+      integer :: ixcldice, ixnumice, ixq, ixcldliq, ixnumliq, ixrain, ixnumrain, &
+                 ixsnow, ixnumsnow, & ! MG
+                 ixcldrim, ixrimvol   ! P3
       integer :: begin_height, end_height ! Output from setup_grid call
       real(r8) :: sfc_elevation  ! Surface elevation
       real(r8), dimension(pverp-top_lev+1) :: zt_g, zi_g ! Thermo & Momentum grids for clubb
       real(r8), dimension(pverp) :: scfrac     ! cloud fraction based on sc distributions
       real(r8) :: msc, std, maxcldfrac, maxsccldfrac
       real(r8) :: scale = 1.0_r8
+
+      character(len=16) :: microp_scheme
 
       real(r8), dimension(nparams) :: clubb_params ! Adjustable CLUBB parameters
 
@@ -796,6 +830,8 @@ contains
                                                        ! pcols for output to history
       real(r8) :: eff_rad_coef = 1.0_r8/(4.0_r8/3.0_r8*SHR_CONST_RHOFW*SHR_CONST_PI)
       real(r8), dimension(pver) :: eff_rad_prof ! r^3 as calculated from grid mean MR & NC
+      real(r8), dimension(pver)  :: rime_to_total_ice_ratio  ! P3: qrim / qi
+      real(r8), dimension(pver)  :: rho_rime  ! P3: riming density: qrim / brim
      
       !----------------
       ! Pointers
@@ -864,6 +900,8 @@ contains
       numsubcol_arr(:ngrdcol) = subcol_SILHS_numsubcol ! Only set for valid grid columns
       call subcol_set_subcols(state, tend, numsubcol_arr, state_sc, tend_sc)
 
+      call phys_getopts( microp_scheme_out = microp_scheme )
+
       !----------------
       ! Get indices for ice mass and number
       ! This is the same code from clubb_intr.F90
@@ -875,8 +913,17 @@ contains
       call cnst_get_ind('NUMLIQ', ixnumliq)
       call cnst_get_ind('RAINQM', ixrain, abort=.false.)
       call cnst_get_ind('NUMRAI', ixnumrain, abort=.false.)
-      call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
-      call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
+      if ( microp_scheme == 'MG' ) then
+         call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
+         call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
+         ixcldrim = -1
+         ixrimvol = -1
+      elseif ( microp_scheme == 'P3' ) then
+         call cnst_get_ind('CLDRIM', ixcldrim, abort=.false.)
+         call cnst_get_ind('BVRIM ', ixrimvol, abort=.false.)
+         ixsnow = -1
+         ixnumsnow = -1
+      endif
 
       ! The number of vertical grid levels used in CLUBB is pverp, which is originally
       ! set in the call to setup_clubb_core_api from subroutine clubb_ini_cam.  This
@@ -998,6 +1045,27 @@ contains
             ! Test a fixed effective radius
             ! eff_rad_prof(k) = 5.12e-16_r8 ! 8 microns
          enddo
+
+         ! P3: calculate ratio of rimed ice to total ice.
+         ! This can remain on the CAM grid.
+         if ( ixcldrim > 0 ) then
+            do k = top_lev, pver
+               if ( state%q(i,k,ixcldice) > 0.0_r8 ) then
+                  rime_to_total_ice_ratio(k) &
+                  = state%q(i,k,ixcldrim) / state%q(i,k,ixcldice)
+               else
+                  rime_to_total_ice_ratio(k) = 0.0_r8
+               endif
+               if ( ixrimvol > 0 ) then
+                  if ( state%q(i,k,ixcldrim) > 0.0_r8 ) then
+                     rho_rime(k) &
+                     = state%q(i,k,ixcldrim) / state%q(i,k,ixrimvol)
+                  else
+                     rho_rime(k) = 0.0_r8
+                  endif
+               endif ! ixrimvol > 0
+            enddo
+         endif ! ixcldrim > 0
 
          ! Allocate arrays for set_up_pdf_params_incl_hydromet
          allocate( corr_array_1(pdf_dim, pdf_dim, pverp-top_lev+1) )
@@ -1419,6 +1487,25 @@ contains
                where(state_sc%q(stncol+j,top_lev:pver,ixnumsnow) .lt. min_num_conc)
                   state_sc%q(stncol+j,top_lev:pver,ixnumsnow) = min_num_conc
                end where
+            endif
+
+            ! Code for P3
+            if ( ixcldrim > 0 ) then
+
+               state_sc%q(stncol+j,top_lev:pver,ixcldrim) &
+               = rime_to_total_ice_ratio(top_lev:pver) &
+                 * state_sc%q(stncol+j,top_lev:pver,ixcldice)
+
+               if ( ixrimvol > 0 ) then
+                  where ( rho_rime(top_lev:pver) > 0.0_r8 )
+                     state_sc%q(stncol+j,top_lev:pver,ixrimvol) &
+                     = state_sc%q(stncol+j,top_lev:pver,ixcldrim) &
+                       / rho_rime(top_lev:pver)
+                  elsewhere
+                     state_sc%q(stncol+j,top_lev:pver,ixrimvol) = 0.0_r8
+                  endwhere
+               endif
+
             endif
                
          enddo
@@ -1966,7 +2053,7 @@ contains
 
    ! =============================================================================== !
 
-   subroutine subcol_SILHS_massless_droplet_destroyer( ztodt, state, &
+   subroutine subcol_SILHS_massless_droplet_destroyer( ztodt, state, microp_scheme, &
                                                        ptend )
 
      ! This subroutine eradicates cloud droplets in grid boxes with no cloud
@@ -1992,8 +2079,9 @@ contains
      implicit none
 
      ! Input Variables
-     real(r8), intent(in)                  :: ztodt     ! model time increment
-     type(physics_state), intent(in)       :: state     ! state for columns
+     real(r8), intent(in)                  :: ztodt          ! model time increment
+     type(physics_state), intent(in)       :: state          ! state for columns
+     character(len=16), intent(in)         :: microp_scheme  ! Microphysics scheme
 
      ! Input/Output Variables
      type(physics_ptend), intent(inout)    :: ptend     ! ptend for columns
@@ -2001,8 +2089,9 @@ contains
      ! Local Variables
      integer :: icol, k
 
-     integer :: ixcldliq, ixnumliq, ixrain, ixnumrain, &
-                ixcldice, ixnumice, ixsnow, ixnumsnow
+     integer :: ixcldliq, ixnumliq, ixrain, ixnumrain, ixcldice, ixnumice, &
+                ixsnow, ixnumsnow, & ! MG
+                ixcldrim, ixrimvol   ! P3
 
      !----- Begin Code -----
 
@@ -2016,8 +2105,17 @@ contains
      call cnst_get_ind('NUMRAI', ixnumrain, abort=.false.)
      call cnst_get_ind('CLDICE', ixcldice, abort=.false.)
      call cnst_get_ind('NUMICE', ixnumice, abort=.false.)
-     call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
-     call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
+     if ( microp_scheme == 'MG' ) then
+        call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
+        call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
+        ixcldrim = -1
+        ixrimvol = -1
+     elseif ( microp_scheme == 'P3' ) then
+        call cnst_get_ind('CLDRIM', ixcldrim, abort=.false.)
+        call cnst_get_ind('BVRIM ', ixrimvol, abort=.false.)
+        ixsnow = -1
+        ixnumsnow = -1
+     endif
 
      ! These "labels" in loops are really cool. We should start doing this in
      ! CLUBB.
@@ -2041,12 +2139,21 @@ contains
                                        ! hurt to set it.
            ptend%q(icol,k,ixnumice) = -(state%q(icol,k,ixnumice) / ztodt)
          end if
-         ! If updated qs (after microphysics) is zero, then ensure updated ns is also zero!!
-         if ( state%q(icol,k,ixsnow) + ztodt * ptend%q(icol,k,ixsnow) < qsmall ) then
-           ptend%lq(ixnumsnow) = .true. ! This is probably already true, but it doesn't
-                                        ! hurt to set it.
-           ptend%q(icol,k,ixnumsnow) = -(state%q(icol,k,ixnumsnow) / ztodt)
-         end if
+         if ( microp_scheme == 'MG' ) then
+            ! If updated qs (after microphysics) is zero, then ensure updated ns is also zero!!
+            if ( state%q(icol,k,ixsnow) + ztodt * ptend%q(icol,k,ixsnow) < qsmall ) then
+              ptend%lq(ixnumsnow) = .true. ! This is probably already true, but it doesn't
+                                           ! hurt to set it.
+              ptend%q(icol,k,ixnumsnow) = -(state%q(icol,k,ixnumsnow) / ztodt)
+            end if
+         elseif ( microp_scheme == 'P3' ) then
+            ! If updated qm (after microphysics) is zero, then ensure updated bm is also zero!!
+            if ( state%q(icol,k,ixcldrim) + ztodt * ptend%q(icol,k,ixcldrim) < qsmall ) then
+              ptend%lq(ixrimvol) = .true. ! This is probably already true, but it doesn't
+                                          ! hurt to set it.
+              ptend%q(icol,k,ixrimvol) = -(state%q(icol,k,ixrimvol) / ztodt)
+            end if
+         endif ! microp_scheme
        end do vert_loop
      end do col_loop
 
@@ -2054,7 +2161,8 @@ contains
    end subroutine subcol_SILHS_massless_droplet_destroyer
 
    !============================================================================
-   subroutine subcol_SILHS_fill_holes_conserv( state, dt, ptend, pbuf )
+   subroutine subcol_SILHS_fill_holes_conserv( state, dt, microp_scheme, &
+                                               ptend, pbuf )
 
      ! The William F. Buckley Jr. Conservative Hole Filler.
 
@@ -2093,10 +2201,10 @@ contains
      ! by microphysics; pdel is the pressure difference between vertical levels,
      ! g is gravity, and prect * dt * 1000 is the total amount of water (from
      ! all precipitating hydrometeors) that sedimented to the ground during
-     ! microphysics (dt is the timestep used for microphysics). (1000 is presumably 
-     ! the density of liquid water substance, even though prect includes ice hydrometeors.
-     ! This is how prect is treated throughout MG2.  The units of
-     ! column-integrated total water are kg (water) / m^2.
+     ! microphysics (dt is the timestep used for microphysics). (1000 is
+     ! presumably the density of liquid water substance, even though prect
+     ! includes ice hydrometeors.  This is how prect is treated throughout MG2.
+     ! The units of column-integrated total water are kg (water) / m^2.
      !
      ! All the updated hydrometeor fields are related to the hydrometeor fields
      ! at the start by:
@@ -2147,8 +2255,8 @@ contains
      ! rv_mc_tend(k) + rc_mc_tend(k) + rr_mc_tend(k)
      ! + ri_mc_tend(k) + rs_mc_tend(k) = 0; for all k from top_lev to pver.
      !
-     ! The sedimentation of each hydrometeor species must be conserved; therefore,
-     ! the sum is conserved also:
+     ! The sedimentation of each hydrometeor species must be conserved;
+     ! therefore, the sum is conserved also:
      !
      ! SUM(k=top_lev:pver) ( rc_sed_tend(k) + rr_sed_tend(k) + ri_sed_tend(k)
      !                       + rs_sed_tend(k) ) * dt * pdel(k) / g
@@ -2201,15 +2309,15 @@ contains
      !
      ! The conservative hole filler works as follows.  The total microphysics
      ! tendency for each hydrometeor is provided in ptend.  This is the sum of
-     ! the local microphysics process rate tendency and sedimentation tendency for
-     ! each hydrometeor.  The sedimentation tendency is provided in pbuf.  The
-     ! sedimentation tendency is subtracted off the total microphysics tendency
-     ! to produce the local microphysics process rate tendency for each hydrometeor.
-     ! The microphysics process rate tendency is adjusted when necessary so that
-     ! holes in the hydrometeor are not produced by local microphysics process rates.
-     ! Then we proceed analogously to MG2.  When a hydrometeor's negative 
-     ! microphysics process rate tendency needs to
-     ! be made smaller in magnitude to avoid a hole, all hydrometeor tendencies
+     ! the local microphysics process rate tendency and sedimentation tendency
+     ! for each hydrometeor.  The sedimentation tendency is provided in pbuf.
+     ! The sedimentation tendency is subtracted off the total microphysics
+     ! tendency to produce the local microphysics process rate tendency for each
+     ! hydrometeor.  The microphysics process rate tendency is adjusted when
+     ! necessary so that holes in the hydrometeor are not produced by local
+     ! microphysics process rates.  Then we proceed analogously to MG2.  When a
+     ! hydrometeor's negative microphysics process rate tendency needs to be
+     ! made smaller in magnitude to avoid a hole, all hydrometeor tendencies
      ! that are positive at that grid level are also decreased proportionately
      ! to maintain a balance.  Dry static energy tendency is also adjusted
      ! appropriately when necessary.  After this, the vertical integral of each
@@ -2249,8 +2357,9 @@ contains
      implicit none
 
      ! Input Variables
-     type(physics_state), intent(in) :: state     ! Physics state variables
-     real(r8), intent(in) :: dt                   ! Time step duration
+     type(physics_state), intent(in) :: state        ! Physics state variables
+     real(r8), intent(in) :: dt                      ! Time step duration
+     character(len=16), intent(in) :: microp_scheme  ! Microphysics scheme
 
      ! Input/Output Variables
      type(physics_ptend),  intent(inout) :: ptend  ! Parameterization tendencies
@@ -2330,7 +2439,12 @@ contains
        rs_hf_tend, & ! Snow mixing ratio hole-filling tendency         [kg/kg/s]
        s_hf_tend     ! Dry static energy hole-filling tendency         [J/kg/s]
 
-     integer :: ixcldice, ixcldliq, ixrain, ixsnow ! Hydrometeor indices
+     ! P3 variables
+     real(r8), dimension(pcols,pver) :: &
+       rm_hf_tend, & ! Rimed ice mixing ratio hole-filling tendency    [kg/kg/s]
+       rime_to_total_ice_tend_ratio    ! d(qrim)/dt / d(qi)/dt         [-]
+
+     integer :: ixcldice, ixcldliq, ixrain, ixsnow, ixcldrim ! Hydrometeor indices
 
      integer :: ncol  ! Number of grid columns
 
@@ -2368,6 +2482,13 @@ contains
      call cnst_get_ind('CLDLIQ', ixcldliq)
      call cnst_get_ind('RAINQM', ixrain, abort=.false.)
      call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
+      if ( microp_scheme == 'MG' ) then
+         call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
+         ixcldrim = -1
+      elseif ( microp_scheme == 'P3' ) then
+         call cnst_get_ind('CLDRIM', ixcldrim, abort=.false.)
+         ixsnow = -1
+      endif
 
      ! Get the number of grid columns.
      ncol = state%ncol
@@ -2380,18 +2501,40 @@ contains
      call pbuf_get_field(pbuf, qcsedten_idx, rc_sed_tend)
      call pbuf_get_field(pbuf, qrsedten_idx, rr_sed_tend)
      call pbuf_get_field(pbuf, qisedten_idx, ri_sed_tend)
-     call pbuf_get_field(pbuf, qssedten_idx, rs_sed_tend)
-     call pbuf_get_field(pbuf, vtrmc_idx, vtrmc)
-     call pbuf_get_field(pbuf, umr_idx, umr)
-     call pbuf_get_field(pbuf, vtrmi_idx, vtrmi)
-     call pbuf_get_field(pbuf, ums_idx, ums)
-     call pbuf_get_field(pbuf, qcsevap_idx, rc_sed_evap)
-     call pbuf_get_field(pbuf, qisevap_idx, ri_sed_subl)
+     if ( microp_scheme == 'MG' ) then
+        call pbuf_get_field(pbuf, qssedten_idx, rs_sed_tend)
+        call pbuf_get_field(pbuf, vtrmc_idx, vtrmc)
+        call pbuf_get_field(pbuf, umr_idx, umr)
+        call pbuf_get_field(pbuf, vtrmi_idx, vtrmi)
+        call pbuf_get_field(pbuf, ums_idx, ums)
+        call pbuf_get_field(pbuf, qcsevap_idx, rc_sed_evap)
+        call pbuf_get_field(pbuf, qisevap_idx, ri_sed_subl)
+     elseif ( microp_scheme == 'P3' ) then
+        call pbuf_get_field(pbuf, V_qc_idx, vtrmc)
+        call pbuf_get_field(pbuf, V_qr_idx, umr)
+        call pbuf_get_field(pbuf, V_qi_idx, vtrmi)
+        ums = 0.0_r8
+        rc_sed_evap = 0.0_r8
+        ri_sed_subl = 0.0_r8
+     endif ! microp_scheme
 
      ! Calculate liquid precipitation rate (precl) from the total precipitation
      ! rate (prect) and the frozen preciptation rate (preci).  This should never
      ! be negative, but just to be safe, threshold at 0.
      precl(:ncol) = max( prect(:ncol) - preci(:ncol), 0.0_r8 )
+
+     ! P3: calculate ratio of rimed ice tendency to total ice tendency.
+     rime_to_total_ice_tend_ratio = 0.0_r8
+     if ( ixcldrim > 0 ) then
+        do icol = 1, ncol
+           do k = top_lev, pver
+              if ( ptend%q(icol,k,ixcldice) > 0.0_r8 ) then
+                 rime_to_total_ice_tend_ratio(icol,k) &
+                 = ptend%q(icol,k,ixcldrim) / ptend%q(icol,k,ixcldice)
+              endif
+           enddo ! k = top_lev, pver
+        enddo ! icol = 1, ncol
+     endif ! ixcldrim > 0
 
      ! Perform total water and total energy conservation checks.
      if ( l_check_conservation ) then
@@ -3207,6 +3350,11 @@ contains
         rs_hf_tend = rs_tend - ptend%q(:,:,ixsnow)
      endif ! ixsnow > 0
 
+     ! P3
+     if ( ixcldrim > 0 ) then
+        rm_hf_tend = rime_to_total_ice_tend_ratio * ri_hf_tend
+     endif ! ixcldrim > 0
+
      ! The updated dry static energy tendency after hole filling has not been
      ! used to update ptend yet, so record the budget term for hole filling
      ! first.
@@ -3223,6 +3371,11 @@ contains
         ptend%q(:,:,ixsnow) = rs_tend
      endif
 
+     ! P3
+     if ( ixcldrim > 0 ) then
+        ptend%q(:,:,ixcldrim) = ptend%q(:,:,ixcldrim) + rm_hf_tend(:,:)
+     endif ! ixcldrim > 0
+
      ! Pack the current tendency for dry static energy.
      ptend%s = stend
 
@@ -3232,6 +3385,7 @@ contains
      call outfld( 'QRHFTEN', rr_hf_tend, pcols, state%lchnk )
      call outfld( 'QIHFTEN', ri_hf_tend, pcols, state%lchnk )
      call outfld( 'QSHFTEN', rs_hf_tend, pcols, state%lchnk )
+     call outfld( 'QMHFTEN', rm_hf_tend, pcols, state%lchnk )
      call outfld( 'THFTEN', s_hf_tend / cpair, pcols, state%lchnk )
 
      ! Perform total water and total energy conservation checks.
@@ -3956,7 +4110,7 @@ contains
    end subroutine fill_holes_same_phase_vert
 
    !============================================================================
-   subroutine hydromet_conc_tend_lim( state, dt, ptend )
+   subroutine hydromet_conc_tend_lim( state, dt, microp_scheme, ptend )
 
      ! Description:
      ! Limits the values of mean hydrometeor concentrations so that the mean
@@ -3978,8 +4132,9 @@ contains
      implicit none
 
      ! Input Variables
-     type(physics_state), intent(in) :: state     ! Physics state variables
-     real(r8), intent(in) :: dt                   ! Time step duration
+     type(physics_state), intent(in) :: state        ! Physics state variables
+     real(r8), intent(in) :: dt                      ! Time step duration
+     character(len=16), intent(in) :: microp_scheme  ! Microphysics scheme
 
      ! Input/Output Variable
      type(physics_ptend),  intent(inout) :: ptend  ! Parameterization tendencies
@@ -4047,8 +4202,13 @@ contains
      call cnst_get_ind('NUMRAI', ixnumrain, abort=.false.)
      call cnst_get_ind('CLDICE', ixcldice, abort=.false.)
      call cnst_get_ind('NUMICE', ixnumice, abort=.false.)
-     call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
-     call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
+     if ( microp_scheme == 'MG' ) then
+        call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
+        call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
+     elseif ( microp_scheme == 'P3' ) then
+        ixsnow = -1
+        ixnumsnow = -1
+     endif
 
      ! Get the number of grid columns.
      ncol = state%ncol

@@ -2654,11 +2654,12 @@ end if
              ! Hole filling is only necessary when using subcolumns.
              ! Note:  this needs to be called after subcol_ptend_avg but before
              !        physics_ptend_scale.
-             call subcol_SILHS_fill_holes_conserv( state, cld_macmic_ztodt, &
+             call subcol_SILHS_fill_holes_conserv( state, cld_macmic_ztodt, microp_scheme, &
                                                    ptend, pbuf )
 
              ! Destroy massless droplets!
              call subcol_SILHS_massless_droplet_destroyer( cld_macmic_ztodt, state, & ! Intent(in)
+                                                           microp_scheme,           & ! Intent(in)
                                                            ptend )                    ! Intent(inout)
 
              ! Limit the value of hydrometeor concentrations in order to place
@@ -2669,7 +2670,8 @@ end if
              !        and after massless drop concentrations are removed by the
              !        subcol_SILHS_massless_droplet_destroyer, but before the
              !        call to physics_ptend_scale.
-             call hydromet_conc_tend_lim( state, cld_macmic_ztodt, ptend )
+             call hydromet_conc_tend_lim( state, cld_macmic_ztodt, microp_scheme, &
+                                          ptend )
 #endif
 
              if ( .not. micro_do_icesupersat ) then

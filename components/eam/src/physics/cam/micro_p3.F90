@@ -1203,7 +1203,7 @@ end function bfb_expm1
        p3_tend_out,mu_c,lamc,liq_ice_exchange,vap_liq_exchange, &
        vap_ice_exchange,qv_prev,t_prev,col_location &
 #ifdef SILHS
-       ,qmsedten,V_qc_out,V_qr_out,V_qi_out
+       ,V_qc_out,V_qr_out,V_qi_out &
 #endif /*SILHS*/
 #ifdef SCREAM_CONFIG_IS_CMAKE
        ,elapsed_s &
@@ -1276,10 +1276,9 @@ end function bfb_expm1
     real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: vap_liq_exchange ! sum of vap-liq phase change tendenices
     real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: vap_ice_exchange ! sum of vap-ice phase change tendenices
 #ifdef SILHS
-    real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: qmsedten    ! qm sedimentation tendency
     real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: V_qc_out    ! Sedimentation velocity for qc
     real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: V_qr_out    ! Sedimentation velocity for qr
-    real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: V_qi_out    ! Sedimentation velocity for qi and qm
+    real(rtype), intent(out),   dimension(its:ite,kts:kte)      :: V_qi_out    ! Sedimentation velocity for qi
 #endif /*SILHS*/
 
     ! INPUT for prescribed CCN option
@@ -1535,7 +1534,7 @@ end function bfb_expm1
          precip_ice_surf(i),p3_tend_out(i,:,40),p3_tend_out(i,:,41))
 #else
          qi(i,:),qi_incld(i,:),ni(i,:),qm(i,:),qm_incld(i,:),bm(i,:),bm_incld(i,:),ni_incld(i,:), &
-         precip_ice_surf(i),p3_tend_out(i,:,40),p3_tend_out(i,:,41),qmsedten(i,:),V_qi_out(i,:))
+         precip_ice_surf(i),p3_tend_out(i,:,40),p3_tend_out(i,:,41),V_qi_out(i,:))
 #endif /*SILHS*/
 
        !.......................................
@@ -4015,7 +4014,7 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
 #ifndef SILHS
    qi,qi_incld,ni,qm,qm_incld,bm,bm_incld,ni_incld,precip_ice_surf,qi_tend,ni_tend)
 #else
-   qi,qi_incld,ni,qm,qm_incld,bm,bm_incld,ni_incld,precip_ice_surf,qi_tend,ni_tend,qmsedten,V_qi_out)
+   qi,qi_incld,ni,qm,qm_incld,bm,bm_incld,ni_incld,precip_ice_surf,qi_tend,ni_tend,V_qi_out)
 #endif /*SILHS*/
 
    implicit none
@@ -4043,7 +4042,6 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
    real(rtype), intent(inout), dimension(kts:kte) :: qi_tend
    real(rtype), intent(inout), dimension(kts:kte) :: ni_tend
 #ifdef SILHS
-   real(rtype), intent(out). dimension(kts:kte) :: qmsedten
    real(rtype), intent(out), dimension(kts:kte) :: V_qi_out
 #endif /*SILHS*/
 
@@ -4070,9 +4068,6 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
 
    real(rtype) :: dum1, dum4, dum5, dum6
    integer dumi, dumii, dumjj, dumzz
-#ifdef SILHS
-   real(rtype), dimension(kts:kte) :: qm_start
-#endif /*SILHS*/
 
    log_qxpresent = .false.  !note: this applies to ice category 'iice' only
    k_qxtop       = kbot
@@ -4089,10 +4084,6 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
    qnr(2)%p => ni
    qnr(3)%p => qm
    qnr(4)%p => bm
-
-#ifdef SILHS
-   qm_start = qm
-#endif /*SILHS*/
 
    !find top, determine qxpresent
    do k = ktop,kbot,-kdir
@@ -4185,9 +4176,6 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
 
    qi_tend(:) = ( qi(:) - qi_tend(:) ) * inv_dt ! Ice sedimentation tendency, measure
    ni_tend(:) = ( ni(:) - ni_tend(:) ) * inv_dt ! Ice # sedimentation tendency, measure
-#ifdef SILHS
-   qmsedten(:) = ( qm(:) - qm_start(:) ) * inv_dt
-#endif /*SILHS*/
 
 end subroutine ice_sedimentation
 
