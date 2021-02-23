@@ -3526,12 +3526,22 @@ qr2qv_evap_tend,nr_evap_tend)
 
       !Compute the constant source/sink term A_c for analytic integration. See Eq C4 in
       !Morrison+Milbrandt 2015 https://doi.org/10.1175/JAS-D-14-0065.1
+#ifndef SILHS
       if (t < 273.15_rtype) then
          A_c = (qv - qv_prev)*inv_dt - dqsdt*(t-t_prev)*inv_dt - (qv_sat_l - qv_sat_i)* &
                (1.0_rtype + latent_heat_sublim*inv_cp*dqsdt)/abi*epsi_tot
       else
          A_c = (qv - qv_prev)*inv_dt - dqsdt*(t-t_prev)*inv_dt
       endif
+#else
+      ! For SILHS, set qv to qv_prev and t to t_prev.
+      if (t < 273.15_rtype) then
+         A_c = - (qv_sat_l - qv_sat_i)* &
+               (1.0_rtype + latent_heat_sublim*inv_cp*dqsdt)/abi*epsi_tot
+      else
+         A_c = 0.0_rtype
+      endif
+#endif /*SILHS*/
 
       !Now compute evap rate
 

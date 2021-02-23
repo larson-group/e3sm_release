@@ -227,7 +227,11 @@ contains
       end select
    end subroutine subcol_init
 
+#ifndef SILHS
    subroutine subcol_gen(state, tend, state_sc, tend_sc, pbuf, subcol_scheme_in)
+#else
+   subroutine subcol_gen(state, top_lev, tend, state_sc, tend_sc, pbuf, subcol_scheme_in)
+#endif /*SILHS*/
      use physics_buffer,          only: physics_buffer_desc
      use subcol_utils,            only: subcol_get_scheme
 
@@ -236,6 +240,9 @@ contains
       ! sub-column generator
       !-----------------------------------
       type(physics_state), intent(inout)     :: state
+#ifdef SILHS
+      integer,             intent(in)        :: top_lev
+#endif /*SILHS*/
       type(physics_tend),  intent(inout)     :: tend
       type(physics_state), intent(inout)     :: state_sc         ! sub-column state
       type(physics_tend),  intent(inout)     :: tend_sc          ! sub-column tend
@@ -267,8 +274,10 @@ contains
       select case(trim(subcol_scheme_gen))
          case('tstcp')
             call subcol_gen_tstcp(state, tend, state_sc, tend_sc, pbuf)
+#ifdef SILHS
          case ('SILHS')
-            call subcol_gen_SILHS(state, tend, state_sc, tend_sc, pbuf)
+            call subcol_gen_SILHS(state, top_lev, tend, state_sc, tend_sc, pbuf)
+#endif /*SILHS*/
 !         case (cloudobj_scheme_name)
 !            call subcol_gen_CloudObj(state, tend, state_sc, tend_sc, pbuf)
 !         case ('vamp')

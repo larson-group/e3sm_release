@@ -1947,7 +1947,9 @@ subroutine tphysbc (ztodt,               &
     use subcol_utils,    only: subcol_ptend_copy, is_subcol_on
     use phys_control,    only: use_qqflx_fixer, use_mass_borrower
     use nudging,         only: Nudge_Model,Nudge_Loc_PhysOut,nudging_calc_tend
-
+#ifdef SILHS
+    use ref_pres,        only: trop_cloud_top_lev
+#endif /*SILHS*/
 #if defined(UWM_MISC) && defined(SILHS)
     use subcol_SILHS,    only: subcol_SILHS_var_covar_driver, &
                                subcol_SILHS_massless_droplet_destroyer, &
@@ -2011,6 +2013,7 @@ subroutine tphysbc (ztodt,               &
 
     integer  i,k,m,ihist                       ! Longitude, level, constituent indices
     integer :: ixcldice, ixcldliq,ixq,ixrain   ! constituent indices for cloud liquid and ice water.
+    integer :: ixcldrim
     ! for macro/micro co-substepping
     integer :: macmic_it                       ! iteration variables
     real(r8) :: cld_macmic_ztodt               ! modified timestep
@@ -2109,6 +2112,9 @@ subroutine tphysbc (ztodt,               &
     integer :: lengath
 
     real(r8)  :: lcldo(pcols,pver)              !Pass old liqclf from macro_driver to micro_driver
+#ifdef SILHS
+    integer   :: top_lev
+#endif /*SILHS*/
 
     real(r8) :: ftem(pcols,pver)         ! tmp space
     real(r8), pointer, dimension(:) :: static_ener_ac_2d ! Vertically integrated static energy
@@ -2245,6 +2251,7 @@ subroutine tphysbc (ztodt,               &
     call cnst_get_ind('CLDLIQ', ixcldliq)
     call cnst_get_ind('CLDICE', ixcldice)
     call cnst_get_ind('RAINQM', ixrain)
+    call cnst_get_ind('CLDRIM', ixcldrim)
     call cnst_get_ind('Q', ixq)
 
 !!== KZ_WCON
@@ -2615,7 +2622,16 @@ end if
              call physics_tend_alloc(tend_sc, psubcols*pcols)
 
              ! Generate sub-columns using the requested scheme
+#ifndef SILHS
              call subcol_gen(state, tend, state_sc, tend_sc, pbuf)
+#else
+             if ( microp_scheme == 'MG' ) then
+                top_lev = trop_cloud_top_lev
+             elseif (microp_scheme == 'P3' ) then
+                top_lev = 1
+             endif
+             call subcol_gen(state, top_lev, tend, state_sc, tend_sc, pbuf)
+#endif /*SILHS*/
 ! Zhun
              if (state_debug_checks) &
                 call physics_state_check(state_sc, name="state_sc_aft_subcolgen")

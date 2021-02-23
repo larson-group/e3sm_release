@@ -248,7 +248,7 @@ contains
       use physics_buffer,          only: physics_buffer_desc, pbuf_get_field, &
                                          dtype_r8, pbuf_get_index
       use units,                   only: getunit, freeunit 
-      use ref_pres,                only: top_lev => trop_cloud_top_lev
+      use ref_pres,                only: trop_cloud_top_lev
       use phys_control,            only: phys_getopts
 #ifdef CLUBB_SGS
 #ifdef SILHS
@@ -286,6 +286,8 @@ contains
 
       character(len=16) :: microp_scheme
 
+      integer :: top_lev
+
       ! To set up CLUBB hydromet indices
       integer :: &
           hydromet_dim, & ! Number of enabled hydrometeors
@@ -318,6 +320,13 @@ contains
       ! Set CLUBB's debug level
       ! This is called in module clubb_intr; no need to do it here.
 !      call set_clubb_debug_level_api( 0 )
+      call phys_getopts( microp_scheme_out = microp_scheme )
+
+      if ( microp_scheme == 'MG' ) then
+         top_lev = trop_cloud_top_lev
+      elseif ( microp_scheme == 'P3' ) then
+         top_lev = 1
+      endif
 
       call init_pdf_params_api( pverp+1-top_lev, pdf_params )
 
@@ -384,8 +393,6 @@ contains
 
       !call set_clubb_debug_level( 0 )  !#KTCtodo: Add a namelist variable to set debug level
      
-      call phys_getopts( microp_scheme_out = microp_scheme )
-
       !-------------------------------
       ! Define physics buffer indexes
       !-------------------------------
@@ -583,7 +590,7 @@ contains
 #endif
    end subroutine subcol_init_SILHS
    
-   subroutine subcol_gen_SILHS(state, tend, state_sc, tend_sc, pbuf)
+   subroutine subcol_gen_SILHS(state, top_lev, tend, state_sc, tend_sc, pbuf)
       !-------------------------------
       ! This is where the subcolumns are created, and the call to
       !      generate_silhs_sample_mod_api
@@ -594,7 +601,6 @@ contains
       use physics_buffer,         only : physics_buffer_desc, pbuf_get_index, &
                                          pbuf_get_field
       use ppgrid,                 only : pver, pverp, pcols
-      use ref_pres,               only : top_lev => trop_cloud_top_lev
       use time_manager,           only : get_nstep
       use subcol_utils,           only : subcol_set_subcols, subcol_set_weight
       use phys_control,           only : phys_getopts
@@ -646,6 +652,7 @@ contains
       
       ! CAM data structures
       type(physics_state), intent(inout) :: state
+      integer,             intent(in)    :: top_lev
       type(physics_tend),  intent(inout) :: tend
       type(physics_state), intent(inout) :: state_sc        ! sub-column state
       type(physics_tend),  intent(inout) :: tend_sc         ! sub-column tend
@@ -924,7 +931,6 @@ contains
          ixsnow = -1
          ixnumsnow = -1
       endif
-
       ! The number of vertical grid levels used in CLUBB is pverp, which is originally
       ! set in the call to setup_clubb_core_api from subroutine clubb_ini_cam.  This
       ! is stored in CLUBB in the object gr%nz.  This isn't changed in CLUBB.
@@ -2513,9 +2519,6 @@ contains
         call pbuf_get_field(pbuf, V_qc_idx, vtrmc)
         call pbuf_get_field(pbuf, V_qr_idx, umr)
         call pbuf_get_field(pbuf, V_qi_idx, vtrmi)
-        ums = 0.0_r8
-        rc_sed_evap = 0.0_r8
-        ri_sed_subl = 0.0_r8
      endif ! microp_scheme
 
      ! Calculate liquid precipitation rate (precl) from the total precipitation
@@ -2646,11 +2649,19 @@ contains
      ! rates, as evaporation and sublimation need to be included in the
      ! microphysics process rates.
      rv_mc_tend(:ncol,:) = rv_tend(:ncol,:)
-     rc_mc_tend(:ncol,:) = rc_tend(:ncol,:) - ( rc_sed_tend(:ncol,:) + rc_sed_evap(:ncol,:) )
+     if ( microp_scheme == 'MG' ) then
+        rc_mc_tend(:ncol,:) = rc_tend(:ncol,:) - ( rc_sed_tend(:ncol,:) + rc_sed_evap(:ncol,:) )
+     elseif ( microp_scheme == 'P3' ) then
+        rc_mc_tend(:ncol,:) = rc_tend(:ncol,:) - rc_sed_tend(:ncol,:)
+     endif ! microp_scheme
      if ( ixrain > 0 ) then
         rr_mc_tend(:ncol,:) = rr_tend(:ncol,:) - rr_sed_tend(:ncol,:)
      endif
-     ri_mc_tend(:ncol,:) = ri_tend(:ncol,:) - ( ri_sed_tend(:ncol,:) + ri_sed_subl(:ncol,:) )
+     if ( microp_scheme == 'MG' ) then
+        ri_mc_tend(:ncol,:) = ri_tend(:ncol,:) - ( ri_sed_tend(:ncol,:) + ri_sed_subl(:ncol,:) )
+     elseif ( microp_scheme == 'P3' ) then
+        ri_mc_tend(:ncol,:) = ri_tend(:ncol,:) - ri_sed_tend(:ncol,:)
+     endif ! microp_scheme
      if ( ixsnow > 0 ) then
         rs_mc_tend(:ncol,:) = rs_tend(:ncol,:) - rs_sed_tend(:ncol,:)
      endif
@@ -3226,11 +3237,19 @@ contains
      ! this is the sum of rc_sed_tend and rc_sed_evap, and for cloud ice, this
      ! is the sum of ri_sed_tend and ri_sed_subl.
      rv_tend(:ncol,:) = rv_mc_tend(:ncol,:)
-     rc_tend(:ncol,:) = rc_mc_tend(:ncol,:) + ( rc_sed_tend(:ncol,:) + rc_sed_evap(:ncol,:) )
+     if ( microp_scheme == 'MG' ) then
+        rc_tend(:ncol,:) = rc_mc_tend(:ncol,:) + ( rc_sed_tend(:ncol,:) + rc_sed_evap(:ncol,:) )
+     elseif ( microp_scheme == 'P3' ) then
+        rc_tend(:ncol,:) = rc_mc_tend(:ncol,:) + rc_sed_tend(:ncol,:)
+     endif ! microp_scheme
      if ( ixrain > 0 ) then
         rr_tend(:ncol,:) = rr_mc_tend(:ncol,:) + rr_sed_tend(:ncol,:)
      endif
-     ri_tend(:ncol,:) = ri_mc_tend(:ncol,:) + ( ri_sed_tend(:ncol,:) + ri_sed_subl(:ncol,:) )
+     if ( microp_scheme == 'MG' ) then
+        ri_tend(:ncol,:) = ri_mc_tend(:ncol,:) + ( ri_sed_tend(:ncol,:) + ri_sed_subl(:ncol,:) )
+     elseif ( microp_scheme == 'P3' ) then
+        ri_tend(:ncol,:) = ri_mc_tend(:ncol,:) + ri_sed_tend(:ncol,:)
+     endif ! microp_scheme
      if ( ixsnow > 0 ) then
         rs_tend(:ncol,:) = rs_mc_tend(:ncol,:) + rs_sed_tend(:ncol,:)
      endif

@@ -21,7 +21,7 @@ set machine        = anvil
 setenv NUMSC 4
 setenv MGVER 2
 
-set walltime       = 18:00:00
+set walltime       = 01:00:00
 setenv project condo      
 setenv ntasks 1080
 setenv nthrds 1
