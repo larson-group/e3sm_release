@@ -941,6 +941,7 @@ end subroutine micro_p3_readnl
 #ifdef SILHS
     use phys_control,   only: phys_getopts
     use physics_buffer, only: pbuf_col_type_index
+    use subcol_SILHS,   only: subcol_SILHS_numsubcol
     use subcol,         only: subcol_field_avg
 #endif /*SILHS*/
 
@@ -1164,7 +1165,7 @@ end subroutine micro_p3_readnl
     real(rtype) :: rho(state%psetcols,pver)
     real(rtype) :: drout2(state%psetcols,pver)
     real(rtype) :: reff_rain(state%psetcols,pver)
-    real(rtype) :: col_location(pcols,3),tmp_loc(pcols)  ! Array of column lon (index 1) and lat (index 2)
+    real(rtype) :: col_location(state%psetcols,3),tmp_loc(pcols)  ! Array of column lon (index 1) and lat (index 2)
     integer     :: tmpi_loc(pcols) ! Global column index temp array
 
     ! Variables used for microphysics output
@@ -1326,7 +1327,7 @@ end subroutine micro_p3_readnl
     ! Some pre-microphysics INITIALIZATION
     !==============
     cldo(:ncol,top_lev:pver)=ast(:ncol,top_lev:pver)
-    
+
     ! INITIALIZE PTEND
     !==============
     !ptend is an output variable. Since not substepping in micro, don't need 
@@ -1378,12 +1379,50 @@ end subroutine micro_p3_readnl
     !"it" with a logical.
     it = get_nstep()
     tmp_loc =-999.0_rtype
+#ifndef SILHS
     call get_rlon_all_p(lchnk,ncol,tmp_loc)
     col_location(:ncol,2) = tmp_loc(:ncol)*180.0_rtype/pi
     call get_rlat_all_p(lchnk,ncol,tmp_loc)
     col_location(:ncol,3) = tmp_loc(:ncol)*180.0_rtype/pi
     call get_gcol_all_p(lchnk,ncol,tmpi_loc)
     col_location(:ncol,1) = real(tmpi_loc(:ncol))
+#else
+    ! Here for SILHS, ncol is the total number of subcolumns rather than the
+    ! total number of grid columns. The variable icol is the subcolumn index.
+    ! The value of ceiling(icol/subcol_SILHS_numsubcol) is the grid column
+    ! index.
+    ngrdcol = state%ngrdcol
+    call get_rlon_all_p(lchnk,ngrdcol,tmp_loc)
+    do icol = 1, ncol, 1
+       if ( use_subcol_microp ) then
+          ! here, ncol is the number of subcolumns
+          indx = ceiling(real(icol)/real(subcol_SILHS_numsubcol))
+       else
+          indx = icol
+       endif ! use_subcol_microp
+       col_location(icol,2) = tmp_loc(indx)*180.0_rtype/pi
+    enddo ! icol = 1, ncol, 1
+    call get_rlat_all_p(lchnk,ngrdcol,tmp_loc)
+    do icol = 1, ncol, 1
+       if ( use_subcol_microp ) then
+          ! here, ncol is the number of subcolumns
+          indx = ceiling(real(icol)/real(subcol_SILHS_numsubcol))
+       else
+          indx = icol
+       endif ! use_subcol_microp
+       col_location(icol,3) = tmp_loc(indx)*180.0_rtype/pi
+    enddo ! icol = 1, ncol, 1
+    call get_gcol_all_p(lchnk,ngrdcol,tmpi_loc)
+    do icol = 1, ncol, 1
+       if ( use_subcol_microp ) then
+          ! here, ncol is the number of subcolumns
+          indx = ceiling(real(icol)/real(subcol_SILHS_numsubcol))
+       else
+          indx = icol
+       endif ! use_subcol_microp
+       col_location(icol,1) = real(tmpi_loc(indx))
+    enddo ! icol = 1, ncol, 1
+#endif /*SILHS*/
 
     ! MAKE LOCAL COPIES OF VARS MODIFIED BY P3
     !==============
@@ -1839,7 +1878,6 @@ end subroutine micro_p3_readnl
    !! SILHS
    ! Average subcolumns back to grid average values for stats output
    if ( use_subcol_microp ) then
-      ngrdcol = state%ngrdcol
       call subcol_field_avg(efcout, ngrdcol, lchnk, efcout_grid)
       call subcol_field_avg(efiout, ngrdcol, lchnk, efiout_grid)
       call subcol_field_avg(ncout,  ngrdcol, lchnk, ncout_grid)

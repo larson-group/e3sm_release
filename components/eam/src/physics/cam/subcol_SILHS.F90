@@ -67,7 +67,7 @@ module subcol_SILHS
               V_qc_idx, V_qr_idx, V_qi_idx ! P3
 
    logical :: subcol_SILHS_weight  ! if set, sets up weights for averaging subcolumns for SILHS
-   integer :: subcol_SILHS_numsubcol ! number of subcolumns for this run
+   integer, public, protected :: subcol_SILHS_numsubcol ! number of subcolumns for this run
    logical :: docldfracscaling = .false. ! Weight tendencies by cloud fraction
 
    character(len=256) :: subcol_SILHS_corr_file_path
@@ -943,7 +943,7 @@ contains
       ! Loop over all the active grid columns in the chunk
       !----------------
       do i = 1, ngrdcol
-      
+
          ! JHDBG: Big suspicion about that code
          ! V. Larson: I don't know what happens to arrays allocated with size
          ! num_subcols if num_subcols varies with the grid column.
@@ -1126,7 +1126,7 @@ contains
          ! simply be set to 0 to simplify matters.
          wphydrometp = 0.0_r8
 
-         call populate_pdf_params_silhs_col( i, lchnk )
+         call populate_pdf_params_silhs_col( i, lchnk, top_lev )
 
          ! Flip khzm to CLUBB's grid.
          do k = 1, pverp-top_lev+1
@@ -1749,6 +1749,7 @@ contains
      ! This code is experimental!!
 
      use physics_buffer,          only: physics_buffer_desc, pbuf_get_index, pbuf_get_field
+     ! In this subroutine, use trop_cloud_top_lev as top_lev for both MG and P3
      use ref_pres,                only: top_lev => trop_cloud_top_lev
      use subcol_utils,            only: subcol_unpack, subcol_get_nsubcol, subcol_get_weight
      use clubb_api_module,        only: T_in_K2thlm_api
@@ -1924,7 +1925,7 @@ contains
      do igrdcol=1, ngrdcol
        ns = nsubcol(igrdcol)
 
-       call populate_pdf_params_silhs_col( igrdcol, lchnk )
+       call populate_pdf_params_silhs_col( igrdcol, lchnk, top_lev )
 
        ! This code assumes that the weights are height independent.
        ! It will have to change once the weights vary with altitude!
@@ -1966,7 +1967,7 @@ contains
    end subroutine subcol_SILHS_var_covar_driver
 
    ! =============================================================================== !
-   subroutine populate_pdf_params_silhs_col( icol, lchnk )
+   subroutine populate_pdf_params_silhs_col( icol, lchnk, top_lev )
 
      ! Description:
      ! Populate local PDF parameter variable pdf_params, which has vertical size
@@ -1984,15 +1985,13 @@ contains
      ! References:
      !----------------------------------------------------------------------
 
-     use ref_pres, only : &
-         top_lev => trop_cloud_top_lev
-
      implicit none
 
      ! Input Variables
      integer, intent(in) :: &
-       icol,  & ! Column index
-       lchnk    ! Chunk index
+       icol,    & ! Column index
+       lchnk,   & ! Chunk index
+       top_lev    ! Highest model level to loop over
 
      ! Local Variable
      integer :: k    ! Loop index
@@ -2080,7 +2079,7 @@ contains
      ! This code is experimental!!
 
      use micro_mg_utils, only: qsmall
-     use ref_pres,       only: top_lev => trop_cloud_top_lev
+     use ref_pres,       only: trop_cloud_top_lev
 
      implicit none
 
@@ -2099,6 +2098,8 @@ contains
                 ixsnow, ixnumsnow, & ! MG
                 ixcldrim, ixrimvol   ! P3
 
+     integer :: top_lev ! Highest level that microphysics goes up to
+
      !----- Begin Code -----
 
      ! Don't do anything if this option isn't enabled.
@@ -2116,11 +2117,13 @@ contains
         call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
         ixcldrim = -1
         ixrimvol = -1
+        top_lev = trop_cloud_top_lev
      elseif ( microp_scheme == 'P3' ) then
         call cnst_get_ind('CLDRIM', ixcldrim, abort=.false.)
         call cnst_get_ind('BVRIM ', ixrimvol, abort=.false.)
         ixsnow = -1
         ixnumsnow = -1
+        top_lev = 1
      endif
 
      ! These "labels" in loops are really cool. We should start doing this in
@@ -2358,7 +2361,7 @@ contains
          qmin
 
      use ref_pres, only: &
-         top_lev => trop_cloud_top_lev
+         trop_cloud_top_lev
 
      implicit none
 
@@ -2456,6 +2459,8 @@ contains
 
      integer :: icol, k  ! Loop indices
 
+     integer :: top_lev ! Top level that the microphysics goes up to.
+
      ! Flag to perform hole filling after the original sedimentation tendency
      ! is added back on to the new microphysics process tendency.  This calls
      ! the sedimentation hole filler.
@@ -2525,6 +2530,12 @@ contains
      ! rate (prect) and the frozen preciptation rate (preci).  This should never
      ! be negative, but just to be safe, threshold at 0.
      precl(:ncol) = max( prect(:ncol) - preci(:ncol), 0.0_r8 )
+
+     if ( microp_scheme == 'MG' ) then
+        top_lev = trop_cloud_top_lev
+     elseif ( microp_scheme == 'P3' ) then
+        top_lev = 1
+     endif ! microp_scheme
 
      ! P3: calculate ratio of rimed ice tendency to total ice tendency.
      rime_to_total_ice_tend_ratio = 0.0_r8
@@ -3281,15 +3292,17 @@ contains
         ! Call the sedimentation hole filler for rain water mixing ratio.
         ! This can update rr_tend and precl.
         if ( ixrain > 0 ) then
-           call fill_holes_sedimentation( dt, ncol, rr_start, state%pdel, &
-                                          umr, state%zi, qmin(ixrain), &
+           call fill_holes_sedimentation( dt, ncol, top_lev, rr_start, &
+                                          state%pdel, umr, &
+                                          state%zi, qmin(ixrain), &
                                           rr_tend, precl )
         endif ! ixrain > 0
 
         ! Call the sedimentation hole filler for cloud water mixing ratio.
         ! This can update rc_tend and precl.
-        call fill_holes_sedimentation( dt, ncol, rc_start, state%pdel, &
-                                       vtrmc, state%zi, qmin(ixcldliq), &
+        call fill_holes_sedimentation( dt, ncol, top_lev, rc_start, &
+                                       state%pdel, vtrmc, &
+                                       state%zi, qmin(ixcldliq), &
                                        rc_tend, precl )
 
         ! Occasionally, a situation can occur where filling a hole in rain can
@@ -3299,9 +3312,9 @@ contains
         ! water found in the vertical profile of rain, so pull the water from
         ! rain to fill any remaining holes in cloud water.
         if ( ixrain > 0 ) then
-           call fill_holes_same_phase_vert( dt, ncol, rc_start, rr_start, &
-                                            state%pdel, qmin(ixcldliq), &
-                                            qmin(ixrain), &
+           call fill_holes_same_phase_vert( dt, ncol, top_lev, rc_start, &
+                                            rr_start, state%pdel, &
+                                            qmin(ixcldliq), qmin(ixrain), &
                                             rc_tend, rr_tend )
         endif ! ixrain > 0
 
@@ -3317,15 +3330,17 @@ contains
         ! Call the sedimentation hole filler for snow mixing ratio.
         ! This can update rs_tend and preci.
         if ( ixsnow > 0 ) then
-           call fill_holes_sedimentation( dt, ncol, rs_start, state%pdel, &
-                                          ums, state%zi, qmin(ixsnow), &
+           call fill_holes_sedimentation( dt, ncol, top_lev, rs_start, &
+                                          state%pdel, ums, &
+                                          state%zi, qmin(ixsnow), &
                                           rs_tend, preci )
         endif ! ixsnow > 0
 
         ! Call the sedimentation hole filler for cloud ice mixing ratio.
         ! This can update ri_tend and preci.
-        call fill_holes_sedimentation( dt, ncol, ri_start, state%pdel, &
-                                       vtrmi, state%zi, qmin(ixcldice), &
+        call fill_holes_sedimentation( dt, ncol, top_lev, ri_start, &
+                                       state%pdel, vtrmi, &
+                                       state%zi, qmin(ixcldice), &
                                        ri_tend, preci )
 
         ! Occasionally, a situation can occur where filling a hole in snow can
@@ -3335,9 +3350,9 @@ contains
         ! water found in the vertical profile of snow, so pull the water from
         ! snow to fill any remaining holes in cloud ice.
         if ( ixsnow > 0 ) then
-           call fill_holes_same_phase_vert( dt, ncol, ri_start, rs_start, &
-                                            state%pdel, qmin(ixcldice), &
-                                            qmin(ixsnow), &
+           call fill_holes_same_phase_vert( dt, ncol, top_lev, ri_start, &
+                                            rs_start, state%pdel, &
+                                            qmin(ixcldice), qmin(ixsnow), &
                                             ri_tend, rs_tend )
         endif  ! ixsnow > 0
 
@@ -3532,7 +3547,7 @@ contains
    end subroutine subcol_SILHS_fill_holes_conserv
 
    !============================================================================
-   subroutine fill_holes_sedimentation( dt, ncol, hm_start, pdel, &
+   subroutine fill_holes_sedimentation( dt, ncol, top_lev, hm_start, pdel, &
                                         fallspeed_m_per_s, zi, qmin_hm, &
                                         hm_tend, prec )
 
@@ -3571,15 +3586,14 @@ contains
      use ppgrid, only: &
          pcols
 
-     use ref_pres, only: &
-         top_lev => trop_cloud_top_lev
-
      implicit none
 
      ! Input Variables
      real(r8), intent(in) :: dt                   ! Time step duration
 
-     integer, intent(in) :: ncol                  ! Number of grid columns
+     integer, intent(in) :: &
+       ncol,    & ! Number of grid columns
+       top_lev    ! Highest level that microphysics goes up to
 
      real(r8), dimension(pcols,pver), intent(in) :: &
        hm_start, & ! Hydrometeor mixing ratio at start of microphysics  [kg/kg]
@@ -3899,8 +3913,9 @@ contains
    end subroutine fill_holes_sedimentation
 
    !============================================================================
-   subroutine fill_holes_same_phase_vert( dt, ncol, hm_start, hm_start_filler, &
-                                          pdel, qmin_hm, qmin_hm_filler, &
+   subroutine fill_holes_same_phase_vert( dt, ncol, top_lev, hm_start, &
+                                          hm_start_filler, pdel, &
+                                          qmin_hm, qmin_hm_filler, &
                                           hm_tend, hm_tend_filler )
 
      ! Description:
@@ -3972,15 +3987,14 @@ contains
      use ppgrid, only: &
          pcols
 
-     use ref_pres, only: &
-         top_lev => trop_cloud_top_lev
-
      implicit none
 
      ! Input Variables
      real(r8), intent(in) :: dt                   ! Time step duration
 
-     integer, intent(in) :: ncol                  ! Number of grid columns
+     integer, intent(in) :: &
+       ncol,    & ! Number of grid columns
+       top_lev    ! Top level that microphysics goes up to
 
      real(r8), dimension(pcols,pver), intent(in) :: &
        hm_start,        & ! Hydrometeor mixing ratio (microphys start)   [kg/kg]
@@ -4146,7 +4160,7 @@ contains
          qmin
 
      use ref_pres, only: &
-         top_lev => trop_cloud_top_lev
+         trop_cloud_top_lev
 
      implicit none
 
@@ -4207,6 +4221,8 @@ contains
      integer :: ixcldliq, ixnumliq, ixrain, ixnumrain, &
                 ixcldice, ixnumice, ixsnow, ixnumsnow  ! Hydrometeor indices
 
+     integer :: top_lev ! Index of highest grid level for microphysics
+
      integer :: ncol  ! Number of grid columns
 
      integer :: icol    ! Column loop index
@@ -4224,9 +4240,11 @@ contains
      if ( microp_scheme == 'MG' ) then
         call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
         call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
+        top_lev = trop_cloud_top_lev
      elseif ( microp_scheme == 'P3' ) then
         ixsnow = -1
         ixnumsnow = -1
+        top_lev = 1
      endif
 
      ! Get the number of grid columns.
