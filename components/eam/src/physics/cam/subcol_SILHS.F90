@@ -1063,7 +1063,7 @@ contains
                   rime_to_total_ice_ratio(k) = 0.0_r8
                endif
                if ( ixrimvol > 0 ) then
-                  if ( state%q(i,k,ixcldrim) > 0.0_r8 ) then
+                  if ( state%q(i,k,ixrimvol) > 0.0_r8 ) then
                      rho_rime(k) &
                      = state%q(i,k,ixcldrim) / state%q(i,k,ixrimvol)
                   else

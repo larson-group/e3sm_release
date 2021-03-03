@@ -27,6 +27,9 @@ module micro_p3_interface
   use physics_buffer, only: physics_buffer_desc, dtype_r8, &
                             pbuf_get_field, pbuf_add_field,dyn_time_lvls,dtype_i4, &
                             pbuf_set_field, pbuf_get_index, &
+#ifdef SILHS
+                            pbuf_register_subcol, &
+#endif /*SILHS*/
                             pbuf_old_tim_idx
   use ref_pres,       only: top_lev=>trop_cloud_top_lev
   use phys_control,   only: phys_getopts
@@ -90,8 +93,10 @@ module micro_p3_interface
       qr_evap_tend_idx,      &
       cmeliq_idx,         &
       relvar_idx,         &
+#ifndef SILHS
       qv_prev_idx,        &
       t_prev_idx,         &
+#endif /*SILHS*/
       accre_enhan_idx,    &
       mon_ccn_1_idx,      &
       mon_ccn_2_idx,      &
@@ -222,10 +227,18 @@ end subroutine micro_p3_readnl
   subroutine micro_p3_register()
 
   logical :: prog_modal_aero ! prognostic aerosols
+#ifdef SILHS
+  logical :: use_subcol_microp
+#endif /*SILHS*/
 
   if (masterproc) write(iulog,'(A20)') ' P3 register start ...'
 
+#ifndef SILHS
   call phys_getopts( prog_modal_aero_out   = prog_modal_aero )
+#else
+  call phys_getopts( prog_modal_aero_out   = prog_modal_aero, &
+                     use_subcol_microp_out = use_subcol_microp )
+#endif
 
    ncnst = 0
     ! Register Microphysics Constituents 
@@ -311,11 +324,20 @@ end subroutine micro_p3_readnl
    call pbuf_add_field('RELVAR',     'global',dtype_r8,(/pcols,pver/),   relvar_idx)
    call pbuf_add_field('ACCRE_ENHAN','global',dtype_r8,(/pcols,pver/), accre_enhan_idx)
 
+#ifndef SILHS
    call pbuf_add_field('QV_PREV',     'global',dtype_r8,(/pcols,pver/), qv_prev_idx)
    call pbuf_add_field('T_PREV',      'global',dtype_r8,(/pcols,pver/), t_prev_idx)
+#endif /*SILHS*/
  !! for prescribed CCN
    call pbuf_add_field('MON_CCN_1',  'global', dtype_r8,(/pcols,pver/),mon_ccn_1_idx)
    call pbuf_add_field('MON_CCN_2',  'global', dtype_r8,(/pcols,pver/),mon_ccn_2_idx)
+
+#ifdef SILHS
+  ! Register subcolumn pbuf fields
+  if (use_subcol_microp) then
+     call pbuf_register_subcol('CLDO', 'micro_p3_register', cldo_idx)
+  endif
+#endif /*SILHS*/
 
    if (masterproc) write(iulog,'(A20)') '    P3 register finished'
   end subroutine micro_p3_register
@@ -398,6 +420,9 @@ end subroutine micro_p3_readnl
     use cam_history,    only: addfld, add_default, horiz_only
     use cam_history_support, only: add_hist_coord 
     use micro_p3_utils, only: micro_p3_utils_init
+#ifdef SILHS
+    use physics_buffer, only: col_type_subcol
+#endif /*SILHS*/
 
     type(physics_buffer_desc),  pointer :: pbuf2d(:,:)
     integer        :: m, mm
@@ -407,6 +432,9 @@ end subroutine micro_p3_readnl
     logical :: history_budget       ! Output tendencies and state variables for CAM4
     integer :: budget_histfile      ! output history file number for budget fields
                                    ! temperature, water vapor, cloud ice and cloud
+#ifdef SILHS
+    logical :: use_subcol_microp
+#endif /*SILHS*/
 
     !needed for prescribed CCN option:
     character(len=20) :: base_file_name
@@ -463,8 +491,10 @@ end subroutine micro_p3_readnl
        call pbuf_set_field(pbuf2d, relvar_idx, 2._rtype)
        call pbuf_set_field(pbuf2d, accre_enhan_idx, micro_mg_accre_enhan_fac)
        call pbuf_set_field(pbuf2d, qr_evap_tend_idx,  0._rtype)
+#ifndef SILHS
        call pbuf_set_field(pbuf2d, qv_prev_idx,  0._rtype)
        call pbuf_set_field(pbuf2d, t_prev_idx,  0._rtype)
+#endif /*SILHS*/
  
 #ifdef SILHS
        ! Fields for subcol_SILHS hole filling
@@ -474,6 +504,13 @@ end subroutine micro_p3_readnl
        if (V_qc_idx > 0) call pbuf_set_field(pbuf2d, V_qc_idx, 0._rtype)
        if (V_qr_idx > 0) call pbuf_set_field(pbuf2d, V_qr_idx, 0._rtype)
        if (V_qi_idx > 0) call pbuf_set_field(pbuf2d, V_qi_idx, 0._rtype)
+
+      call phys_getopts(use_subcol_microp_out = use_subcol_microp)
+
+      ! If sub-columns turned on, need to set the sub-column fields as well
+       if (use_subcol_microp) then
+          call pbuf_set_field(pbuf2d, cldo_idx, 0._rtype, col_type=col_type_subcol)
+       endif
 #endif /*SILHS*/
     end if
 
@@ -1077,12 +1114,12 @@ end subroutine micro_p3_readnl
     real(rtype), pointer :: snow_pcw_grid(:) ! Sfc flux of snow from microphysics [ m/s ]
     real(rtype), pointer :: snow_sed_grid(:) ! Surface flux of cloud ice from sedimentation
     real(rtype), pointer :: relvar(:,:)    ! cloud liquid relative variance [-]
-    real(rtype) :: cldo(state%psetcols,pver)         ! Old cloud fraction
+    real(rtype), pointer :: cldo(:,:)         ! Old cloud fraction
     real(rtype) :: qr_evap_tend(state%psetcols,pver) ! precipitation evaporation rate
     real(rtype), pointer :: cldo_grid(:,:)           ! Old cloud fraction
     real(rtype), pointer :: qr_evap_tend_grid(:,:)   ! precipitation evaporation rate
-    real(rtype), pointer :: qv_prev(:,:)   ! qv from previous p3_main call
-    real(rtype), pointer :: t_prev(:,:)    ! t from previous p3_main call
+    real(rtype) :: qv_prev(state%psetcols,pver)  ! qv from previous p3_main call
+    real(rtype) :: t_prev(state%psetcols,pver)   ! t from previous p3_main call
     !! wetdep 
     real(rtype) :: qme(state%psetcols,pver)
     real(rtype) :: precip_total_tend(state%psetcols,pver) ! Total precipitation (rain + snow)
@@ -1295,10 +1332,11 @@ end subroutine micro_p3_readnl
     ! All internal PBUF variables
     ! INPUTS
     call pbuf_get_field(pbuf, relvar_idx,   relvar,  col_type=col_type, copy_if_needed=use_subcol_microp)
-    call pbuf_get_field(pbuf, t_prev_idx,   t_prev,  col_type=col_type, copy_if_needed=use_subcol_microp)
-    call pbuf_get_field(pbuf, qv_prev_idx,  qv_prev, col_type=col_type, copy_if_needed=use_subcol_microp)
     ! OUTPUTS
-    call pbuf_get_field(pbuf,        cldo_idx,      cldo_grid, start=(/1,1,itim_old/), kount=(/psetcols,pver,1/))
+    call pbuf_get_field(pbuf, cldo_idx, cldo, start=(/1,1,itim_old/), kount=(/psetcols,pver,1/), col_type=col_type)
+    if ( use_subcol_microp ) then
+       call pbuf_get_field(pbuf, cldo_idx, cldo_grid, start=(/1,1,itim_old/), kount=(/pcols,pver,1/))
+    endif
     call pbuf_get_field(pbuf,         qme_idx,       qme_grid                                              )
     call pbuf_get_field(pbuf,       precip_total_tend_idx,     precip_total_tend_grid                      )
     call pbuf_get_field(pbuf,      nevapr_idx,    nevapr_grid                                              )
@@ -1320,6 +1358,8 @@ end subroutine micro_p3_readnl
     if (V_qc_idx > 0) call pbuf_get_field(pbuf, V_qc_idx, V_qc_out_grid)
     if (V_qr_idx > 0) call pbuf_get_field(pbuf, V_qr_idx, V_qr_out_grid)
     if (V_qi_idx > 0) call pbuf_get_field(pbuf, V_qi_idx, V_qi_out_grid)
+    qv_prev = 0.0_rtype ! Not used in SILHS
+    t_prev = 0.0_rtype  ! Not used in SILHS
 #endif /*SILHS*/
 
     ncol = state%ncol
