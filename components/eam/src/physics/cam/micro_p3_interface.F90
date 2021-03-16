@@ -298,12 +298,12 @@ end subroutine micro_p3_readnl
 
 #ifdef SILHS
    ! Fields for subcol_SILHS hole filling
-   call pbuf_add_field('QCSEDTEN', 'global', dtype_r8, (/pcols,pver/), qcsedten_idx)
-   call pbuf_add_field('QRSEDTEN', 'global', dtype_r8, (/pcols,pver/), qrsedten_idx)
-   call pbuf_add_field('QISEDTEN', 'global', dtype_r8, (/pcols,pver/), qisedten_idx)
-   call pbuf_add_field('V_QC', 'global', dtype_r8, (/pcols,pver/), V_qc_idx)
-   call pbuf_add_field('V_QR', 'global', dtype_r8, (/pcols,pver/), V_qr_idx)
-   call pbuf_add_field('V_QI', 'global', dtype_r8, (/pcols,pver/), V_qi_idx)
+   call pbuf_add_field('QCSEDTEN', 'physpkg', dtype_r8, (/pcols,pver/), qcsedten_idx)
+   call pbuf_add_field('QRSEDTEN', 'physpkg', dtype_r8, (/pcols,pver/), qrsedten_idx)
+   call pbuf_add_field('QISEDTEN', 'physpkg', dtype_r8, (/pcols,pver/), qisedten_idx)
+   call pbuf_add_field('V_QC', 'physpkg', dtype_r8, (/pcols,pver/), V_qc_idx)
+   call pbuf_add_field('V_QR', 'physpkg', dtype_r8, (/pcols,pver/), V_qr_idx)
+   call pbuf_add_field('V_QI', 'physpkg', dtype_r8, (/pcols,pver/), V_qi_idx)
 #endif /*SILHS*/
 
    !! module radiation_data & module cloud_rad_props
@@ -336,6 +336,31 @@ end subroutine micro_p3_readnl
   ! Register subcolumn pbuf fields
   if (use_subcol_microp) then
      call pbuf_register_subcol('CLDO', 'micro_p3_register', cldo_idx)
+     call pbuf_register_subcol('QME', 'micro_p3_register', qme_idx)
+     call pbuf_register_subcol('PRAIN', 'micro_p3_register', precip_total_tend_idx)
+     call pbuf_register_subcol('NEVAPR', 'micro_p3_register', nevapr_idx)
+     call pbuf_register_subcol('PRER_EVAP', 'micro_p3_register', qr_evap_tend_idx)
+     call pbuf_register_subcol('DEI', 'micro_p3_register', dei_idx)
+     call pbuf_register_subcol('MU', 'micro_p3_register', mu_idx)
+     call pbuf_register_subcol('LAMBDAC', 'micro_p3_register', lambdac_idx)
+     call pbuf_register_subcol('REL', 'micro_p3_register', rel_idx)
+     call pbuf_register_subcol('REI', 'micro_p3_register', rei_idx)
+     call pbuf_register_subcol('LS_FLXPRC', 'micro_p3_register', ls_flxprc_idx)
+     call pbuf_register_subcol('LS_FLXSNW', 'micro_p3_register', ls_flxsnw_idx)
+     call pbuf_register_subcol('LS_REFFRAIN', 'micro_p3_register', ls_reffrain_idx)
+     call pbuf_register_subcol('LS_REFFSNOW', 'micro_p3_register', ls_reffsnow_idx)
+     call pbuf_register_subcol('CV_REFFLIQ', 'micro_p3_register', cv_reffliq_idx)
+     call pbuf_register_subcol('CV_REFFICE', 'micro_p3_register', cv_reffice_idx)
+     call pbuf_register_subcol('QCSEDTEN', 'micro_p3_register', qcsedten_idx)
+     call pbuf_register_subcol('QRSEDTEN', 'micro_p3_register', qrsedten_idx)
+     call pbuf_register_subcol('QISEDTEN', 'micro_p3_register', qisedten_idx)
+     call pbuf_register_subcol('V_QC', 'micro_p3_register', V_qc_idx)
+     call pbuf_register_subcol('V_QR', 'micro_p3_register', V_qr_idx)
+     call pbuf_register_subcol('V_QI', 'micro_p3_register', V_qi_idx)
+
+     if (prog_modal_aero) then
+        call pbuf_register_subcol('RATE1_CW2PR_ST','micro_p3_register',rate1_cw2pr_st_idx)
+     endif
   endif
 #endif /*SILHS*/
 
@@ -1101,12 +1126,12 @@ end subroutine micro_p3_readnl
     real(rtype), pointer :: npccn(:,:)    ! liquid activation number tendency
     real(rtype), pointer :: cmeliq(:,:)
     !!
-    real(rtype) :: prec_str(state%psetcols)  ! [Total] Sfc flux of precip from stratiform [ m/s ]
-    real(rtype) :: prec_sed(state%psetcols)  ! Surface flux of total cloud water from sedimentation
-    real(rtype) :: prec_pcw(state%psetcols)  ! Sfc flux of precip from microphysics [ m/s ]
-    real(rtype) :: snow_str(state%psetcols)  ! [Total] Sfc flux of snow from stratiform   [ m/s ]
-    real(rtype) :: snow_pcw(state%psetcols)  ! Sfc flux of snow from microphysics [ m/s ]
-    real(rtype) :: snow_sed(state%psetcols)  ! Surface flux of cloud ice from sedimentation
+    real(rtype), pointer :: prec_str(:)  ! [Total] Sfc flux of precip from stratiform [ m/s ]
+    real(rtype), pointer :: prec_sed(:)  ! Surface flux of total cloud water from sedimentation
+    real(rtype), pointer :: prec_pcw(:)  ! Sfc flux of precip from microphysics [ m/s ]
+    real(rtype), pointer :: snow_str(:)  ! [Total] Sfc flux of snow from stratiform   [ m/s ]
+    real(rtype), pointer :: snow_pcw(:)  ! Sfc flux of snow from microphysics [ m/s ]
+    real(rtype), pointer :: snow_sed(:)  ! Surface flux of cloud ice from sedimentation
     real(rtype), pointer :: prec_str_grid(:) ! [Total] Sfc flux of precip from stratiform [ m/s ]
     real(rtype), pointer :: prec_sed_grid(:) ! Surface flux of total cloud water from sedimentation
     real(rtype), pointer :: prec_pcw_grid(:) ! Sfc flux of precip from microphysics [ m/s ]
@@ -1115,27 +1140,27 @@ end subroutine micro_p3_readnl
     real(rtype), pointer :: snow_sed_grid(:) ! Surface flux of cloud ice from sedimentation
     real(rtype), pointer :: relvar(:,:)    ! cloud liquid relative variance [-]
     real(rtype), pointer :: cldo(:,:)         ! Old cloud fraction
-    real(rtype) :: qr_evap_tend(state%psetcols,pver) ! precipitation evaporation rate
+    real(rtype), pointer :: qr_evap_tend(:,:) ! precipitation evaporation rate
     real(rtype), pointer :: cldo_grid(:,:)           ! Old cloud fraction
     real(rtype), pointer :: qr_evap_tend_grid(:,:)   ! precipitation evaporation rate
     real(rtype) :: qv_prev(state%psetcols,pver)  ! qv from previous p3_main call
     real(rtype) :: t_prev(state%psetcols,pver)   ! t from previous p3_main call
     !! wetdep 
-    real(rtype) :: qme(state%psetcols,pver)
-    real(rtype) :: precip_total_tend(state%psetcols,pver) ! Total precipitation (rain + snow)
-    real(rtype) :: nevapr(state%psetcols,pver)            ! Evaporation of total precipitation (rain + snow)
+    real(rtype), pointer :: qme(:,:)
+    real(rtype), pointer :: precip_total_tend(:,:) ! Total precipitation (rain + snow)
+    real(rtype), pointer :: nevapr(:,:)            ! Evaporation of total precipitation (rain + snow)
     real(rtype), pointer :: qme_grid(:,:)
     real(rtype), pointer :: precip_total_tend_grid(:,:)   ! Total precipitation (rain + snow)
     real(rtype), pointer :: nevapr_grid(:,:)              ! Evaporation of total precipitation (rain + snow)
     !! COSP simulator
-    real(rtype) :: rel(state%psetcols,pver)       ! Liquid effective drop radius (microns)
-    real(rtype) :: rei(state%psetcols,pver)       ! Ice effective drop size (microns)
-    real(rtype) :: flxprc(state%psetcols,pverp)   ! P3 grid-box mean flux_large_scale_cloud_rain+snow at interfaces (kg/m2/s)
-    real(rtype) :: flxsnw(state%psetcols,pverp)   ! P3 grid-box mean flux_large_scale_cloud_snow at interfaces (kg/m2/s)
-    real(rtype) :: reffrain(state%psetcols,pver)  ! P3 diagnostic rain effective radius (um)
-    real(rtype) :: reffsnow(state%psetcols,pver)  ! P3 diagnostic snow effective radius (um)
-    real(rtype) :: cvreffliq(state%psetcols,pver) ! convective cloud liquid effective radius (um)
-    real(rtype) :: cvreffice(state%psetcols,pver) ! convective cloud ice effective radius (um)
+    real(rtype), pointer :: rel(:,:)       ! Liquid effective drop radius (microns)
+    real(rtype), pointer :: rei(:,:)       ! Ice effective drop size (microns)
+    real(rtype), pointer :: flxprc(:,:)    ! P3 grid-box mean flux_large_scale_cloud_rain+snow at interfaces (kg/m2/s)
+    real(rtype), pointer :: flxsnw(:,:)    ! P3 grid-box mean flux_large_scale_cloud_snow at interfaces (kg/m2/s)
+    real(rtype), pointer :: reffrain(:,:)  ! P3 diagnostic rain effective radius (um)
+    real(rtype), pointer :: reffsnow(:,:)  ! P3 diagnostic snow effective radius (um)
+    real(rtype), pointer :: cvreffliq(:,:) ! convective cloud liquid effective radius (um)
+    real(rtype), pointer :: cvreffice(:,:) ! convective cloud ice effective radius (um)
     real(rtype), pointer :: rel_grid(:,:)         ! Liquid effective drop radius (microns)
     real(rtype), pointer :: rei_grid(:,:)         ! Ice effective drop size (microns)
     real(rtype), pointer :: flxprc_grid(:,:)      ! P3 grid-box mean flux_large_scale_cloud_rain+snow at interfaces (kg/m2/s)
@@ -1145,19 +1170,22 @@ end subroutine micro_p3_readnl
     real(rtype), pointer :: cvreffliq_grid(:,:)   ! convective cloud liquid effective radius (um)
     real(rtype), pointer :: cvreffice_grid(:,:)   ! convective cloud ice effective radius (um)
     !! radiation 
-    real(rtype) :: dei(state%psetcols,pver)       ! Ice effective diameter (um)
-    real(rtype) :: mu(state%psetcols,pver)        ! Size distribution shape parameter for radiation
-    real(rtype) :: lambdac(state%psetcols,pver)   ! Size distribution slope parameter for radiation
+    real(rtype), pointer :: dei(:,:)       ! Ice effective diameter (um)
+    real(rtype), pointer :: mu(:,:)        ! Size distribution shape parameter for radiation
+    real(rtype), pointer :: lambdac(:,:)   ! Size distribution slope parameter for radiation
     real(rtype), pointer :: dei_grid(:,:)         ! Ice effective diameter (um)
     real(rtype), pointer :: mu_grid(:,:)          ! Size distribution shape parameter for radiation
     real(rtype), pointer :: lambdac_grid(:,:)     ! Size distribution slope parameter for radiation
     !! SILHS hole filler
+    real(rtype), pointer :: qcsedten(:,:)        ! Cloud water sedimentation tendency
+    real(rtype), pointer :: qrsedten(:,:)        ! Rain water sedimentation tendency
+    real(rtype), pointer :: qisedten(:,:)        ! Ice sedimentation tendency
     real(rtype), pointer :: qcsedten_grid(:,:)   ! Cloud water sedimentation tendency
     real(rtype), pointer :: qrsedten_grid(:,:)   ! Rain water sedimentation tendency
     real(rtype), pointer :: qisedten_grid(:,:)   ! Ice sedimentation tendency
-    real(rtype) :: V_qc_out(state%psetcols,pver) ! Sedimentation_velocity for qc
-    real(rtype) :: V_qr_out(state%psetcols,pver) ! Sedimentation_velocity for qr
-    real(rtype) :: V_qi_out(state%psetcols,pver) ! Sedimentation_velocity for qi
+    real(rtype), pointer :: V_qc_out(:,:)        ! Sedimentation_velocity for qc
+    real(rtype), pointer :: V_qr_out(:,:)        ! Sedimentation_velocity for qr
+    real(rtype), pointer :: V_qi_out(:,:)        ! Sedimentation_velocity for qi
     real(rtype), pointer :: V_qc_out_grid(:,:)   ! Sedimentation_velocity for qc
     real(rtype), pointer :: V_qr_out_grid(:,:)   ! Sedimentation_velocity for qr
     real(rtype), pointer :: V_qi_out_grid(:,:)   ! Sedimentation_velocity for qi
@@ -1322,44 +1350,73 @@ end subroutine micro_p3_readnl
     call pbuf_get_field(pbuf, npccn_idx,        npccn,        col_type=col_type, copy_if_needed=use_subcol_microp)
     call pbuf_get_field(pbuf, cmeliq_idx,       cmeliq,       col_type=col_type, copy_if_needed=use_subcol_microp)
     ! OUTPUTS
-    call pbuf_get_field(pbuf,    prec_str_idx,  prec_str_grid)
-    call pbuf_get_field(pbuf,    snow_str_idx,  snow_str_grid)
-    call pbuf_get_field(pbuf,    prec_sed_idx,  prec_sed_grid)
-    call pbuf_get_field(pbuf,    snow_sed_idx,  snow_sed_grid)
-    call pbuf_get_field(pbuf,    prec_pcw_idx,  prec_pcw_grid)
-    call pbuf_get_field(pbuf,    snow_pcw_idx,  snow_pcw_grid)
+    call pbuf_get_field(pbuf,    prec_str_idx,  prec_str, col_type=col_type)
+    call pbuf_get_field(pbuf,    snow_str_idx,  snow_str, col_type=col_type)
+    call pbuf_get_field(pbuf,    prec_sed_idx,  prec_sed, col_type=col_type)
+    call pbuf_get_field(pbuf,    snow_sed_idx,  snow_sed, col_type=col_type)
+    call pbuf_get_field(pbuf,    prec_pcw_idx,  prec_pcw, col_type=col_type)
+    call pbuf_get_field(pbuf,    snow_pcw_idx,  snow_pcw, col_type=col_type)
+    if ( use_subcol_microp ) then
+       call pbuf_get_field(pbuf,    prec_str_idx,  prec_str_grid)
+       call pbuf_get_field(pbuf,    snow_str_idx,  snow_str_grid)
+       call pbuf_get_field(pbuf,    prec_sed_idx,  prec_sed_grid)
+       call pbuf_get_field(pbuf,    snow_sed_idx,  snow_sed_grid)
+       call pbuf_get_field(pbuf,    prec_pcw_idx,  prec_pcw_grid)
+       call pbuf_get_field(pbuf,    snow_pcw_idx,  snow_pcw_grid)
+    endif
     !============================ 
     ! All internal PBUF variables
     ! INPUTS
     call pbuf_get_field(pbuf, relvar_idx,   relvar,  col_type=col_type, copy_if_needed=use_subcol_microp)
     ! OUTPUTS
     call pbuf_get_field(pbuf, cldo_idx, cldo, start=(/1,1,itim_old/), kount=(/psetcols,pver,1/), col_type=col_type)
-    if ( use_subcol_microp ) then
-       call pbuf_get_field(pbuf, cldo_idx, cldo_grid, start=(/1,1,itim_old/), kount=(/pcols,pver,1/))
-    endif
-    call pbuf_get_field(pbuf,         qme_idx,       qme_grid                                              )
-    call pbuf_get_field(pbuf,       precip_total_tend_idx,     precip_total_tend_grid                      )
-    call pbuf_get_field(pbuf,      nevapr_idx,    nevapr_grid                                              )
-    call pbuf_get_field(pbuf,   qr_evap_tend_idx, qr_evap_tend_grid                                        )
-    call pbuf_get_field(pbuf,         rei_idx,       rei_grid                                              ) ! ice eff. rad
-    call pbuf_get_field(pbuf,         rel_idx,       rel_grid                                              ) ! liq. eff. rad
-    call pbuf_get_field(pbuf,         dei_idx,       dei_grid                                              )
-    call pbuf_get_field(pbuf,          mu_idx,        mu_grid                                              )
-    call pbuf_get_field(pbuf,     lambdac_idx,   lambdac_grid                                              )
-    call pbuf_get_field(pbuf,   ls_flxprc_idx,    flxprc_grid                                              )
-    call pbuf_get_field(pbuf,   ls_flxsnw_idx,    flxsnw_grid                                              )
-    call pbuf_get_field(pbuf, ls_reffrain_idx,  reffrain_grid                                              ) 
-    call pbuf_get_field(pbuf, ls_reffsnow_idx,  reffsnow_grid                                              ) 
-    call pbuf_get_field(pbuf,  cv_reffliq_idx, cvreffliq_grid                                              )
-    call pbuf_get_field(pbuf,  cv_reffice_idx, cvreffice_grid                                              )
-    if (qcsedten_idx > 0) call pbuf_get_field(pbuf, qcsedten_idx, qcsedten_grid)
-    if (qrsedten_idx > 0) call pbuf_get_field(pbuf, qrsedten_idx, qrsedten_grid)
-    if (qisedten_idx > 0) call pbuf_get_field(pbuf, qisedten_idx, qisedten_grid)
-    if (V_qc_idx > 0) call pbuf_get_field(pbuf, V_qc_idx, V_qc_out_grid)
-    if (V_qr_idx > 0) call pbuf_get_field(pbuf, V_qr_idx, V_qr_out_grid)
-    if (V_qi_idx > 0) call pbuf_get_field(pbuf, V_qi_idx, V_qi_out_grid)
+    call pbuf_get_field(pbuf, qme_idx,               qme,               col_type=col_type)
+    call pbuf_get_field(pbuf, precip_total_tend_idx, precip_total_tend, col_type=col_type)
+    call pbuf_get_field(pbuf, nevapr_idx,            nevapr,            col_type=col_type)
+    call pbuf_get_field(pbuf, qr_evap_tend_idx,      qr_evap_tend,      col_type=col_type)
+    call pbuf_get_field(pbuf, rei_idx,               rei,               col_type=col_type) ! ice eff. rad
+    call pbuf_get_field(pbuf, rel_idx,               rel,               col_type=col_type) ! liq. eff. rad
+    call pbuf_get_field(pbuf, dei_idx,               dei,               col_type=col_type)
+    call pbuf_get_field(pbuf, mu_idx,                mu,                col_type=col_type)
+    call pbuf_get_field(pbuf, lambdac_idx,           lambdac,           col_type=col_type)
+    call pbuf_get_field(pbuf, ls_flxprc_idx,         flxprc,            col_type=col_type)
+    call pbuf_get_field(pbuf, ls_flxsnw_idx,         flxsnw,            col_type=col_type)
+    call pbuf_get_field(pbuf, ls_reffrain_idx,       reffrain,          col_type=col_type) 
+    call pbuf_get_field(pbuf, ls_reffsnow_idx,       reffsnow,          col_type=col_type) 
+    call pbuf_get_field(pbuf, cv_reffliq_idx,        cvreffliq,         col_type=col_type)
+    call pbuf_get_field(pbuf, cv_reffice_idx,        cvreffice,         col_type=col_type)
+    if (V_qc_idx > 0) call pbuf_get_field(pbuf, V_qc_idx, V_qc_out, col_type=col_type)
+    if (V_qr_idx > 0) call pbuf_get_field(pbuf, V_qr_idx, V_qr_out, col_type=col_type)
+    if (V_qi_idx > 0) call pbuf_get_field(pbuf, V_qi_idx, V_qi_out, col_type=col_type)
+    if (qcsedten_idx > 0) call pbuf_get_field(pbuf, qcsedten_idx, qcsedten, col_type=col_type)
+    if (qrsedten_idx > 0) call pbuf_get_field(pbuf, qrsedten_idx, qrsedten, col_type=col_type)
+    if (qisedten_idx > 0) call pbuf_get_field(pbuf, qisedten_idx, qisedten, col_type=col_type)
     qv_prev = 0.0_rtype ! Not used in SILHS
     t_prev = 0.0_rtype  ! Not used in SILHS
+    if ( use_subcol_microp ) then
+       call pbuf_get_field(pbuf, cldo_idx, cldo_grid, start=(/1,1,itim_old/), kount=(/pcols,pver,1/))
+       call pbuf_get_field(pbuf, qme_idx,               qme_grid                                    )
+       call pbuf_get_field(pbuf, precip_total_tend_idx, precip_total_tend_grid                      )
+       call pbuf_get_field(pbuf, nevapr_idx,            nevapr_grid                                 )
+       call pbuf_get_field(pbuf, qr_evap_tend_idx,      qr_evap_tend_grid                           )
+       call pbuf_get_field(pbuf, rei_idx,               rei_grid                                    ) ! ice eff. rad
+       call pbuf_get_field(pbuf, rel_idx,               rel_grid                                    ) ! liq. eff. rad
+       call pbuf_get_field(pbuf, dei_idx,               dei_grid                                    )
+       call pbuf_get_field(pbuf, mu_idx,                mu_grid                                     )
+       call pbuf_get_field(pbuf, lambdac_idx,           lambdac_grid                                )
+       call pbuf_get_field(pbuf, ls_flxprc_idx,         flxprc_grid                                 )
+       call pbuf_get_field(pbuf, ls_flxsnw_idx,         flxsnw_grid                                 )
+       call pbuf_get_field(pbuf, ls_reffrain_idx,       reffrain_grid                               ) 
+       call pbuf_get_field(pbuf, ls_reffsnow_idx,       reffsnow_grid                               ) 
+       call pbuf_get_field(pbuf, cv_reffliq_idx,        cvreffliq_grid                              )
+       call pbuf_get_field(pbuf, cv_reffice_idx,        cvreffice_grid                              )
+       if (V_qc_idx > 0) call pbuf_get_field(pbuf, V_qc_idx, V_qc_out_grid)
+       if (V_qr_idx > 0) call pbuf_get_field(pbuf, V_qr_idx, V_qr_out_grid)
+       if (V_qi_idx > 0) call pbuf_get_field(pbuf, V_qi_idx, V_qi_out_grid)
+       if (qcsedten_idx > 0) call pbuf_get_field(pbuf, qcsedten_idx, qcsedten_grid)
+       if (qrsedten_idx > 0) call pbuf_get_field(pbuf, qrsedten_idx, qrsedten_grid)
+       if (qisedten_idx > 0) call pbuf_get_field(pbuf, qisedten_idx, qisedten_grid)
+    endif
 #endif /*SILHS*/
 
     ncol = state%ncol
@@ -1916,6 +1973,9 @@ end subroutine micro_p3_readnl
    call outfld('liq_ice_exchange',      liq_ice_exchange,      pcols, lchnk)
 #else
    !! SILHS
+   qcsedten(:,:) = tend_out(:,:,36)
+   qrsedten(:,:) = tend_out(:,:,38)
+   qisedten(:,:) = tend_out(:,:,40)
    ! Average subcolumns back to grid average values for stats output
    if ( use_subcol_microp ) then
       call subcol_field_avg(efcout, ngrdcol, lchnk, efcout_grid)
@@ -1957,6 +2017,9 @@ end subroutine micro_p3_readnl
       call subcol_field_avg(dei, ngrdcol, lchnk, dei_grid)
       call subcol_field_avg(mu, ngrdcol, lchnk, mu_grid)
       call subcol_field_avg(lambdac, ngrdcol, lchnk, lambdac_grid)
+      call subcol_field_avg(qcsedten, ngrdcol, lchnk, qcsedten_grid)
+      call subcol_field_avg(qrsedten, ngrdcol, lchnk, qrsedten_grid)
+      call subcol_field_avg(qisedten, ngrdcol, lchnk, qisedten_grid)
       call subcol_field_avg(V_qc_out, ngrdcol, lchnk, V_qc_out_grid)
       call subcol_field_avg(V_qr_out, ngrdcol, lchnk, V_qr_out_grid)
       call subcol_field_avg(V_qi_out, ngrdcol, lchnk, V_qi_out_grid)
@@ -1978,35 +2041,35 @@ end subroutine micro_p3_readnl
       vap_liq_exchange_grid = vap_liq_exchange
       liq_ice_exchange_grid = liq_ice_exchange
       ! Average subcolumns back to grid average values for PBUF
-      prec_str_grid = prec_str
-      snow_str_grid = snow_str
-      prec_sed_grid = prec_sed
-      snow_sed_grid = snow_sed
-      prec_pcw_grid = prec_pcw
-      snow_pcw_grid = snow_pcw
-      cldo_grid = cldo
-      qr_evap_tend_grid = qr_evap_tend
-      qme_grid = qme
-      precip_total_tend_grid = precip_total_tend
-      nevapr_grid = nevapr
-      rel_grid = rel
-      rei_grid = rei
-      flxprc_grid = flxprc
-      flxsnw_grid = flxsnw
-      reffrain_grid = reffrain
-      reffsnow_grid = reffsnow
-      cvreffliq_grid = cvreffliq
-      cvreffice_grid = cvreffice
-      dei_grid = dei
-      mu_grid = mu
-      lambdac_grid = lambdac
-      V_qc_out_grid = V_qc_out
-      V_qr_out_grid = V_qr_out
-      V_qi_out_grid = V_qi_out
+      prec_str_grid => prec_str
+      snow_str_grid => snow_str
+      prec_sed_grid => prec_sed
+      snow_sed_grid => snow_sed
+      prec_pcw_grid => prec_pcw
+      snow_pcw_grid => snow_pcw
+      cldo_grid => cldo
+      qr_evap_tend_grid => qr_evap_tend
+      qme_grid => qme
+      precip_total_tend_grid => precip_total_tend
+      nevapr_grid => nevapr
+      rel_grid => rel
+      rei_grid => rei
+      flxprc_grid => flxprc
+      flxsnw_grid => flxsnw
+      reffrain_grid => reffrain
+      reffsnow_grid => reffsnow
+      cvreffliq_grid => cvreffliq
+      cvreffice_grid => cvreffice
+      dei_grid => dei
+      mu_grid => mu
+      lambdac_grid => lambdac
+      qcsedten_grid => qcsedten
+      qrsedten_grid => qrsedten
+      qisedten_grid => qisedten
+      V_qc_out_grid => V_qc_out
+      V_qr_out_grid => V_qr_out
+      V_qi_out_grid => V_qi_out
    endif ! use_subcol_microp
-   qcsedten_grid(:,:) = tend_out_grid(:,:,36)
-   qrsedten_grid(:,:) = tend_out_grid(:,:,38)
-   qisedten_grid(:,:) = tend_out_grid(:,:,40)
 
    ! Stat outputs
    call outfld('AQRAIN',      aqrain,      psetcols, lchnk)
