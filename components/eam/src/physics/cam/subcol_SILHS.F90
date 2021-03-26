@@ -1055,17 +1055,34 @@ contains
          ! P3: calculate ratio of rimed ice to total ice.
          ! This can remain on the CAM grid.
          if ( ixcldrim > 0 ) then
+            ! From subroutine calc_bulkRhoRime in micro_p3.F90; where rimed ice
+            ! mixing ratio is set to 0 kg/kg if it's value is less than qsmall.
+            ! The value of qsmall is 1.0e-14 kg/kg in P3, as found in
+            ! micro_p3_utils.F90.
             do k = top_lev, pver
-               if ( state%q(i,k,ixcldice) > 0.0_r8 ) then
+               if ( state%q(i,k,ixcldrim) >= 1.0e-14_r8 ) then
                   rime_to_total_ice_ratio(k) &
-                  = state%q(i,k,ixcldrim) / state%q(i,k,ixcldice)
+                  = min( state%q(i,k,ixcldrim) &
+                         / max( state%q(i,k,ixcldice), 1.0e-14_r8 ), &
+                         1.0_r8 )
                else
+                  ! When rimed ice mixing ratio is less than qsmall, it is set
+                  ! to 0 kg/kg, and the ratio of rimed ice to total ice is also
+                  ! set to 0.
                   rime_to_total_ice_ratio(k) = 0.0_r8
                endif
                if ( ixrimvol > 0 ) then
-                  if ( state%q(i,k,ixrimvol) > 0.0_r8 ) then
+                  ! From subroutine calc_bulkRhoRime in micro_p3.F90;
+                  ! where rho_rimeMin = 50 kg/m^3 and rho_rimeMax = 900 kg/m^3,
+                  ! as found in micro_p3_utils.F90.
+                  if ( state%q(i,k,ixrimvol) >= 1.0e-15_r8 ) then
                      rho_rime(k) &
                      = state%q(i,k,ixcldrim) / state%q(i,k,ixrimvol)
+                     if ( rho_rime(k) < 50.0_r8 ) then
+                        rho_rime(k) = 50.0_r8
+                     elseif ( rho_rime(k) > 900.0_r8 ) then
+                        rho_rime(k) = 900.0_r8
+                     endif
                   else
                      rho_rime(k) = 0.0_r8
                   endif
@@ -1503,7 +1520,12 @@ contains
                  * state_sc%q(stncol+j,top_lev:pver,ixcldice)
 
                if ( ixrimvol > 0 ) then
-                  where ( rho_rime(top_lev:pver) > 0.0_r8 )
+                  ! If the grid mean of riming volume is at least 
+                  ! 1.0e-15 m^3/kg, the riming density (rho_rime) will have a
+                  ! value of at least 50 kg/m^3.  If the grid mean of riming
+                  ! volume is smaller than 1.0e-15 m^3/kg, it is treated as
+                  ! it's 0 m^3/kg.
+                  where ( rho_rime(top_lev:pver) >= 50.0_r8 )
                      state_sc%q(stncol+j,top_lev:pver,ixrimvol) &
                      = state_sc%q(stncol+j,top_lev:pver,ixcldrim) &
                        / rho_rime(top_lev:pver)
@@ -2450,8 +2472,10 @@ contains
 
      ! P3 variables
      real(r8), dimension(pcols,pver) :: &
-       rm_hf_tend, & ! Rimed ice mixing ratio hole-filling tendency    [kg/kg/s]
-       rime_to_total_ice_tend_ratio    ! d(qrim)/dt / d(qi)/dt         [-]
+       rime_to_total_ice_ratio, & ! qrim / qi                                    [-]
+       rm_hf_tend, & ! Rimed ice mixing ratio hole-filling tendency        [kg/kg/s]
+       rm_prefill, & ! Rimed ice mixing ratio before effects of hole-filling [kg/kg]
+       rm_new        ! Rimed ice mixing ratio after effects of hole-filling  [kg/kg]
 
      integer :: ixcldice, ixcldliq, ixrain, ixsnow, ixcldrim ! Hydrometeor indices
 
@@ -2538,13 +2562,27 @@ contains
      endif ! microp_scheme
 
      ! P3: calculate ratio of rimed ice tendency to total ice tendency.
-     rime_to_total_ice_tend_ratio = 0.0_r8
+     rime_to_total_ice_ratio = 0.0_r8
      if ( ixcldrim > 0 ) then
+        ! From subroutine calc_bulkRhoRime in micro_p3.F90; where rimed ice
+        ! mixing ratio is set to 0 kg/kg if it's value is less than qsmall.
+        ! The value of qsmall is 1.0e-14 kg/kg in P3, as found in
+        ! micro_p3_utils.F90.
         do icol = 1, ncol
            do k = top_lev, pver
-              if ( ptend%q(icol,k,ixcldice) > 0.0_r8 ) then
-                 rime_to_total_ice_tend_ratio(icol,k) &
-                 = ptend%q(icol,k,ixcldrim) / ptend%q(icol,k,ixcldice)
+              if ( state%q(icol,k,ixcldrim) &
+                   + ptend%q(icol,k,ixcldrim) * dt >= 1.0e-14_r8 ) then
+                 rime_to_total_ice_ratio(icol,k) &
+                 = min( ( state%q(icol,k,ixcldrim) &
+                          + ptend%q(icol,k,ixcldrim) * dt ) &
+                        / max( state%q(icol,k,ixcldice) &
+                               + ptend%q(icol,k,ixcldice) * dt, 1.0e-14_r8 ), &
+                        1.0_r8 )
+              else
+                 ! When rimed ice mixing ratio is less than qsmall, it is set
+                 ! to 0 kg/kg, and the ratio of rimed ice to total ice is also
+                 ! set to 0.
+                 rime_to_total_ice_ratio(icol,k) = 0.0_r8
               endif
            enddo ! k = top_lev, pver
         enddo ! icol = 1, ncol
@@ -3384,11 +3422,6 @@ contains
         rs_hf_tend = rs_tend - ptend%q(:,:,ixsnow)
      endif ! ixsnow > 0
 
-     ! P3
-     if ( ixcldrim > 0 ) then
-        rm_hf_tend = rime_to_total_ice_tend_ratio * ri_hf_tend
-     endif ! ixcldrim > 0
-
      ! The updated dry static energy tendency after hole filling has not been
      ! used to update ptend yet, so record the budget term for hole filling
      ! first.
@@ -3407,6 +3440,17 @@ contains
 
      ! P3
      if ( ixcldrim > 0 ) then
+        ! ptend%q(:,:,ixcldice) now contains the updated, post hole-filling,
+        ! value of total ice tendency. The value of rimed ice mixing ratio,
+        ! post hole-filling, is calculated from these values.
+        rm_new = rime_to_total_ice_ratio(:,:) &
+                 * ( state%q(:,:,ixcldice) + ptend%q(:,:,ixcldice) * dt )
+        ! ptend%q(:,:,ixcldrim) still contains the previous, pre hole-filling,
+        ! value of rimed ice tendency.
+        rm_prefill = state%q(:,:,ixcldrim) + ptend%q(:,:,ixcldrim) * dt
+        ! Calculate the tendency of rimed ice mixing ratio due to hole-filling.
+        rm_hf_tend = ( rm_new - rm_prefill ) / dt
+        ! calculate the updated rimed ice mixing ratio tendency.
         ptend%q(:,:,ixcldrim) = ptend%q(:,:,ixcldrim) + rm_hf_tend(:,:)
      endif ! ixcldrim > 0
 
