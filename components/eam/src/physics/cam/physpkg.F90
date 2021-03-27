@@ -2013,6 +2013,7 @@ subroutine tphysbc (ztodt,               &
 
     integer  i,k,m,ihist                       ! Longitude, level, constituent indices
     integer :: ixcldice, ixcldliq,ixq,ixrain   ! constituent indices for cloud liquid and ice water.
+    integer :: ixsnow
     integer :: ixcldrim
     ! for macro/micro co-substepping
     integer :: macmic_it                       ! iteration variables
@@ -2251,7 +2252,11 @@ subroutine tphysbc (ztodt,               &
     call cnst_get_ind('CLDLIQ', ixcldliq)
     call cnst_get_ind('CLDICE', ixcldice)
     call cnst_get_ind('RAINQM', ixrain)
-    call cnst_get_ind('CLDRIM', ixcldrim)
+    if ( microp_scheme == 'MG' ) then
+       call cnst_get_ind('SNOWQM', ixsnow)
+    elseif ( microp_scheme == 'P3' ) then
+       call cnst_get_ind('CLDRIM', ixcldrim)
+    endif
     call cnst_get_ind('Q', ixq)
 
 !!== KZ_WCON
