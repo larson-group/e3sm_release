@@ -1089,7 +1089,11 @@ cat <<EOF >> user_nl_eam
 EOF
 endif
 
+<<<<<<< HEAD:REPLAY/run_e3sm_anvil_gust.csh
 # if prescribed or observed aerosols set then need to put in settings for prescribed aerosol model
+=======
+finidat = '/global/cfs/cdirs/e3sm/shpundk/elm_inputdata/20201103.IELM.r05_oECv3.elm.r.0030-01-01-00000.nc'
+>>>>>>> f28a71f... Add/remove IC for run script:run_F2010SC5-CMIP6_E3SMv2_wP3v4_cori.csh
 
 if ($init_aero_type == prescribed ||$init_aero_type == observed) then
 cat <<EOF >> user_nl_eam
