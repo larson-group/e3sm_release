@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = clubb_silhs_P3_test1
+set job_name       = 0426_vqrtp25
 set compset        = F2010SC5-CMIP6 
 #set compset        = A_WCYCL1850S_CMIP6
 #set compset        = FC5CLBMG2BCL72 # alternative compset
@@ -21,7 +21,7 @@ set machine        = anvil
 setenv NUMSC 4
 setenv MGVER 2
 
-set walltime       = 01:00:00
+set walltime       = 18:00:00
 setenv project condo      
 setenv ntasks 1080
 setenv nthrds 1
@@ -31,7 +31,7 @@ setenv init_aero_type none # keep this as none for REPLAY option
 ### SOURCE CODE OPTIONS
 set fetch_code     = false       # flag to toggle cloning source code
 set e3sm_tag       = maint-1.0   # github tag or hash
-set tag_name       = default
+set tag_name       = devel
 
 set clubb_vars_zt_list = "'thlm', 'thvm', 'rtm', 'rcm', 'rvm', 'um', 'vm', 'cloud_frac', 'cloud_cover', 'rcm_in_layer', 'rcm_in_cloud',  'exner', 'rho_ds_zt', 'thv_ds_zt', 'Lscale', 'wp3', 'wpthlp2', 'wp2thlp', 'wprtp2','wp2rtp', 'Lscale_up', 'Lscale_down', 'Kh_zt', 'wp2thvp', 'wp2rcp', 'wprtpthlp', 'sigma_sqd_w_zt', 'rho', 'Ncm', 'rel_humidity', 'rsat', 'rsati', 'rtm_bt', 'rtm_ma', 'rtm_ta', 'rtm_mfl', 'rtm_tacl', 'rtm_cl', 'rtm_forcing', 'rtm_sdmp','rtm_mc', 'rtm_pd', 'rvm_mc', 'rcm_mc', 'thlm_bt', 'thlm_ma', 'thlm_ta', 'thlm_mfl', 'thlm_tacl', 'thlm_cl', 'thlm_forcing', 'thlm_sdmp','thlm_mc', 'thlm_old', 'thlm_without_ta', 'thlm_mfl_min', 'thlm_mfl_max', 'thlm_enter_mfl', 'thlm_exit_mfl', 'rtm_old', 'rtm_without_ta', 'rtm_mfl_min', 'rtm_mfl_max', 'rtm_enter_mfl', 'rtm_exit_mfl', 'um_bt', 'um_ma', 'um_gf', 'um_cf', 'um_ta', 'um_f', 'um_sdmp', 'um_ndg', 'vm_bt', 'vm_ma', 'vm_gf', 'vm_cf', 'vm_ta', 'vm_f', 'vm_sdmp', 'vm_ndg', 'wp3_bt', 'wp3_ma', 'wp3_ta', 'wp3_tp', 'wp3_ac', 'wp3_bp1', 'wp3_pr_turb', 'wp3_pr1', 'wp3_pr2', 'wp3_dp1', 'wp3_cl', 'mixt_frac', 'a3_coef_zt', 'wp3_on_wp2_zt', 'Ncnm', 'wp2_zt', 'thlp2_zt', 'wpthlp_zt', 'wprtp_zt', 'rtp2_zt', 'rtpthlp_zt', 'up2_zt', 'vp2_zt', 'upwp_zt', 'vpwp_zt', 'C11_Skw_fnc'"
 set clubb_vars_zm_list = "'C6_term','wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 'wp4', 'up2', 'vp2', 'wpthvp', 'rtpthvp', 'thlpthvp','invrs_tau_shear','invrs_tau_sfc','invrs_tau_bkgnd', 'invrs_tau_zm','invrs_tau_wp2_zm','invrs_tau_wp3_zm','invrs_tau_xp2_zm','bv_freq_sqd','Kh_zm', 'wprcp', 'wm_zm', 'thlprcp', 'rtprcp', 'rcp2', 'upwp', 'vpwp', 'rho_zm', 'sigma_sqd_w', 'Skw_velocity', 'gamma_Skw_fnc', 'C6rt_Skw_fnc', 'C6thl_Skw_fnc', 'C7_Skw_fnc', 'C1_Skw_fnc', 'a3_coef', 'wp3_on_wp2', 'rcm_zm', 'rtm_zm', 'thlm_zm', 'cloud_frac_zm', 'rho_ds_zm', 'thv_ds_zm', 'em', 'shear', 'wp3_zm', 'wp2_bt', 'wp2_ma', 'wp2_ta', 'wp2_ac', 'wp2_bp', 'wp2_pr1', 'wp2_pr2', 'wp2_pr3', 'wp2_dp1', 'wp2_dp2', 'wp2_cl', 'wp2_pd', 'wp2_sf', 'vp2_bt', 'vp2_ma', 'vp2_ta', 'vp2_tp', 'vp2_dp1', 'vp2_dp2', 'vp2_pr1', 'vp2_pr2', 'vp2_cl', 'vp2_pd', 'vp2_sf', 'up2_bt', 'up2_ma', 'up2_ta', 'up2_tp', 'up2_dp1', 'up2_dp2', 'up2_pr1', 'up2_pr2', 'up2_cl', 'up2_pd', 'up2_sf', 'wprtp_bt', 'wprtp_ma', 'wprtp_ta', 'wprtp_tp', 'wprtp_ac', 'wprtp_bp', 'wprtp_pr1', 'wprtp_pr2', 'wprtp_pr3', 'wprtp_dp1', 'wprtp_mfl', 'wprtp_cl', 'wprtp_sicl', 'wprtp_pd', 'wprtp_forcing', 'wprtp_mc', 'wpthlp_bt', 'wpthlp_ma', 'wpthlp_ta', 'wpthlp_tp', 'wpthlp_ac', 'wpthlp_bp', 'wpthlp_pr1', 'wpthlp_pr2', 'wpthlp_pr3', 'wpthlp_dp1', 'wpthlp_mfl', 'wpthlp_cl', 'wpthlp_sicl', 'wpthlp_forcing', 'wpthlp_mc', 'rtp2_bt', 'rtp2_ma', 'rtp2_ta', 'rtp2_tp', 'rtp2_dp1', 'rtp2_dp2', 'rtp2_cl', 'rtp2_pd', 'rtp2_sf', 'rtp2_forcing', 'rtp2_mc', 'thlp2_bt', 'thlp2_ma', 'thlp2_ta', 'thlp2_tp', 'thlp2_dp1', 'thlp2_dp2', 'thlp2_cl', 'thlp2_pd', 'thlp2_sf', 'thlp2_forcing', 'thlp2_mc', 'rtpthlp_bt', 'rtpthlp_ma', 'rtpthlp_ta', 'rtpthlp_tp1', 'rtpthlp_tp2', 'rtpthlp_dp1', 'rtpthlp_dp2', 'rtpthlp_cl', 'rtpthlp_sf', 'rtpthlp_forcing', 'rtpthlp_mc', 'wpthlp_entermfl', 'wpthlp_exit_mfl', 'wprtp_enter_mfl', 'wprtp_exit_mfl', 'wpthlp_mfl_min', 'wpthlp_mfl_max','wprtp_mfl_min', 'wprtp_mfl_max', 'Richardson_num', 'shear_sqd'"
@@ -61,19 +61,19 @@ set model_start_type = initial
 set restart_files_dir = none
 
 ### DIRECTORIES
-set code_root_dir               = default
+set code_root_dir               = ~/E3SM_code/
 set e3sm_simulations_dir        = /lcrc/group/acme/$USER/E3SM_simulations
 set case_build_dir              = ${e3sm_simulations_dir}/${case_name}/build
 set case_run_dir                = ${e3sm_simulations_dir}/${case_name}/run
 set short_term_archive_root_dir = ${e3sm_simulations_dir}/${case_name}/archive
 
 ### LENGTH OF SIMULATION, RESTARTS, AND ARCHIVING
-#set stop_units                  = nmonths
-#set stop_num                    = 14
-set stop_units                  = ndays
-set stop_num                    = 6
+set stop_units                  = nmonths
+set stop_num                    = 14
+#set stop_units                  = ndays
+#set stop_num                    = 3
 set restart_units               = $stop_units
-set restart_num                 = 6 #$stop_num
+set restart_num                 = $stop_num
 set num_resubmits               = 0
 set do_short_term_archiving     = false
 
@@ -1058,22 +1058,23 @@ clubb_c6thlb           = 1
 clubb_c6thlc           = 0.50
 clubb_c7               = 0.7
 clubb_c7b              = 0.7
-clubb_c8               = 0.5
+clubb_c8               = 1.5 !1.5
 
 clubb_c_invrs_tau_bkgnd                = 1.5
-clubb_c_invrs_tau_n2                   = 0.3
-clubb_c_invrs_tau_n2_clear_wp3         = 2.0
-clubb_c_invrs_tau_n2_wp2               = 0.2
+clubb_c_invrs_tau_n2                   = 0.15
+clubb_c_invrs_tau_n2_clear_wp3         = .4
+clubb_c_invrs_tau_n2_wp2               = 0.2   
 clubb_c_invrs_tau_n2_wpxp              = 2.0
 clubb_c_invrs_tau_n2_xp2               = 0.0  
 clubb_c_invrs_tau_sfc                  = .3
 clubb_c_invrs_tau_shear                = 0.15
-clubb_C_invrs_tau_wpxp_Ri              = 3.0
-clubb_C_invrs_tau_wpxp_N2_thresh       = 3.3e-4
+clubb_C_invrs_tau_wpxp_Ri              = 3.9 
+clubb_C_invrs_tau_wpxp_N2_thresh       = 2.2e-4  ! 3.2
 clubb_Richardson_num_min               = 100.0
 clubb_Richardson_num_max               = 400.0
 clubb_Cx_min                           = 0.95
 clubb_Cx_max                           = 0.6
+
 
 clubb_c_k1             = 1
 clubb_c_k10            = 0.5
@@ -1095,6 +1096,9 @@ clubb_wpxp_l_thresh            = 100.0D0
 clubb_up2_vp2_factor           = 2.0
 clubb_altitude_threshold       = 300.
 clubb_rtp2_clip_coef           = 10.0
+
+cldfrc_rhminl=0.95
+!cldfrc2m_rhmini = 0.9
 
 history_amwg = .true.
 history_budget = .true.
@@ -1158,17 +1162,21 @@ fincl6lonlat='25e_0n'
 !- microphysics
 !
 microp_scheme = 'P3'
+
+clubb_l_trapezoidal_rule_zm = .false.
+clubb_l_trapezoidal_rule_zt = .false.
+clubb_l_call_pdf_closure_twice = .true.
+
 prc_coef1               = 30500.0D0 !! same as in default
-prc_exp                 = 3.19D0    !! same as in default
-prc_exp1                = -1.40D0   !! -1.2D0  in default
+prc_exp                 = 5.5    !! same as in default
+prc_exp1                = -1.2 !!  !! -1.2D0  in default
 micro_mg_accre_enhan_fac = 1.75D0   !! 1.5D0   in default
 microp_aero_wsubmin     = 0.001D0   !! was missing
 so4_sz_thresh_icenuc    = 0.080e-6  !! 0.05e-6 in default
 relvar_fix              = .true.    !! same as in default
 mg_prc_coeff_fix        = .true.    !! same as in default
 rrtmg_temp_fix          = .true.    !! same as in default
-micro_mg_berg_eff_factor = 0.7D0    !! same in v1p and alpha22
-!ice_sed_ai              = 1200.0    !! 500.0   in default
+micro_mg_berg_eff_factor = 1.0    !! same in v1p and alpha22
 !cld_sed                 = 1.8D0
 cldfrc_dp1              = 0.018D0   !! alpha22 0.1D0
 !effgw_oro               = 0.25      !! same as in default
@@ -1199,9 +1207,6 @@ mam_amicphys_optaa             = 1
 micro_mg_accre_enhan_fac               = 1.75D0
 n_so4_monolayers_pcage         = 8.0D0 
 
-prc_coef1 = 30500.0D0
-prc_exp = 3.D0
-prc_exp1 = -1.2D0
 
 radiation_scheme               = 'rrtmg'                                                              
 regen_fix              = .true.
@@ -1220,13 +1225,15 @@ so4_sz_thresh_icenuc           = 0.080e-6
 use_preexisting_ice            = .false.
 taubgnd                = 2.5D-3
 
-ice_sed_ai= 1200.0
+ice_sed_ai= 1200. 
 
 effgw_beres            =         0.4
 effgw_oro              =           0.25
 dust_emis_fact         =      2.8D0
 clubb_use_sgv          =.false. 
-micro_mg_dcs_tdep              = .false.
+!micro_mg_dcs_tdep              = .false.
+!micro_mg_dcs = 300e-6
+!cldfrc2m_rhmini = 0.9
 mam_mom_mixing_state           = 3
 se_ftype               = 2
 use_rad_dt_cosz                = .true.

@@ -531,7 +531,7 @@ end function bfb_expm1
        endif
 
        t_atm(k) = th_atm(k) * inv_exner(k)
-
+!       write(*,*) "Zhun added p3_main_part1"
        call calculate_incloud_mixingratios(qc(k),qr(k),qi(k),qm(k),nc(k),nr(k),ni(k),bm(k), &
             inv_cld_frac_l(k),inv_cld_frac_i(k),inv_cld_frac_r(k), &
             qc_incld(k),qr_incld(k),qi_incld(k),qm_incld(k),nc_incld(k),nr_incld(k),ni_incld(k),bm_incld(k))
@@ -723,6 +723,7 @@ end function bfb_expm1
          call access_lookup_table(dumjj,dumii,dumi, 8,dum1,dum4,dum5,table_val_ni_lammin)
          call access_lookup_table(dumjj,dumii,dumi,10,dum1,dum4,dum5,table_val_qi2qr_vent_melt)
 
+!         write(*,*) "Zhun added p3_main_part2"
          ! ice-rain collection processes
          if (qr_incld(k).ge.qsmall) then
             call access_lookup_table_coll(dumjj,dumii,dumj,dumi,1,dum1,dum3,dum4,dum5,table_val_nr_collect)
@@ -2490,7 +2491,7 @@ epsr,epsc)
    endif
 
    if (qc_incld.ge.qsmall) then
-      epsc = 2._rtype*pi*rho*dv*cdist
+      epsc = 2._rtype*pi*rho*dv*cdist 
    else
       epsc = 0._rtype
    endif
@@ -3579,6 +3580,7 @@ qr2qv_evap_tend,nr_evap_tend)
               + equilib_evap_tend*(1._rtype-tscale_weight)
 
       end if
+!      qr2qv_evap_tend  = qr2qv_evap_tend  *2 ! Zhun
 
       !Limit evap from exceeding saturation deficit. Analytic integration
       !would prevent this from happening if A_c was part of microphysics
@@ -3950,6 +3952,8 @@ subroutine rain_sedimentation(kts,kte,ktop,kbot,kdir,   &
 
 #ifdef SILHS
          ! Output V_qr for use in SILHS hole filler.
+!         V_qr = V_qr *0.25
+!         V_nr = V_nr *0.25
          if ( dt_left == dt ) then
             V_qr_out = V_qr
          endif
@@ -4162,6 +4166,8 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
 
 #ifdef SILHS
          ! Output V_qit for use in SILHS hole filler.
+         V_qit = V_qit*0.5
+         V_nit = V_nit*0.5
          if ( dt_left == dt ) then
             V_qi_out = V_qit
          endif

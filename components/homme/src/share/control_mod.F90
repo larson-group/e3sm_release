@@ -451,10 +451,11 @@ contains
           nstep_factor = dt_max_factor*nsplit
           if (abs(nsplit_real - nsplit) > divisible_tol*nsplit_real) then
              if (par%masterproc .and. .not. silent_in) then
-                write(iulog,'(a,es11.4,a,i7,a,es11.4,a)') &
+                write(iulog,'(a,es11.4,a,i7,a,es11.4,a,es11.4,es11.4,es11.4,es11.4)') &
                      'nsplit was computed as ', nsplit_real, ' based on dtime ', dtime, &
                      ' and tstep ', tstep, ', which is outside the divisibility tolerance. Set &
-                     &tstep so that it divides dtime.'
+                     &tstep so that it divides dtime.',divisible_tol*nsplit_real, nsplit_real - nsplit, eps, &
+                     epsilon(1.0_real_kind) 
              end if
              if (abort_in) call abortmp('timestep_make_parameters_consistent: divisibility error')
              return

@@ -932,8 +932,18 @@ end subroutine clubb_init_cnst
     clubb_config_flags%l_min_wp2_from_corr_wx = .false.
     clubb_config_flags%l_min_xp2_from_corr_wx = .false.
     clubb_config_flags%l_use_shear_Richardson = .true.
-    clubb_config_flags%l_lmm_stepping = .false.
+!    clubb_config_flags%l_lmm_stepping = .true.
+    clubb_config_flags%l_partial_upwind_wp3 = .true.
+    clubb_config_flags%l_standard_term_ta = .true.
     clubb_config_flags%l_e3sm_config = .true.
+    clubb_config_flags%l_use_tke_in_wp3_pr_turb_term = .true.  
+
+!-    clubb_config_flags%l_lmm_stepping = .false.
+!+    clubb_config_flags%l_lmm_stepping = .true.
+!+    clubb_config_flags%l_partial_upwind_wp3 = .true.
+!+    clubb_config_flags%l_standard_term_ta = .true.
+!     clubb_config_flags%l_e3sm_config = .true.
+!+    clubb_config_flags%l_use_tke_in_wp3_pr_turb_term = .true. 
    
     !  Set up CLUBB core.  Note that some of these inputs are overwrote
     !  when clubb_tend_cam is called.  The reason is that heights can change
@@ -3125,13 +3135,13 @@ end subroutine clubb_init_cnst
 ! Zhun             
          if (deep_scheme .eq. 'off') then 
             ! let ptend_loc%q(i,k,ixcldliq) = -1 * ptend_loc%q(i,k,ixcldice) 
-            ptend_loc%q(i,k,ixcldice) = dlf_tmp(i,k) * dum1
-            ptend_loc%q(i,k,ixnumice) = 3._r8 * ( max(0._r8, ( dlf_tmp(i,k) - dlf2(i,k) )) *  dum1 ) &
-                                        / (4._r8*3.14_r8*clubb_ice_deep**3*500._r8) + & ! Deep    Convection
-                                        3._r8 * (                         dlf2(i,k)    *  dum1 ) &
-                                        / (4._r8*3.14_r8*clubb_ice_sh**3*500._r8)     ! Shallow Convection
-            ptend_loc%q(i,k,ixcldliq) = -1 * ptend_loc%q(i,k,ixcldice) 
-            ptend_loc%q(i,k,ixnumliq) = -1 * ptend_loc%q(i,k,ixnumice)
+!            ptend_loc%q(i,k,ixcldice) = dlf_tmp(i,k) * dum1
+!            ptend_loc%q(i,k,ixnumice) = 3._r8 * ( max(0._r8, ( dlf_tmp(i,k) - dlf2(i,k) )) *  dum1 ) &
+!                                        / (4._r8*3.14_r8*clubb_ice_deep**3*500._r8) + & ! Deep    Convection
+!                                        3._r8 * (                         dlf2(i,k)    *  dum1 ) &
+!                                        / (4._r8*3.14_r8*clubb_ice_sh**3*500._r8)     ! Shallow Convection
+!            ptend_loc%q(i,k,ixcldliq) = -1 * ptend_loc%q(i,k,ixcldice) 
+!            ptend_loc%q(i,k,ixnumliq) = -1 * ptend_loc%q(i,k,ixnumice)
          else
             ptend_loc%q(i,k,ixcldliq) = dlf_tmp(i,k) * ( 1._r8 - dum1 )
             ptend_loc%q(i,k,ixcldice) = dlf_tmp(i,k) * dum1
