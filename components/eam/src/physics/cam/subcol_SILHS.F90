@@ -3443,15 +3443,18 @@ contains
         ! ptend%q(:,:,ixcldice) now contains the updated, post hole-filling,
         ! value of total ice tendency. The value of rimed ice mixing ratio,
         ! post hole-filling, is calculated from these values.
-        rm_new = rime_to_total_ice_ratio(:,:) &
-                 * ( state%q(:,:,ixcldice) + ptend%q(:,:,ixcldice) * dt )
+        rm_new(:ncol,:) &
+        = rime_to_total_ice_ratio(:ncol,:) &
+          * ( state%q(:ncol,:,ixcldice) + ptend%q(:ncol,:,ixcldice) * dt )
         ! ptend%q(:,:,ixcldrim) still contains the previous, pre hole-filling,
         ! value of rimed ice tendency.
-        rm_prefill = state%q(:,:,ixcldrim) + ptend%q(:,:,ixcldrim) * dt
+        rm_prefill(:ncol,:) &
+        = state%q(:ncol,:,ixcldrim) + ptend%q(:ncol,:,ixcldrim) * dt
         ! Calculate the tendency of rimed ice mixing ratio due to hole-filling.
-        rm_hf_tend = ( rm_new - rm_prefill ) / dt
+        rm_hf_tend(:ncol,:) = ( rm_new(:ncol,:) - rm_prefill(:ncol,:) ) / dt
         ! calculate the updated rimed ice mixing ratio tendency.
-        ptend%q(:,:,ixcldrim) = ptend%q(:,:,ixcldrim) + rm_hf_tend(:,:)
+        ptend%q(:ncol,:,ixcldrim) &
+        = ptend%q(:ncol,:,ixcldrim) + rm_hf_tend(:ncol,:)
      endif ! ixcldrim > 0
 
      ! Pack the current tendency for dry static energy.
