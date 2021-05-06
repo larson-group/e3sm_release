@@ -119,14 +119,6 @@ contains
 #ifdef SILHS
       use physics_buffer,  only: pbuf_add_field, dtype_r8
       use ppgrid,          only: pver, pverp, pcols, psubcols
-
-
-     ! Diagnostic fields needed for subcol_SILHS, need to be grid-only
-      call pbuf_add_field('QRAIN',      'global',dtype_r8,(/pcols,pver/), qrain_idx)
-      call pbuf_add_field('QSNOW',      'global',dtype_r8,(/pcols,pver/), qsnow_idx)
-      call pbuf_add_field('NRAIN',      'global',dtype_r8,(/pcols,pver/), nrain_idx)
-      call pbuf_add_field('NSNOW',      'global',dtype_r8,(/pcols,pver/), nsnow_idx)
-
 #endif
 #endif
    end subroutine subcol_register_SILHS
@@ -421,6 +413,10 @@ contains
          ums_idx = pbuf_get_index('UMS')
          qcsevap_idx = pbuf_get_index('QCSEVAP')
          qisevap_idx = pbuf_get_index('QISEVAP')
+         qrain_idx = pbuf_get_index('QRAIN')
+         nrain_idx = pbuf_get_index('NRAIN')
+         qsnow_idx = pbuf_get_index('QSNOW')
+         nsnow_idx = pbuf_get_index('NSNOW')
       elseif ( microp_scheme == 'P3' ) then
          V_qc_idx = pbuf_get_index('V_QC')
          V_qr_idx = pbuf_get_index('V_QR')
@@ -513,58 +509,59 @@ contains
            'Weights for each subcolumn', flag_xyfill=.true., fill_value=1.e30_r8)
       call addfld('SILHS_WM_SCOL', (/'psubcols', 'ilev    '/), 'I', 'm/s', &
            'Subcolumn vertical velocity from SILHS', flag_xyfill=.true., fill_value=1.e30_r8)
+      if ( microp_scheme == 'MG' ) then
+         call addfld('NR_IN_LH', (/ 'lev' /), 'I', 'm^-3', &
+                     'Num Rain Conc as input to SILHS')
+      endif ! microp_scheme == 'MG'
+      call addfld('RTM_CLUBB', (/ 'ilev' /), 'I', 'kg/kg', &
+                   'Input total water mixing ratio')
+      call addfld('THLM_CLUBB', (/ 'ilev' /), 'I', 'K', &
+                   'Input liquid water potential temperature')
+      call addfld('SILHS_QC_IN', (/ 'lev' /), 'I', 'kg/kg', &
+                   'Input cloud water mixing ratio')
+      call addfld('SILHS_QI_IN', (/ 'lev' /), 'I', 'kg/kg', &
+                   'Input cloud ice mixing ratio')
+      call addfld('SILHS_NC_IN', (/ 'lev' /), 'I', '#/kg', &
+                   'Input cloud water number concentration')
+      call addfld('SILHS_NI_IN', (/ 'lev' /), 'I', '#/kg', &
+                   'Input cloud ice number concentration')
+      call addfld('AKM_CLUBB', (/ 'ilev' /), 'I', '(kg/kg)/s', &
+                   'Exact Kessler autoconversion')
+      call addfld('AKM_LH_CLUBB', (/ 'ilev' /), 'I', '(kg/kg)/s', &
+                   'Monte Carlo estimate of Kessler autoconversion')
+      call addfld('INVS_EXNER', (/ 'lev' /), 'I', 'none', &
+                   'inverse EXNER function from state in subcol_SILHS')
+      call addfld('SILHS_ZTODT', horiz_only, 'I', 's', & 
+                   'Length of Physics timestep (for debugging)')
+      if ( subcol_SILHS_constrainmn ) then
+         call addfld('SILHS_MSC_CLDICE', (/ 'lev' /), 'A', 'kg/kg', &
+                     'Mean Cloud Ice across subcolumns')
+         call addfld('SILHS_STDSC_CLDICE', (/ 'lev' /), 'A', 'kg/kg', &
+                     'Standard deviation of Ice across subcolumns')
+         call addfld('SILHS_MSC_CLDLIQ', (/ 'lev' /), 'A', 'kg/kg', &
+                     'Mean Cloud Liquid across subcolumns')
+         call addfld('SILHS_STDSC_CLDLIQ', (/ 'lev' /), 'A', 'kg/kg', &
+                     'Standard deviation of Liquid across subcolumns')
+         call addfld('SILHS_MSC_Q', (/ 'lev' /), 'A', 'kg/kg', &
+                     'Mean water vapor across subcolumns')
+         call addfld('SILHS_STDSC_Q', (/ 'lev' /), 'A', 'kg/kg', &
+                     'Standard deviation of water vapor across subcolumns')
+      endif ! subcol_SILHS_constrainmn
+      call addfld('SILHS_EFF_CLDFRAC', (/ 'lev' /), 'A', 'frac', &
+                   'Calculated cloud fraction from subcolumn liq or ice') 
 
-      call addfld('NR_IN_LH', (/ 'lev' /), 'I', 'm^-3', &
-                  'Num Rain Conc as input to SILHS')
-     call addfld('RTM_CLUBB', (/ 'ilev' /), 'I', 'kg/kg', &
-                  'Input total water mixing ratio')
-     call addfld('THLM_CLUBB', (/ 'ilev' /), 'I', 'K', &
-                  'Input liquid water potential temperature')
-     call addfld('SILHS_QC_IN', (/ 'lev' /), 'I', 'kg/kg', &
-                  'Input cloud water mixing ratio')
-     call addfld('SILHS_QI_IN', (/ 'lev' /), 'I', 'kg/kg', &
-                  'Input cloud ice mixing ratio')
-     call addfld('SILHS_NC_IN', (/ 'lev' /), 'I', '#/kg', &
-                  'Input cloud water number concentration')
-     call addfld('SILHS_NI_IN', (/ 'lev' /), 'I', '#/kg', &
-                  'Input cloud ice number concentration')
-     call addfld('AKM_CLUBB', (/ 'ilev' /), 'I', '(kg/kg)/s', &
-                  'Exact Kessler autoconversion')
-     call addfld('AKM_LH_CLUBB', (/ 'ilev' /), 'I', '(kg/kg)/s', &
-                  'Monte Carlo estimate of Kessler autoconversion')
-     call addfld('INVS_EXNER', (/ 'lev' /), 'I', 'none', &
-                  'inverse EXNER function from state in subcol_SILHS')
-     call addfld('SILHS_ZTODT', horiz_only, 'I', 's', & 
-                  'Length of Physics timestep (for debugging)')
-     if ( subcol_SILHS_constrainmn ) then
-        call addfld('SILHS_MSC_CLDICE', (/ 'lev' /), 'A', 'kg/kg', &
-                    'Mean Cloud Ice across subcolumns')
-        call addfld('SILHS_STDSC_CLDICE', (/ 'lev' /), 'A', 'kg/kg', &
-                    'Standard deviation of Ice across subcolumns')
-        call addfld('SILHS_MSC_CLDLIQ', (/ 'lev' /), 'A', 'kg/kg', &
-                    'Mean Cloud Liquid across subcolumns')
-        call addfld('SILHS_STDSC_CLDLIQ', (/ 'lev' /), 'A', 'kg/kg', &
-                    'Standard deviation of Liquid across subcolumns')
-        call addfld('SILHS_MSC_Q', (/ 'lev' /), 'A', 'kg/kg', &
-                    'Mean water vapor across subcolumns')
-        call addfld('SILHS_STDSC_Q', (/ 'lev' /), 'A', 'kg/kg', &
-                    'Standard deviation of water vapor across subcolumns')
-     endif ! subcol_SILHS_constrainmn
-     call addfld('SILHS_EFF_CLDFRAC', (/ 'lev' /), 'A', 'frac', &
-                  'Calculated cloud fraction from subcolumn liq or ice') 
+      call addfld('SILHS_CLUBB_PRECIP_FRAC', (/ 'lev' /), 'A', 'frac', &
+                   'Precipitation fraction from CLUBB (set_up_pdf_params_incl_hydromet)')
+      call addfld('SILHS_CLUBB_ICE_SS_FRAC', (/ 'lev' /), 'A', 'frac', &
+                   'Ice supersaturation fraction from CLUBB')
 
-     call addfld('SILHS_CLUBB_PRECIP_FRAC', (/ 'lev' /), 'A', 'frac', &
-                  'Precipitation fraction from CLUBB (set_up_pdf_params_incl_hydromet)')
-     call addfld('SILHS_CLUBB_ICE_SS_FRAC', (/ 'lev' /), 'A', 'frac', &
-                  'Ice supersaturation fraction from CLUBB')
-
-     call addfld ('QVHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Water vapor mixing ratio tendency from hole filling')
-     call addfld ('QCHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Cloud water mixing ratio tendency from hole filling')
-     call addfld ('QRHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Rain water mixing ratio tendency from hole filling')
-     call addfld ('QIHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Cloud ice mixing ratio tendency from hole filling')
-     call addfld ('QSHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Snow mixing ratio tendency from hole filling')
-     call addfld ('QMHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Rimed ice mixing ratio tendency from hole filling (P3 micro)')
-     call addfld ('THFTEN', (/ 'lev' /), 'A', 'K/s', 'Temperature tendency from hole filling')
+      call addfld ('QVHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Water vapor mixing ratio tendency from hole filling')
+      call addfld ('QCHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Cloud water mixing ratio tendency from hole filling')
+      call addfld ('QRHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Rain water mixing ratio tendency from hole filling')
+      call addfld ('QIHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Cloud ice mixing ratio tendency from hole filling')
+      call addfld ('QSHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Snow mixing ratio tendency from hole filling')
+      call addfld ('QMHFTEN', (/ 'lev' /), 'A', 'kg/kg/s', 'Rimed ice mixing ratio tendency from hole filling (P3 micro)')
+      call addfld ('THFTEN', (/ 'lev' /), 'A', 'K/s', 'Temperature tendency from hole filling')
 
       !call add_default('SILHS_NCLD_SCOL', 1, ' ')
       !call add_default('SILHS_NRAIN_SCOL', 1, ' ')
@@ -876,8 +873,9 @@ contains
       !----------------
       ! Establish associations between pointers and physics buffer fields
       ! (Do this now so that num_subcol_ptr is available for the state copy below)
-      !----------------
-      
+      !----------------      
+      call phys_getopts( microp_scheme_out = microp_scheme )
+
       call pbuf_get_field(pbuf, thlm_idx, thlm)
       call pbuf_get_field(pbuf, num_subcols_idx, num_subcol_ptr)
       call pbuf_get_field(pbuf, ztodt_idx, ztodt_ptr)
@@ -886,10 +884,12 @@ contains
       call pbuf_get_field(pbuf, rtm_idx, rtm)
       call pbuf_get_field(pbuf, alst_idx, alst)
       call pbuf_get_field(pbuf, cld_idx, cld)
-      call pbuf_get_field(pbuf, qrain_idx, qrain)
-      call pbuf_get_field(pbuf, qsnow_idx, qsnow)
-      call pbuf_get_field(pbuf, nrain_idx, nrain)
-      call pbuf_get_field(pbuf, nsnow_idx, nsnow)
+      if ( microp_scheme == 'MG' ) then
+         call pbuf_get_field(pbuf, qrain_idx, qrain)
+         call pbuf_get_field(pbuf, qsnow_idx, qsnow)
+         call pbuf_get_field(pbuf, nrain_idx, nrain)
+         call pbuf_get_field(pbuf, nsnow_idx, nsnow)
+      endif ! microp_scheme
       call pbuf_get_field(pbuf, tke_idx, tke_in)
       call pbuf_get_field(pbuf, kvh_idx, khzm_in)
 
@@ -906,8 +906,6 @@ contains
       numsubcol_arr(:) = 0  ! Start over each chunk
       numsubcol_arr(:ngrdcol) = subcol_SILHS_numsubcol ! Only set for valid grid columns
       call subcol_set_subcols(state, tend, numsubcol_arr, state_sc, tend_sc)
-
-      call phys_getopts( microp_scheme_out = microp_scheme )
 
       !----------------
       ! Get indices for ice mass and number
@@ -998,34 +996,57 @@ contains
          ! Set up hydromet array, flipped from CAM vert grid to CLUBB
          do k = 1, pver-top_lev+1
             if ( iirr > 0 ) then
-              ! If ixrain and family are greater than zero, then MG2 is
-              ! being used, and rain and snow are part of state. Otherwise,
-              ! diagnostic rain and snow from MG1 are used in hydromet.
+              ! If ixrain and family are greater than zero, then either MG2 or
+              ! P3 is being used, and rain and snow are part of state.
+              ! Otherwise, diagnostic rain and snow from MG1 are used in
+              ! hydromet.
                if (ixrain > 0) then
                   hydromet(k+1,iirr) = state%q(i,pver-k+1,ixrain)
                else
-                  hydromet(k+1,iirr) = qrain(i,pver-k+1)
+                  if ( microp_scheme == 'MG' ) then
+                     hydromet(k+1,iirr) = qrain(i,pver-k+1)
+                  else
+                     ! This code shouldn't be entered.
+                     hydromet(k+1,iirr) = 0.0_r8
+                  endif
                endif
             endif
             if ( iiNr > 0 ) then
                if (ixnumrain > 0) then
                   hydromet(k+1,iiNr) = state%q(i,pver-k+1,ixnumrain)
                else
-                  hydromet(k+1,iiNr) = nrain(i,pver-k+1)
+                  if ( microp_scheme == 'MG' ) then
+                     hydromet(k+1,iiNr) = nrain(i,pver-k+1)
+                  else
+                     ! This code shouldn't be entered.
+                     hydromet(k+1,iiNr) = 0.0_r8
+                  endif
                endif
             endif
             if ( iirs > 0 ) then
                if (ixsnow > 0) then
                   hydromet(k+1,iirs) = state%q(i,pver-k+1,ixsnow)
                else
-                  hydromet(k+1,iirs) = qsnow(i,pver-k+1)
+                  if ( microp_scheme == 'MG' ) then
+                     hydromet(k+1,iirs) = qsnow(i,pver-k+1)
+                  else
+                     ! This code shouldn't be entered, but snow is
+                     ! not used in P3.
+                     hydromet(k+1,iirs) = 0.0_r8
+                  endif
                endif
             endif
             if ( iiNs > 0 ) then
                if (ixnumsnow > 0) then
                   hydromet(k+1,iiNs) = state%q(i,pver-k+1,ixnumsnow)
                else
-                  hydromet(k+1,iiNs) = nsnow(i,pver-k+1)
+                  if ( microp_scheme == 'MG' ) then
+                     hydromet(k+1,iiNs) = nsnow(i,pver-k+1)
+                  else
+                     ! This code shouldn't be entered, but snow is
+                     ! not used in P3.
+                     hydromet(k+1,iiNs) = 0.0_r8
+                  endif
                endif
             endif
             if ( iiri > 0 ) then

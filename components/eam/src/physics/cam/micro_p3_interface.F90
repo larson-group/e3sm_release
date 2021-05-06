@@ -522,6 +522,8 @@ end subroutine micro_p3_readnl
        call pbuf_set_field(pbuf2d, qv_prev_idx,  0._rtype)
        call pbuf_set_field(pbuf2d, t_prev_idx,  0._rtype)
 #endif /*SILHS*/
+       call pbuf_set_field(pbuf2d, mon_ccn_1_idx, 0._rtype)
+       call pbuf_set_field(pbuf2d, mon_ccn_2_idx, 0._rtype)
  
 #ifdef SILHS
        ! Fields for subcol_SILHS hole filling
