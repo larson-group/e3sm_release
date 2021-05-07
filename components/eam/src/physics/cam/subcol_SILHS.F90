@@ -1585,7 +1585,9 @@ contains
       call outfld( 'SILHS_RRAIN_SCOL', RAIN_lh_out, pcols*psubcols, lchnk )
       call outfld( 'SILHS_NRAIN_SCOL', NRAIN_lh_out, pcols*psubcols, lchnk )
       call outfld( 'SILHS_WEIGHT_SCOL', weights, pcols*psubcols, lchnk )
-      call outfld( 'NR_IN_LH', nrain, pcols, lchnk )
+      if ( microp_scheme == 'MG' ) then
+         call outfld( 'NR_IN_LH', nrain, pcols, lchnk )
+      endif ! microp_scheme
       call outfld( 'RTM_CLUBB', rtm, pcols, lchnk )
       call outfld( 'THLM_CLUBB', thlm, pcols, lchnk )
       call outfld( 'SILHS_QC_IN', state%q(:,:,ixcldliq), pcols, lchnk )
