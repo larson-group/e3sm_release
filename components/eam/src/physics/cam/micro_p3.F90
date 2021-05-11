@@ -1402,6 +1402,14 @@ end function bfb_expm1
     vap_liq_exchange = 0._rtype
     vap_ice_exchange = 0._rtype
 
+#ifdef SILHS
+   ! Initialize V_qc_out, V_qr_out, and V_qi_out to 0 in case log_qxpresent is
+   ! false. This prevents gibberish (uninitialized) values from being output in
+   ! these fields and transported back to the hole filler.
+   V_qc_out = 0.0_rtype
+   V_qr_out = 0.0_rtype
+   V_qi_out = 0.0_rtype
+#endif /*SILHS*/
     mu_c = 0.0_rtype
     lamc = 0.0_rtype
     ! AaronDonahue added exner term to replace all instances of th_atm(i,k)/t(i,k), since th_atm(i,k) is updated but t_atm(i,k) is not, and this was
@@ -3695,7 +3703,7 @@ subroutine cloud_sedimentation(kts,kte,ktop,kbot,kdir,   &
    real(rtype), intent(inout), dimension(kts:kte) :: qc_tend
    real(rtype), intent(inout), dimension(kts:kte) :: nc_tend
 #ifdef SILHS
-   real(rtype), intent(out), dimension(kts:kte) :: V_qc_out
+   real(rtype), intent(inout), dimension(kts:kte) :: V_qc_out
 #endif /*SILHS*/
 
    logical(btype) :: log_qxpresent
@@ -3876,7 +3884,7 @@ subroutine rain_sedimentation(kts,kte,ktop,kbot,kdir,   &
    real(rtype), intent(inout), dimension(kts:kte) :: qr_tend
    real(rtype), intent(inout), dimension(kts:kte) :: nr_tend
 #ifdef SILHS
-   real(rtype), intent(out), dimension(kts:kte) :: V_qr_out
+   real(rtype), intent(inout), dimension(kts:kte) :: V_qr_out
 #endif /*SILHS*/
 
    logical(btype) :: log_qxpresent
@@ -4056,7 +4064,7 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
    real(rtype), intent(inout), dimension(kts:kte) :: qi_tend
    real(rtype), intent(inout), dimension(kts:kte) :: ni_tend
 #ifdef SILHS
-   real(rtype), intent(out), dimension(kts:kte) :: V_qi_out
+   real(rtype), intent(inout), dimension(kts:kte) :: V_qi_out
 #endif /*SILHS*/
 
    logical(btype) :: log_qxpresent
