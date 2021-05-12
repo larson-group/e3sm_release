@@ -11,7 +11,7 @@ module subcol_SILHS
    use physics_types,    only: physics_state, physics_tend, physics_ptend
    use ppgrid,           only: pcols, psubcols, pver, pverp
    use constituents,     only: pcnst, cnst_get_ind
-!   use abortutils,       only: endrun
+!   use abort_utils,       only: endrun
    use shr_sys_mod,      only: endrun => shr_sys_abort
    use cam_logfile,      only: iulog
    use cam_history,      only: addfld, add_default, outfld, horiz_only
@@ -916,16 +916,16 @@ contains
       call cnst_get_ind('NUMICE', ixnumice)
       call cnst_get_ind('CLDLIQ', ixcldliq)
       call cnst_get_ind('NUMLIQ', ixnumliq)
-      call cnst_get_ind('RAINQM', ixrain, abort=.false.)
-      call cnst_get_ind('NUMRAI', ixnumrain, abort=.false.)
+      call cnst_get_ind('RAINQM', ixrain, abrtf=.false.)
+      call cnst_get_ind('NUMRAI', ixnumrain, abrtf=.false.)
       if ( microp_scheme == 'MG' ) then
-         call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
-         call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
+         call cnst_get_ind('SNOWQM', ixsnow, abrtf=.false.)
+         call cnst_get_ind('NUMSNO', ixnumsnow, abrtf=.false.)
          ixcldrim = -1
          ixrimvol = -1
       elseif ( microp_scheme == 'P3' ) then
-         call cnst_get_ind('CLDRIM', ixcldrim, abort=.false.)
-         call cnst_get_ind('BVRIM ', ixrimvol, abort=.false.)
+         call cnst_get_ind('CLDRIM', ixcldrim, abrtf=.false.)
+         call cnst_get_ind('BVRIM ', ixrimvol, abrtf=.false.)
          ixsnow = -1
          ixnumsnow = -1
       endif
@@ -2151,21 +2151,21 @@ contains
      if ( .not. subcol_SILHS_destroy_massless_droplets ) return
 
      ! Indices!
-     call cnst_get_ind('CLDLIQ', ixcldliq, abort=.false.)
-     call cnst_get_ind('NUMLIQ', ixnumliq, abort=.false.)
-     call cnst_get_ind('RAINQM', ixrain, abort=.false.)
-     call cnst_get_ind('NUMRAI', ixnumrain, abort=.false.)
-     call cnst_get_ind('CLDICE', ixcldice, abort=.false.)
-     call cnst_get_ind('NUMICE', ixnumice, abort=.false.)
+     call cnst_get_ind('CLDLIQ', ixcldliq, abrtf=.false.)
+     call cnst_get_ind('NUMLIQ', ixnumliq, abrtf=.false.)
+     call cnst_get_ind('RAINQM', ixrain, abrtf=.false.)
+     call cnst_get_ind('NUMRAI', ixnumrain, abrtf=.false.)
+     call cnst_get_ind('CLDICE', ixcldice, abrtf=.false.)
+     call cnst_get_ind('NUMICE', ixnumice, abrtf=.false.)
      if ( microp_scheme == 'MG' ) then
-        call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
-        call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
+        call cnst_get_ind('SNOWQM', ixsnow, abrtf=.false.)
+        call cnst_get_ind('NUMSNO', ixnumsnow, abrtf=.false.)
         ixcldrim = -1
         ixrimvol = -1
         top_lev = trop_cloud_top_lev
      elseif ( microp_scheme == 'P3' ) then
-        call cnst_get_ind('CLDRIM', ixcldrim, abort=.false.)
-        call cnst_get_ind('BVRIM ', ixrimvol, abort=.false.)
+        call cnst_get_ind('CLDRIM', ixcldrim, abrtf=.false.)
+        call cnst_get_ind('BVRIM ', ixrimvol, abrtf=.false.)
         ixsnow = -1
         ixnumsnow = -1
         top_lev = 1
@@ -2538,13 +2538,13 @@ contains
      ! Get indices for hydrometeor fields.
      call cnst_get_ind('CLDICE', ixcldice)
      call cnst_get_ind('CLDLIQ', ixcldliq)
-     call cnst_get_ind('RAINQM', ixrain, abort=.false.)
-     call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
+     call cnst_get_ind('RAINQM', ixrain, abrtf=.false.)
+     call cnst_get_ind('SNOWQM', ixsnow, abrtf=.false.)
       if ( microp_scheme == 'MG' ) then
-         call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
+         call cnst_get_ind('SNOWQM', ixsnow, abrtf=.false.)
          ixcldrim = -1
       elseif ( microp_scheme == 'P3' ) then
-         call cnst_get_ind('CLDRIM', ixcldrim, abort=.false.)
+         call cnst_get_ind('CLDRIM', ixcldrim, abrtf=.false.)
          ixsnow = -1
       endif
 
@@ -4301,15 +4301,15 @@ contains
 
 
      ! Get indices for hydrometeor fields.
-     call cnst_get_ind('CLDLIQ', ixcldliq, abort=.false.)
-     call cnst_get_ind('NUMLIQ', ixnumliq, abort=.false.)
-     call cnst_get_ind('RAINQM', ixrain, abort=.false.)
-     call cnst_get_ind('NUMRAI', ixnumrain, abort=.false.)
-     call cnst_get_ind('CLDICE', ixcldice, abort=.false.)
-     call cnst_get_ind('NUMICE', ixnumice, abort=.false.)
+     call cnst_get_ind('CLDLIQ', ixcldliq, abrtf=.false.)
+     call cnst_get_ind('NUMLIQ', ixnumliq, abrtf=.false.)
+     call cnst_get_ind('RAINQM', ixrain, abrtf=.false.)
+     call cnst_get_ind('NUMRAI', ixnumrain, abrtf=.false.)
+     call cnst_get_ind('CLDICE', ixcldice, abrtf=.false.)
+     call cnst_get_ind('NUMICE', ixnumice, abrtf=.false.)
      if ( microp_scheme == 'MG' ) then
-        call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
-        call cnst_get_ind('NUMSNO', ixnumsnow, abort=.false.)
+        call cnst_get_ind('SNOWQM', ixsnow, abrtf=.false.)
+        call cnst_get_ind('NUMSNO', ixnumsnow, abrtf=.false.)
         top_lev = trop_cloud_top_lev
      elseif ( microp_scheme == 'P3' ) then
         ixsnow = -1

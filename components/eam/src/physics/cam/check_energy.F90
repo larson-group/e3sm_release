@@ -272,18 +272,10 @@ end subroutine check_energy_get_integrals
 
     lchnk = state%lchnk
     ncol  = state%ncol
-<<<<<<< HEAD
-    call cnst_get_ind('CLDICE', ixcldice, abort=.false.)
-    call cnst_get_ind('CLDLIQ', ixcldliq, abort=.false.)
-    call cnst_get_ind('RAINQM', ixrain, abort=.false.)
-    call cnst_get_ind('SNOWQM', ixsnow, abort=.false.)
-    call cnst_get_ind('BVRIM ',  ixrim,  abort=.false.)
-=======
     call cnst_get_ind('CLDICE', ixcldice, abrtf=.false.)
     call cnst_get_ind('CLDLIQ', ixcldliq, abrtf=.false.)
     call cnst_get_ind('RAINQM', ixrain, abrtf=.false.)
     call cnst_get_ind('SNOWQM', ixsnow, abrtf=.false.)
->>>>>>> 3b53994
 
     ! cpairv_loc needs to be allocated to a size which matches state and ptend
     ! If psetcols == pcols, cpairv is the correct size and just copy into cpairv_loc

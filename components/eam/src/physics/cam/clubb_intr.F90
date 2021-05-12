@@ -1062,7 +1062,6 @@ end subroutine clubb_init_cnst
     call addfld ('RTPTHLP_CLUBB',   (/ 'ilev' /), 'A',    'K g/kg', 'Temp. Moist. Covariance')
     call addfld ('RCM_CLUBB',     (/ 'ilev' /), 'A',        'g/kg', 'Cloud Water Mixing Ratio')
     call addfld ('WPRCP_CLUBB',     (/ 'ilev' /), 'A',      'W/m2', 'Liquid Water Flux')
-    call addfld ('CLOUDFRAC_CLUBB', (/ 'lev' /),  'A',  'fraction', 'Cloud Fraction')
     call addfld ('AST', (/ 'lev' /),  'A',  'fraction', 'stratiform cloud')
     call addfld ('AIST', (/ 'lev' /),  'A',  'fraction', 'ice stratiform cloud')
     call addfld ('CLOUDFRAC_CLUBB', (/ 'lev' /),  'A',  '1', 'Cloud Fraction')
@@ -1318,6 +1317,7 @@ end subroutine clubb_init_cnst
 #endif
                                         setup_grid_heights_api, &
                                         em_min, w_tol_sqd, rt_tol, thl_tol, &
+                                        ipdf_post_advance_fields, &
                                         l_use_boussinesq, &
                                         l_stats, stats_tsamp, stats_tout, stats_zt, &
                                         stats_sfc, stats_zm, stats_rad_zt, stats_rad_zm, l_output_rad_files, &
@@ -1338,32 +1338,6 @@ end subroutine clubb_init_cnst
        fstderr
    USE, INTRINSIC :: IEEE_ARITHMETIC
 
-   use clubb_api_module, only: &
-        cleanup_clubb_core_api, &
-        nparams, &
-        read_parameters_api, &
-        setup_parameters_api, &
-        setup_grid_heights_api, &
-        w_tol_sqd, &
-        rt_tol, &
-        thl_tol, &
-        l_stats, &
-        stats_tsamp, &
-        stats_tout, &
-        stats_zt, &
-        stats_sfc, &
-        stats_zm, &
-        stats_rad_zt, &
-        stats_rad_zm, &
-        l_output_rad_files, &
-        pdf_parameter, &
-        stats_begin_timestep_api, &
-        advance_clubb_core_api, &
-        calculate_thlp2_rad_api, &
-        update_xp2_mc_api, &
-        zt2zm_api, zm2zt_api
-   use model_flags, only: ipdf_call_placement
-   use advance_clubb_core_module, only: ipdf_post_advance_fields
 #endif
 
    implicit none
@@ -1443,7 +1417,7 @@ end subroutine clubb_init_cnst
    real(r8) :: rtpthvp_inout(pverp)                ! momentum levels (< r_t' th_v' > )            [kg/kg K]
    real(r8) :: rtp3_in(pverp)                   ! thermodynamic levels (r_t'^3 )               [(kg/kg)^3]
    real(r8) :: thlp3_in(pverp)                  ! thermodynamic levels (th_l'^3)               [K^3]
-   real(r8) :: wpthvp_inout(pverp)              ! < w'th_v' > (momentum levels)                [m/s K]
+   real(r8) :: thlpthvp_inout(pverp)            ! < th_l'th_v' > (momentum levels)             [K^2]
    real(r8) :: up2_in(pverp)                    ! meridional wind variance                     [m^2/s^2]
    real(r8) :: vp2_in(pverp)                    ! zonal wind variance                          [m^2/s^2]
    real(r8) :: up3_in(pverp)                    ! meridional wind third-order                  [m^3/s^3]
@@ -1707,6 +1681,9 @@ end subroutine clubb_init_cnst
    real(r8), pointer, dimension(:,:) :: naai
    real(r8), pointer, dimension(:,:) :: cmeliq 
    real(r8), pointer, dimension(:,:) :: cmfmc_sh ! Shallow convective mass flux--m subc (pcols,pverp) [kg/m2/s/]
+
+   type(pdf_parameter), pointer :: pdf_params    ! PDF parameters (thermo. levs.) [units vary]
+   type(pdf_parameter), pointer :: pdf_params_zm ! PDF parameters on momentum levs. [units vary]
    
    real(r8), pointer, dimension(:,:) :: prer_evap
    real(r8), pointer, dimension(:,:) :: qrl
@@ -2716,17 +2693,18 @@ end subroutine clubb_init_cnst
       ! End cloud-top radiative cooling contribution to CLUBB     !
       ! --------------------------------------------------------- !  
 
-!      pdf_params    => pdf_params_chnk(i,lchnk)
-!      pdf_params_zm => pdf_params_zm_chnk(i,lchnk)
+      pdf_params    => pdf_params_chnk(i,lchnk)
+      pdf_params_zm => pdf_params_zm_chnk(i,lchnk)
 
-      if ( is_first_restart_step() .and. ipdf_call_placement .eq. ipdf_post_advance_fields ) then
+      if ( is_first_restart_step() &
+           .and. clubb_config_flags%ipdf_call_placement .eq. ipdf_post_advance_fields ) then
          ! assign the values read back from restart file
          ! This is necessary when ipdf_call_placement = 2
-         pdf_params_zm_chnk(i,lchnk)%w_1 = pdf_zm_w_1_inout
-         pdf_params_zm_chnk(i,lchnk)%w_2 = pdf_zm_w_2_inout
-         pdf_params_zm_chnk(i.lchnk)%varnce_w_1 = pdf_zm_varnce_w_1_inout
-         pdf_params_zm_chnk(i,lchnk)%varnce_w_2 = pdf_zm_varnce_w_2_inout
-         pdf_params_zm_chnk(i,lchnk)%mixt_frac = pdf_zm_mixt_frac_inout
+         pdf_params_zm%w_1 = pdf_zm_w_1_inout
+         pdf_params_zm%w_2 = pdf_zm_w_2_inout
+         pdf_params_zm%varnce_w_1 = pdf_zm_varnce_w_1_inout
+         pdf_params_zm%varnce_w_2 = pdf_zm_varnce_w_2_inout
+         pdf_params_zm%mixt_frac = pdf_zm_mixt_frac_inout
       end if
 
       call t_startf('adv_clubb_core_ts_loop')
@@ -2795,11 +2773,11 @@ end subroutine clubb_init_cnst
              call endrun('clubb_tend_cam:  Fatal error in CLUBB library')
          end if
 
-         pdf_zm_w_1_inout = pdf_params_zm_chnk(i,lchnk)%w_1
-         pdf_zm_w_2_inout = pdf_params_zm_chnk(i,lchnk)%w_2
-         pdf_zm_varnce_w_1_inout = pdf_params_zm_chnk(i,lchnk)%varnce_w_1
-         pdf_zm_varnce_w_2_inout = pdf_params_zm_chnk(i,lchnk)%varnce_w_2
-         pdf_zm_mixt_frac_inout = pdf_params_zm_chnk(i,lchnk)%mixt_frac
+         pdf_zm_w_1_inout = pdf_params_zm%w_1
+         pdf_zm_w_2_inout = pdf_params_zm%w_2
+         pdf_zm_varnce_w_1_inout = pdf_params_zm%varnce_w_1
+         pdf_zm_varnce_w_2_inout = pdf_params_zm%varnce_w_2
+         pdf_zm_mixt_frac_inout = pdf_params_zm%mixt_frac
 
          if (do_rainturb) then
             rvm_in = rtm_in - rcm_inout 
