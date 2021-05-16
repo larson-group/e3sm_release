@@ -21,7 +21,7 @@ set machine        = anvil
 setenv NUMSC 4
 setenv MGVER 2
 
-set walltime       = 12:00:00
+set walltime       = 24:00:00
 setenv project condo      
 setenv ntasks 1080
 setenv nthrds 1
@@ -65,8 +65,8 @@ set case_run_dir                = ${e3sm_simulations_dir}/${case_name}/run
 set short_term_archive_root_dir = ${e3sm_simulations_dir}/${case_name}/archive
 
 ### LENGTH OF SIMULATION, RESTARTS, AND ARCHIVING
-set stop_units                  = nmonths
-set stop_num                    = 14
+set stop_units                  = nyears
+set stop_num                    = 3
 #set stop_units                  = ndays
 #set stop_num                    = 3
 set restart_units               = $stop_units
