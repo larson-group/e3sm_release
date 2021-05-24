@@ -15,7 +15,8 @@ set compset        = F2010SC5-P3
 #set compset        = FC5CLBMG2BCL72 # alternative compset
 #set compset        = FAMIPC5 
 #set resolution     = ne30_oECv3_ICG
-set resolution     = ne30_ne30
+#set resolution     = ne30_ne30
+set resolution     = ne30pg2_r05_oECv3
 #set resolution     = ne16_ne16
 set machine        = anvil
 setenv NUMSC 4
@@ -23,7 +24,7 @@ setenv MGVER 2
 
 set walltime       = 12:00:00
 setenv project condo      
-setenv ntasks 1080
+setenv ntasks 1440
 setenv nthrds 1
 
 setenv init_aero_type none # keep this as none for REPLAY option 
@@ -804,23 +805,23 @@ else if ( `lowercase $processor_config` == 'customknl' ) then
 endif
 
 
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ATM -val 1
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_LND -val 1
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ICE -val 1
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_OCN -val 1
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_CPL -val 1
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_GLC -val 1
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ROF -val 1
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_WAV -val 1
-#
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ATM -val $ntasks
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_LND -val $ntasks
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ICE -val $ntasks
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_OCN -val $ntasks
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_CPL -val $ntasks
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_GLC -val $ntasks
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ROF -val $ntasks
-#  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_WAV -val $ntasks
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ATM -val 1
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_LND -val 1
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ICE -val 1
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_OCN -val 1
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_CPL -val 1
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_GLC -val 1
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_ROF -val 1
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTHRDS_WAV -val 1
+
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ATM -val $ntasks
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_LND -val $ntasks
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ICE -val $ntasks
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_OCN -val $ntasks
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_CPL -val $ntasks
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_GLC -val $ntasks
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_ROF -val $ntasks
+  ${xmlchange_exe} -file env_mach_pes.xml -id NTASKS_WAV -val $ntasks
 
 #============================================
 # SET PARALLEL I/O (PIO) SETTINGS
@@ -1007,7 +1008,9 @@ $xmlchange_exe --id DEBUG --val `uppercase $debug_compile`
 $xmlchange_exe  -file env_run.xml -id  CAM_NML_USE_CASE -val '2000_cam5_av1c-04p2_gust'
 
 cat <<EOF >> user_nl_elm
-! finidat=''
+  check_finidat_year_consistency = .true.
+  finidat = '/lcrc/group/acme/ac.terai/20201103.IELM.r05_oECv3.elm.r.0030-01-01-00000.nc'
+  fsurdat = '/lcrc/group/acme/public_html/inputdata/lnd/clm2/surfdata_map/surfdata_0.5x0.5_simyr2010_c191025.nc'
 EOF
 
 cat <<EOF >> user_nl_docn
