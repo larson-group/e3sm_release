@@ -1,8 +1,10 @@
-set case = anvil.default.clubb_silhs_upgrade_c689c7e_test
+set case = anvil.default.NGD_clubb_silhs_P3_std_fallspeed
  
 set nmember = 512
 cd /lcrc/group/acme/ac.griffin/E3SM_simulations/$case.ne30_ne30/run/
 mkdir climo
+#set endyear = 2015
+#set j = 2010
 set endyear = 2
 set j = 1
 while ( $j <= $endyear )

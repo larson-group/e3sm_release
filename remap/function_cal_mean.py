@@ -13,12 +13,13 @@ import os
 
 from subprocess import call
 
-def cal_mean(ncases, cases,years,nyear, filepath):
+def cal_mean(ncases, cases,years,nyear, filepath, scd_flag):
 # ncases, the number of models
 # cases, the name of models
 # casename, the name of cases
 # filepath, model output filepath
 # filepathobs, filepath for observational data
+# scd_flag, flag for a seasonally continuous December
 
  for im in range (0, ncases ):
 #  call('rm -f  ',filepath[im]+cases[im]+'/'+cases[im]+'_*_climo.nc')
@@ -30,7 +31,10 @@ def cal_mean(ncases, cases,years,nyear, filepath):
      outfile=filepath[im]+cases[im]+'/run/climo/'+cases[im]+'_DJF_climo.nc'
      infile=' '
      for yr in range (0, nyear[im] ):
-         infile=infile+datalocal+cases[im]+'.eam.h0.'+str(years[im]+1+yr).rjust(4,'0')+'-01.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+1+yr).rjust(4,'0')+'-02.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-12.nc '
+         if (scd_flag):
+             infile=infile+datalocal+cases[im]+'.eam.h0.'+str(years[im]+1+yr).rjust(4,'0')+'-01.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+1+yr).rjust(4,'0')+'-02.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-12.nc '
+         else:
+             infile=infile+datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-01.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-02.nc '+ datalocal+cases[im]+'.eam.h0.'+str(years[im]+yr).rjust(4,'0')+'-12.nc '
      os.system(ncea_str+infile +' -O '+outfile)
      
      outfile=filepath[im]+cases[im]+'/run/climo/'+cases[im]+'_MAM_climo.nc'
