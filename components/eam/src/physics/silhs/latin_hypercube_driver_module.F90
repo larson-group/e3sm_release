@@ -33,7 +33,7 @@ module latin_hypercube_driver_module
 !              rho_ds_zt, &
                mu1, mu2, sigma1, sigma2, &                                 ! intent(in)
                corr_cholesky_mtx_1, corr_cholesky_mtx_2, &                 ! intent(in)
-               hydromet_pdf_params, silhs_config_flags, &                  ! intent(in)
+               precip_fracs, silhs_config_flags, &                         ! intent(in)
                l_uv_nudge, &                                               ! intent(in)
                l_tke_aniso, &                                              ! intent(in)
                l_standard_term_ta, &                                       ! intent(in)
@@ -64,7 +64,7 @@ module latin_hypercube_driver_module
       pdf_parameter  ! Type
 
     use hydromet_pdf_parameter_module, only: &
-      hydromet_pdf_parameter ! Type
+      precipitation_fractions ! Type
 
     use constants_clubb, only: &
       fstderr, & ! Constant(s)
@@ -114,7 +114,7 @@ module latin_hypercube_driver_module
       nz,              & ! Number of vertical model levels
       ngrdcol            ! Number of grid columns
 
-    type(pdf_parameter), dimension(ngrdcol), intent(in) :: &
+    type(pdf_parameter), intent(in) :: &
       pdf_params ! PDF parameters       [units vary]
 
     real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
@@ -134,18 +134,18 @@ module latin_hypercube_driver_module
       l_calc_weights_all_levs_itime ! determines if vertically correlated sample points are needed
       
     ! More Input Variables!
-    real( kind = core_rknd ), dimension(ngrdcol,pdf_dim,pdf_dim,nz), intent(in) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,nz,pdf_dim,pdf_dim), intent(in) :: &
       corr_cholesky_mtx_1, & ! Correlations Cholesky matrix (1st comp.)  [-]
       corr_cholesky_mtx_2    ! Correlations Cholesky matrix (2nd comp.)  [-]
 
-    real( kind = core_rknd ), dimension(ngrdcol,pdf_dim,nz), intent(in) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,nz,pdf_dim), intent(in) :: &
       mu1,    & ! Means of the hydrometeors, 1st comp. (chi, eta, w, <hydrometeors>)  [units vary]
       mu2,    & ! Means of the hydrometeors, 2nd comp. (chi, eta, w, <hydrometeors>)  [units vary]
       sigma1, & ! Stdevs of the hydrometeors, 1st comp. (chi, eta, w, <hydrometeors>) [units vary]
       sigma2    ! Stdevs of the hydrometeors, 2nd comp. (chi, eta, w, <hydrometeors>) [units vary]
 
-    type(hydromet_pdf_parameter), dimension(ngrdcol,nz), intent(in) :: &
-      hydromet_pdf_params ! Hydrometeor PDF parameters  [units vary]
+    type(precipitation_fractions), intent(in) :: &
+      precip_fracs           ! Precipitation fractions      [-]
 
     type(silhs_config_flags_type), intent(in) :: &
       silhs_config_flags ! Flags for the SILHS sampling code [-]
@@ -164,17 +164,17 @@ module latin_hypercube_driver_module
       vert_decorr_coef    ! Empirically defined de-correlation constant [-]
     
     ! ---------------- Output Variables ----------------
-    real( kind = core_rknd ), intent(out), dimension(ngrdcol,nz,num_samples,pdf_dim) :: &
+    real( kind = core_rknd ), intent(out), dimension(ngrdcol,num_samples,nz,pdf_dim) :: &
       X_nl_all_levs ! Sample that is transformed ultimately to normal-lognormal
 
-    integer, intent(out), dimension(ngrdcol,nz,num_samples) :: &
+    integer, intent(out), dimension(ngrdcol,num_samples,nz) :: &
       X_mixt_comp_all_levs ! Which mixture component we're in
 
-    real( kind = core_rknd ), intent(out), dimension(ngrdcol,nz,num_samples) :: &
+    real( kind = core_rknd ), intent(out), dimension(ngrdcol,num_samples,nz) :: &
       lh_sample_point_weights ! Weight of each sample point
 
     ! ---------------- Local variables ----------------
-    real( kind = core_rknd ), dimension(ngrdcol,nz,num_samples,(pdf_dim+d_uniform_extra)) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,num_samples,nz,(pdf_dim+d_uniform_extra)) :: &
       X_u_all_levs ! Sample drawn from uniform distribution
 
     integer, dimension(ngrdcol) :: &
@@ -183,7 +183,7 @@ module latin_hypercube_driver_module
     integer :: &
       k, sample, p, i, j  ! Loop iterators
 
-    logical, dimension(ngrdcol,nz,num_samples) :: &
+    logical, dimension(ngrdcol,num_samples,nz) :: &
       l_in_precip   ! Whether sample is in precipitation
 
     logical :: l_error, l_error_in_sub
@@ -192,21 +192,21 @@ module latin_hypercube_driver_module
       Sigma_Cholesky1, &  ! Correlations Cholesky matrix 1 [-]
       Sigma_Cholesky2     ! Correlations Cholesky matrix 2 [-]
       
-    real( kind = core_rknd ), dimension(ngrdcol,nz,num_samples) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,num_samples,nz) :: &
       cloud_frac ! Cloud fraction for grid level and sample
       
     real(kind = core_rknd), dimension(ngrdcol,nz) :: &
       cloud_frac_1,  & ! Array used to store pdf_params(:)%cloud_frac_1
       cloud_frac_2,  & ! Array used to store pdf_params(:)%cloud_frac_2
       mixt_frac,     & ! Array used to store pdf_params(:)%mixt_frac
-      precip_frac_1, & ! Array used to store hydromet_pdf_params(:)%precip_frac_1
-      precip_frac_2    ! Array used to store hydromet_pdf_params(:)%precip_frac_2
+      precip_frac_1, & ! Array used to store precip_fracs%precip_frac_1
+      precip_frac_2    ! Array used to store precip_fracs%precip_frac_2
       
     real( kind = core_rknd ), dimension(ngrdcol,nz) :: &
       Lscale_vert_avg, &  ! 3pt vertical average of Lscale                    [m]
       X_vert_corr         ! Vertical correlations between height levels       [-]
       
-    real(kind = core_rknd), dimension(ngrdcol,nz,num_samples,pdf_dim+d_uniform_extra) :: &
+    real(kind = core_rknd), dimension(ngrdcol,num_samples,nz,pdf_dim+d_uniform_extra) :: &
       rand_pool ! Array of randomly generated numbers
 
     ! ---------------- Begin Code ----------------
@@ -216,7 +216,7 @@ module latin_hypercube_driver_module
     ! Sanity checks for l_lh_importance_sampling
     if ( silhs_config_flags%l_lh_importance_sampling .and. sequence_length /= 1 ) then
       write(fstderr,*) "Cloud weighted sampling requires sequence length be equal to 1."
-      stop "Fatal error."
+      error stop "Fatal error."
     end if
 
     !--------------------------------------------------------------
@@ -225,37 +225,34 @@ module latin_hypercube_driver_module
         
 #ifdef _OPENACC
     if ( .not. silhs_config_flags%l_lh_straight_mc ) then
-      stop "CLUBB ERROR: Running SILHS with OpenACC requires lh_straight_mc=true"
+      error stop "CLUBB ERROR: Running SILHS with OpenACC requires lh_straight_mc=true"
     end if
 #endif
 
     ! Copy type arrays to contiguous arrays, so they can be copied to the GPU
-    precip_frac_1 = hydromet_pdf_params(:,:)%precip_frac_1
-    precip_frac_2 = hydromet_pdf_params(:,:)%precip_frac_2
+    precip_frac_1 = precip_fracs%precip_frac_1
+    precip_frac_2 = precip_fracs%precip_frac_2
     
     do i = 1, ngrdcol
-      cloud_frac_1(i,:) = pdf_params(i)%cloud_frac_1(:)
-      cloud_frac_2(i,:) = pdf_params(i)%cloud_frac_2(:)
-      mixt_frac(i,:)    = pdf_params(i)%mixt_frac(:)
+      cloud_frac_1(i,:) = pdf_params%cloud_frac_1(i,:)
+      cloud_frac_2(i,:) = pdf_params%cloud_frac_2(i,:)
+      mixt_frac(i,:)    = pdf_params%mixt_frac(i,:)
     end do
 
-    ! Compute k_lh_start, the starting vertical grid level 
-    !   for SILHS sampling
-    do i = 1, ngrdcol
-      k_lh_start(i) = compute_k_lh_start( nz, rcm(i,:), pdf_params(i), &
-                                          silhs_config_flags%l_rcm_in_cloud_k_lh_start, &
-                                          silhs_config_flags%l_random_k_lh_start )
-    end do
+    ! Compute k_lh_start, the starting vertical grid level for SILHS sampling
+    k_lh_start(:) = compute_k_lh_start( nz, ngrdcol, rcm, pdf_params, &
+                                        silhs_config_flags%l_rcm_in_cloud_k_lh_start, &
+                                        silhs_config_flags%l_random_k_lh_start )
                                      
     ! Calculate possible Sigma_Cholesky values
     ! Row-wise multiply of the elements of a lower triangular matrix.
-    do k = 1, nz
-      do p = 1, pdf_dim
-        do j = 1, p
+    do p = 1, pdf_dim
+      do j = 1, p
+        do k = 1, nz
           do i = 1, ngrdcol
             ! Calculate possible Sigma_Cholesky values
-            Sigma_Cholesky1(j,i,k,p) = corr_cholesky_mtx_1(i,p,j,k) * sigma1(i,p,k)
-            Sigma_Cholesky2(j,i,k,p) = corr_cholesky_mtx_2(i,p,j,k) * sigma2(i,p,k)
+            Sigma_Cholesky1(j,i,k,p) = corr_cholesky_mtx_1(i,k,p,j) * sigma1(i,k,p)
+            Sigma_Cholesky2(j,i,k,p) = corr_cholesky_mtx_2(i,k,p,j) * sigma2(i,k,p)
           end do
         end do
       end do
@@ -270,7 +267,7 @@ module latin_hypercube_driver_module
       !                       ( (kp1-km1+1), rho_ds_zt(km1:kp1), &
       !                         Lscale(km1:kp1), gr%dzt(km1:kp1) )
       !end do
-      stop "CLUBB ERROR: l_Lscale_vert_avg has been depricated"
+      error stop "CLUBB ERROR: l_Lscale_vert_avg has been depricated"
     else
         Lscale_vert_avg = Lscale 
     end if
@@ -295,7 +292,7 @@ module latin_hypercube_driver_module
             write(fstderr,*) "i = ", i, "k = ", k, "Vert. correlation = ", X_vert_corr(i,k)
           end do
         end do
-        stop "Fatal error in vertical_overlap_driver"
+        error stop "Fatal error in vertical_overlap_driver"
       end if ! Some correlation isn't between [0,1]
     end if ! clubb_at_least_debug_level 1
     
@@ -314,7 +311,7 @@ module latin_hypercube_driver_module
            nz, ngrdcol, k_lh_start, X_vert_corr, rand_pool,              & ! Intent(in)
            cloud_frac_1,                                                 & ! Intent(in)
            cloud_frac_2,                                                 & ! Intent(in)
-           mixt_frac, hydromet_pdf_params,                               & ! Intent(in)
+           mixt_frac, precip_fracs,                                      & ! Intent(in)
            silhs_config_flags%cluster_allocation_strategy,               & ! Intent(in)
            silhs_config_flags%l_lh_importance_sampling,                  & ! Intent(in)
            silhs_config_flags%l_lh_straight_mc,                          & ! Intent(in)
@@ -331,39 +328,39 @@ module latin_hypercube_driver_module
     !$acc& async(3)
     
     !$acc parallel loop collapse(3) default(present) async(1) wait(3)
-    do sample = 1, num_samples 
-      do k = 1, nz
+    do k = 1, nz
+      do sample = 1, num_samples 
         do i = 1, ngrdcol
             
           ! Determine mixture component for all levels
-          if ( X_u_all_levs(i,k,sample,pdf_dim+1) < mixt_frac(i,k) ) then
+          if ( X_u_all_levs(i,sample,k,pdf_dim+1) < mixt_frac(i,k) ) then
             
             ! Set pdf component indicator to 1 for this sample and vertical level
-            X_mixt_comp_all_levs(i,k,sample) = 1
+            X_mixt_comp_all_levs(i,sample,k) = 1
             
             ! Copy 1st component values
-            cloud_frac(i,k,sample) = cloud_frac_1(i,k)
+            cloud_frac(i,sample,k) = cloud_frac_1(i,k)
             
             ! Determine precipitation
-            if ( X_u_all_levs(i,k,sample,pdf_dim+2) < precip_frac_1(i,k) ) then
-              l_in_precip(i,k,sample) = .true.
+            if ( X_u_all_levs(i,sample,k,pdf_dim+2) < precip_frac_1(i,k) ) then
+              l_in_precip(i,sample,k) = .true.
             else
-              l_in_precip(i,k,sample) = .false.
+              l_in_precip(i,sample,k) = .false.
             end if
             
           else
             
             ! Set pdf component indicator to 2 for this sample and vertical level
-            X_mixt_comp_all_levs(i,k,sample) = 2
+            X_mixt_comp_all_levs(i,sample,k) = 2
             
             ! Copy 2nd component values
-            cloud_frac(i,k,sample) = cloud_frac_2(i,k)
+            cloud_frac(i,sample,k) = cloud_frac_2(i,k)
             
             ! Determine precipitation
-            if ( X_u_all_levs(i,k,sample,pdf_dim+2) < precip_frac_2(i,k) ) then
-              l_in_precip(i,k,sample) = .true.
+            if ( X_u_all_levs(i,sample,k,pdf_dim+2) < precip_frac_2(i,k) ) then
+              l_in_precip(i,sample,k) = .true.
             else
-              l_in_precip(i,k,sample) = .false.
+              l_in_precip(i,sample,k) = .false.
             end if
             
           end if
@@ -384,21 +381,20 @@ module latin_hypercube_driver_module
            X_u_all_levs, cloud_frac,                           & ! In
            l_in_precip,                                        & ! In
            X_nl_all_levs )                                       ! Out
+     
     
     if ( l_stats_samp ) then
-      !$acc update host(X_u_all_levs,l_in_precip,lh_sample_point_weights,X_mixt_comp_all_levs) wait
       !$acc wait
-      do i = 1, ngrdcol
-        call stats_accumulate_uniform_lh( nz, num_samples, l_in_precip(i,:,:), &
-                                          X_mixt_comp_all_levs(i,:,:), &
-                                          X_u_all_levs(i,:,:,iiPDF_chi), pdf_params(i), &
-                                          lh_sample_point_weights(i,:,:), k_lh_start(i) )
-      end do
+      !$acc update host(X_u_all_levs,l_in_precip,lh_sample_point_weights,X_mixt_comp_all_levs) wait
+      call stats_accumulate_uniform_lh( nz, num_samples, ngrdcol, l_in_precip(:,:,:), &
+                                        X_mixt_comp_all_levs(:,:,:), &
+                                        X_u_all_levs(:,:,:,iiPDF_chi), pdf_params, &
+                                        lh_sample_point_weights(:,:,:), k_lh_start(:) )
     end if
 
     if ( l_output_2D_lognormal_dist ) then
-      !$acc update host(X_nl_all_levs) wait
       !$acc wait
+      !$acc update host(X_nl_all_levs) wait
       
       ! Eric Raut removed lh_rt and lh_thl from call to output_2D_lognormal_dist_file
       ! because they are no longer generated in generate_silhs_sample.
@@ -413,8 +409,8 @@ module latin_hypercube_driver_module
     end if
     
     if ( l_output_2D_uniform_dist ) then
-      !$acc update host(X_u_all_levs,X_mixt_comp_all_levs,lh_sample_point_weights) wait
       !$acc wait
+      !$acc update host(X_u_all_levs,X_mixt_comp_all_levs,lh_sample_point_weights) wait
       do i = 1, ngrdcol
         call output_2D_uniform_dist_file( nz, num_samples, pdf_dim+2, &
                                           X_u_all_levs(i,:,:,:), &
@@ -429,9 +425,8 @@ module latin_hypercube_driver_module
 
     ! Various nefarious assertion checks
     if ( clubb_at_least_debug_level( 2 ) ) then
-      
-      !$acc update host(X_u_all_levs,X_mixt_comp_all_levs,X_nl_all_levs) wait
       !$acc wait
+      !$acc update host(X_u_all_levs,X_mixt_comp_all_levs,X_nl_all_levs) wait
 
       ! Simple assertion check to ensure uniform variates are in the appropriate
       ! range
@@ -443,18 +438,18 @@ module latin_hypercube_driver_module
       do i = 1, ngrdcol
         do k = 2, nz
 
-          call assert_consistent_cloud_frac( pdf_params(i)%chi_1(k), pdf_params(i)%chi_2(k), & 
-                                    pdf_params(i)%cloud_frac_1(k), pdf_params(i)%cloud_frac_2(k), &
-                                    pdf_params(i)%stdev_chi_1(k), pdf_params(i)%stdev_chi_2(k), & 
+          call assert_consistent_cloud_frac( pdf_params%chi_1(i,k), pdf_params%chi_2(i,k), & 
+                                    pdf_params%cloud_frac_1(i,k), pdf_params%cloud_frac_2(i,k), &
+                                    pdf_params%stdev_chi_1(i,k), pdf_params%stdev_chi_2(i,k), & 
                                     l_error_in_sub )
           l_error = l_error .or. l_error_in_sub
 
           ! Check for correct transformation in normal space
-          call assert_correct_cloud_normal( num_samples, X_u_all_levs(i,k,:,iiPDF_chi), & ! In
-                                            X_nl_all_levs(i,k,:,iiPDF_chi), & ! In
-                                            X_mixt_comp_all_levs(i,k,:), & ! In
-                                            pdf_params(i)%cloud_frac_1(k), & ! In
-                                            pdf_params(i)%cloud_frac_2(k), & ! In
+          call assert_correct_cloud_normal( num_samples, X_u_all_levs(i,:,k,iiPDF_chi), & ! In
+                                            X_nl_all_levs(i,:,k,iiPDF_chi), & ! In
+                                            X_mixt_comp_all_levs(i,:,k), & ! In
+                                            pdf_params%cloud_frac_1(i,k), & ! In
+                                            pdf_params%cloud_frac_2(i,k), & ! In
                                             l_error_in_sub ) ! Out
           l_error = l_error .or. l_error_in_sub
 
@@ -468,7 +463,7 @@ module latin_hypercube_driver_module
 
     ! Stop the run if an error occurred
     if ( l_error ) then
-      stop "Fatal error in generate_silhs_sample"
+      error stop "Fatal error in generate_silhs_sample"
     end if
 
     return
@@ -527,7 +522,7 @@ module latin_hypercube_driver_module
       
     ! ------------------- Output Variables -------------------
 
-    real(kind=core_rknd), dimension(ngrdcol,nz,num_samples,pdf_dim+d_uniform_extra), intent(out)::&
+    real(kind=core_rknd), dimension(ngrdcol,num_samples,nz,pdf_dim+d_uniform_extra), intent(out)::&
       rand_pool   ! Pool of random reals, generated from integers
       
     ! ------------------- Local Variables -------------------
@@ -561,7 +556,7 @@ module latin_hypercube_driver_module
     end if
     
     !$acc host_data use_device(rand_pool) 
-    r_status = curandGenerate(cu_gen, rand_pool, ngrdcol*nz*num_samples*(pdf_dim+d_uniform_extra))
+    r_status = curandGenerate(cu_gen, rand_pool, ngrdcol*num_samples*nz*(pdf_dim+d_uniform_extra))
     !$acc end host_data
     !$acc wait
     
@@ -576,10 +571,10 @@ module latin_hypercube_driver_module
 
     ! Populate rand_pool with a generator designed for a CPU
     do p=1, pdf_dim+d_uniform_extra
-      do sample=1, num_samples
-        do k = 1, nz
+      do k = 1, nz
+        do sample=1, num_samples
           do i = 1, ngrdcol
-            rand_pool(i,k,sample,p) = rand_uniform_real()
+            rand_pool(i,sample,k,p) = rand_uniform_real()
           end do
         end do
       end do
@@ -595,7 +590,7 @@ module latin_hypercube_driver_module
                nz, ngrdcol, k_lh_start, X_vert_corr, rand_pool,              & ! Intent(in)
                cloud_frac_1,                                                 & ! Intent(in)
                cloud_frac_2,                                                 & ! Intent(in)
-               mixt_frac, hydromet_pdf_params,                               & ! Intent(in)
+               mixt_frac, precip_fracs,                                      & ! Intent(in)
                cluster_allocation_strategy,                                  & ! Intent(in)
                l_lh_importance_sampling,                                     & ! Intent(in)
                l_lh_straight_mc,                                             & ! Intent(in)
@@ -625,7 +620,7 @@ module latin_hypercube_driver_module
       one, fstderr                ! Constant(s)
 
     use hydromet_pdf_parameter_module, only: &
-      hydromet_pdf_parameter      ! Type
+      precipitation_fractions      ! Type
 
     use generate_uniform_sample_module, only: &
       rand_uniform_real, &        ! Procedure(s)
@@ -667,10 +662,10 @@ module latin_hypercube_driver_module
       mixt_frac, &
       X_vert_corr
 
-    type(hydromet_pdf_parameter), dimension(ngrdcol,nz), intent(in) :: &
-      hydromet_pdf_params
+    type(precipitation_fractions), intent(in) :: &
+      precip_fracs           ! Precipitation fractions      [-]
 
-    real(kind = core_rknd),dimension(ngrdcol,nz,num_samples,pdf_dim+d_uniform_extra),intent(in)::&
+    real(kind = core_rknd),dimension(ngrdcol,num_samples,nz,pdf_dim+d_uniform_extra),intent(in)::&
       rand_pool ! Array of randomly generated numbers
 
     integer, intent(in) :: &
@@ -686,10 +681,10 @@ module latin_hypercube_driver_module
       l_calc_weights_all_levs_itime
 
     ! ------------------ Output Variables ------------------
-    real(kind = core_rknd),dimension(ngrdcol,nz,num_samples,pdf_dim+d_uniform_extra),intent(out)::&
+    real(kind = core_rknd),dimension(ngrdcol,num_samples,nz,pdf_dim+d_uniform_extra),intent(out)::&
       X_u_all_levs              ! Uniform sample at k_lh_start
 
-    real( kind = core_rknd ), dimension(ngrdcol,nz,num_samples), intent(out) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,num_samples,nz), intent(out) :: &
       lh_sample_point_weights     ! Weight of each sample point (all equal to one if importance
                                   ! sampling is not used)
 
@@ -702,7 +697,7 @@ module latin_hypercube_driver_module
     ! Sanity check
     if ( l_lh_old_cloud_weighted .and. mod( num_samples, 2 ) /= 0 ) then
       write(fstderr,*) "Old cloud weighted sampling requires num_samples to be divisible by 2."
-      stop "Fatal error."
+      error stop "Fatal error."
     end if
     
     if ( .not. l_calc_weights_all_levs_itime ) then
@@ -716,23 +711,23 @@ module latin_hypercube_driver_module
         
         !$acc parallel loop collapse(4) default(present) async(1)
         do p = 1, pdf_dim+d_uniform_extra
-          do sample = 1, num_samples
-            do k = 1, nz
+          do k = 1, nz
+            do sample = 1, num_samples
               do i = 1, ngrdcol
-                X_u_all_levs(i,k,sample,p) = max( single_prec_thresh, &
+                X_u_all_levs(i,sample,k,p) = max( single_prec_thresh, &
                                                 min( one - single_prec_thresh, &
-                                                     rand_pool(i,k,sample,p) ) )
+                                                     rand_pool(i,sample,k,p) ) )
               end do
             end do
           end do
         end do
 
         !$acc parallel loop collapse(3) default(present) async(1)
-        do sample = 1, num_samples
-          do k = 1, nz
+        do k = 1, nz
+          do sample = 1, num_samples
             do i = 1, ngrdcol
               ! Importance sampling is not performed, so all sample points have the same weight!!
-              lh_sample_point_weights(i,k,sample) = one
+              lh_sample_point_weights(i,sample,k) = one
             end do
           end do
         end do
@@ -743,7 +738,7 @@ module latin_hypercube_driver_module
           ! Generate a uniformly distributed Latin hypercube sample
           call generate_uniform_lh_sample( iter, num_samples, sequence_length, & ! Intent(in)
                                            pdf_dim+d_uniform_extra,            & ! Intent(in)
-                                           X_u_all_levs(i,k_lh_start(i),:,:) )   ! Intent(out)
+                                           X_u_all_levs(i,:,k_lh_start(i),:) )   ! Intent(out)
                                 
           if ( l_lh_importance_sampling ) then
 
@@ -754,32 +749,34 @@ module latin_hypercube_driver_module
                      one_height_time_matrix(:,pdf_dim+1), & ! In
                      cloud_frac_1(i,k_lh_start(i)), cloud_frac_2(i,k_lh_start(i)), & ! In
                      mixt_frac(i,k_lh_start(i)), & ! In
-                     X_u_all_levs(i,k_lh_start(i),:,iiPDF_chi), & ! In/Out
-                     X_u_all_levs(i,k_lh_start(i),:,pdf_dim+1), & ! In/Out
-                     lh_sample_point_weights(i,k_lh_start(i),:) ) ! Out
+                     X_u_all_levs(i,:,k_lh_start(i),iiPDF_chi), & ! In/Out
+                     X_u_all_levs(i,:,k_lh_start(i),pdf_dim+1), & ! In/Out
+                     lh_sample_point_weights(i,:,k_lh_start(i)) ) ! Out
 
             else ! .not. l_lh_old_cloud_weighted
 
               call importance_sampling_driver &
                    ( num_samples,                                                      & ! In
                      cloud_frac_1(i,k_lh_start(i)), cloud_frac_2(i,k_lh_start(i)),     & ! In
-                     mixt_frac(i,k_lh_start(i)), hydromet_pdf_params(i,k_lh_start(i)), & ! In
+                     mixt_frac(i,k_lh_start(i)),                                       & ! In
+                     precip_fracs%precip_frac_1(i,k_lh_start(i)),                      & ! In
+                     precip_fracs%precip_frac_2(i,k_lh_start(i)),                      & ! In
                      cluster_allocation_strategy, l_lh_clustered_sampling,             & ! In
                      l_lh_limit_weights, l_lh_var_frac, l_lh_normalize_weights,        & ! In
-                     X_u_all_levs(i,k_lh_start(i),:,iiPDF_chi),                        & ! In/Out
-                     X_u_all_levs(i,k_lh_start(i),:,pdf_dim+1),                        & ! In/Out
-                     X_u_all_levs(i,k_lh_start(i),:,pdf_dim+2),                        & ! In/Out
-                     lh_sample_point_weights(i,k_lh_start(i),:) )                        ! Out
+                     X_u_all_levs(i,:,k_lh_start(i),iiPDF_chi),                        & ! In/Out
+                     X_u_all_levs(i,:,k_lh_start(i),pdf_dim+1),                        & ! In/Out
+                     X_u_all_levs(i,:,k_lh_start(i),pdf_dim+2),                        & ! In/Out
+                     lh_sample_point_weights(i,:,k_lh_start(i)) )                        ! Out
 
             end if ! l_lh_old_cloud_weighted
             
             ! Clip uniform sample points to expected range                                 
-            X_u_all_levs(i,k_lh_start(i),:,:) = max( single_prec_thresh, &
-                            min( one - single_prec_thresh, X_u_all_levs(i,k_lh_start(i),:,:) ) )
+            X_u_all_levs(i,:,k_lh_start(i),:) = max( single_prec_thresh, &
+                            min( one - single_prec_thresh, X_u_all_levs(i,:,k_lh_start(i),:) ) )
 
             
             do k = 1, nz
-              lh_sample_point_weights(i,k,:) = lh_sample_point_weights(i,k_lh_start(i),:)
+              lh_sample_point_weights(i,:,k) = lh_sample_point_weights(i,:,k_lh_start(i))
             end do
 
           else
@@ -810,23 +807,23 @@ module latin_hypercube_driver_module
         
         !$acc parallel loop collapse(4) default(present) async(1)
         do p = 1, pdf_dim+d_uniform_extra
-          do sample = 1, num_samples
-            do k = 1, nz
+          do k = 1, nz
+            do sample = 1, num_samples
               do i = 1, ngrdcol
-                X_u_all_levs(i,k,sample,p) = max( single_prec_thresh, &
+                X_u_all_levs(i,sample,k,p) = max( single_prec_thresh, &
                                                 min( one - single_prec_thresh, &
-                                                     rand_pool(i,k,sample,p) ) )
+                                                     rand_pool(i,sample,k,p) ) )
               end do
             end do
           end do
         end do
 
         !$acc parallel loop collapse(3) default(present) async(1)
-        do sample = 1, num_samples
-          do k = 1, nz
+        do k = 1, nz
+          do sample = 1, num_samples
             do i = 1, ngrdcol
               ! Importance sampling is not performed, so all sample points have the same weight!!
-              lh_sample_point_weights(i,k,sample) = one
+              lh_sample_point_weights(i,sample,k) = one
             end do
           end do
         end do
@@ -839,7 +836,7 @@ module latin_hypercube_driver_module
             ! Generate a uniformly distributed Latin hypercube sample
             call generate_uniform_lh_sample( iter, num_samples, sequence_length, & ! Intent(in)
                                              pdf_dim+d_uniform_extra,            & ! Intent(in)
-                                             X_u_all_levs(i,k,:,:) )               ! Intent(out)
+                                             X_u_all_levs(i,:,k,:) )               ! Intent(out)
 
             if ( l_lh_importance_sampling ) then
 
@@ -850,35 +847,37 @@ module latin_hypercube_driver_module
                        one_height_time_matrix(:,pdf_dim+1),              & ! In
                        cloud_frac_1(i,k), cloud_frac_2(i,k),             & ! In
                        mixt_frac(i,k),                                   & ! In
-                       X_u_all_levs(i,k,:,iiPDF_chi),                    & ! In/Out
-                       X_u_all_levs(i,k,:,pdf_dim+1),                    & ! In/Out
-                       lh_sample_point_weights(i,k,:) )                    ! Out
+                       X_u_all_levs(i,:,k,iiPDF_chi),                    & ! In/Out
+                       X_u_all_levs(i,:,k,pdf_dim+1),                    & ! In/Out
+                       lh_sample_point_weights(i,:,k) )                    ! Out
 
               else ! .not. l_lh_old_cloud_weighted
 
                 call importance_sampling_driver &
                      ( num_samples,                                               & ! In
                        cloud_frac_1(i,k), cloud_frac_2(i,k),                      & ! In
-                       mixt_frac(i,k), hydromet_pdf_params(i,k),                  & ! In
+                       mixt_frac(i,k),                                            & ! In
+                       precip_fracs%precip_frac_1(i,k),                           & ! In
+                       precip_fracs%precip_frac_2(i,k),                           & ! In
                        cluster_allocation_strategy, l_lh_clustered_sampling,      & ! In
                        l_lh_limit_weights, l_lh_var_frac, l_lh_normalize_weights, & ! In
-                       X_u_all_levs(i,k,:,iiPDF_chi),                             & ! In/Out
-                       X_u_all_levs(i,k,:,pdf_dim+1),                             & ! In/Out
-                       X_u_all_levs(i,k,:,pdf_dim+2),                             & ! In/Out
-                       lh_sample_point_weights(i,k,:) )                             ! Out
+                       X_u_all_levs(i,:,k,iiPDF_chi),                             & ! In/Out
+                       X_u_all_levs(i,:,k,pdf_dim+1),                             & ! In/Out
+                       X_u_all_levs(i,:,k,pdf_dim+2),                             & ! In/Out
+                       lh_sample_point_weights(i,:,k) )                             ! Out
 
               end if ! l_lh_old_cloud_weighted
 
             else
 
               ! No importance sampling is performed, so all sample points have the same weight.
-              lh_sample_point_weights(i,k,:) = one
+              lh_sample_point_weights(i,:,k) = one
 
             end if ! l_lh_importance_sampling
             
             ! Clip uniform sample points to expected range                                 
-            X_u_all_levs(i,k,:,:) = max( single_prec_thresh, &
-                                    min( one - single_prec_thresh, X_u_all_levs(i,k,:,:) ) )
+            X_u_all_levs(i,:,k,:) = max( single_prec_thresh, &
+                                    min( one - single_prec_thresh, X_u_all_levs(i,:,k,:) ) )
           
           end do
         end do
@@ -892,7 +891,7 @@ module latin_hypercube_driver_module
 !-------------------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-  function compute_k_lh_start( nz, rcm, pdf_params, &
+  function compute_k_lh_start( nz, ngrdcol, rcm, pdf_params, &
                                l_rcm_in_cloud_k_lh_start, &
                                l_random_k_lh_start ) result( k_lh_start )
 
@@ -923,9 +922,10 @@ module latin_hypercube_driver_module
 
     ! Input Variables
     integer, intent(in) :: &
-      nz          ! Number of vertical levels
+      nz, &   ! Number of vertical levels
+      ngrdcol ! Number of grid columns
 
-    real( kind = core_rknd ), dimension(nz), intent(in) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
       rcm         ! Liquid water mixing ratio               [kg/kg]
 
     type(pdf_parameter), intent(in) :: &
@@ -936,7 +936,7 @@ module latin_hypercube_driver_module
       l_random_k_lh_start          ! k_lh_start found randomly between max rcm and rcm_in_cloud
 
     ! Output Variable
-    integer :: &
+    integer, dimension(ngrdcol) :: &
       k_lh_start  ! Starting SILHS sample level
 
     ! Local Variables
@@ -946,45 +946,52 @@ module latin_hypercube_driver_module
 
     real( kind = core_rknd ), dimension(nz) :: &
       rcm_pdf, cloud_frac_pdf
+      
+    integer :: i  ! Loop iterator
 
-  !-----------------------------------------------------------------------
+  !------------------------------ Begin Code -----------------------------------
 
-    !----- Begin Code -----
-    if ( l_rcm_in_cloud_k_lh_start .or. l_random_k_lh_start ) then
-      rcm_pdf = compute_mean_binormal( pdf_params%rc_1, pdf_params%rc_2, pdf_params%mixt_frac )
-      cloud_frac_pdf = compute_mean_binormal( pdf_params%cloud_frac_1, pdf_params%cloud_frac_2, &
-                                              pdf_params%mixt_frac )
-      k_lh_start_rcm_in_cloud = maxloc( rcm_pdf / max( cloud_frac_pdf, cloud_frac_min ), 1 )
-    end if
+    do i = 1, ngrdcol
 
-    if ( .not. l_rcm_in_cloud_k_lh_start .or. l_random_k_lh_start ) then
-      k_lh_start_rcm    = maxloc( rcm, 1 )
-    end if
-
-    if ( l_random_k_lh_start ) then
-      if ( k_lh_start_rcm_in_cloud == k_lh_start_rcm ) then
-        k_lh_start = k_lh_start_rcm
-      else
-        ! Pick a random height level between k_lh_start_rcm and
-        ! k_lh_start_rcm_in_cloud
-        if ( k_lh_start_rcm_in_cloud > k_lh_start_rcm ) then
-          k_lh_start = rand_integer_in_range( k_lh_start_rcm, k_lh_start_rcm_in_cloud )
-        else if ( k_lh_start_rcm > k_lh_start_rcm_in_cloud ) then
-          k_lh_start = rand_integer_in_range( k_lh_start_rcm_in_cloud, k_lh_start_rcm )
-        end if
+      if ( l_rcm_in_cloud_k_lh_start .or. l_random_k_lh_start ) then
+        rcm_pdf = compute_mean_binormal( pdf_params%rc_1(i,:), pdf_params%rc_2(i,:), &
+                                         pdf_params%mixt_frac(i,:) )
+        cloud_frac_pdf = compute_mean_binormal( pdf_params%cloud_frac_1(i,:), &
+                                                pdf_params%cloud_frac_2(i,:), &
+                                                pdf_params%mixt_frac(i,:) )
+        k_lh_start_rcm_in_cloud = maxloc( rcm_pdf / max( cloud_frac_pdf, cloud_frac_min ), 1 )
       end if
-    else if ( l_rcm_in_cloud_k_lh_start ) then
-      k_lh_start = k_lh_start_rcm_in_cloud
-    else ! .not. l_random_k_lh_start .and. .not. l_rcm_in_cloud_k_lh_start
-      k_lh_start = k_lh_start_rcm
-    end if
 
-    ! If there's no cloud k_lh_start appears to end up being 1. Check if
-    ! k_lh_start is 1 or nz and set it to the middle of the domain in that
-    ! case.
-    if ( k_lh_start == nz .or. k_lh_start == 1 ) then
-      k_lh_start = nz / 2
-    end if
+      if ( .not. l_rcm_in_cloud_k_lh_start .or. l_random_k_lh_start ) then
+        k_lh_start_rcm    = maxloc( rcm(i,:), 1 )
+      end if
+
+      if ( l_random_k_lh_start ) then
+        if ( k_lh_start_rcm_in_cloud == k_lh_start_rcm ) then
+          k_lh_start(i) = k_lh_start_rcm
+        else
+          ! Pick a random height level between k_lh_start_rcm and
+          ! k_lh_start_rcm_in_cloud
+          if ( k_lh_start_rcm_in_cloud > k_lh_start_rcm ) then
+            k_lh_start(i) = rand_integer_in_range( k_lh_start_rcm, k_lh_start_rcm_in_cloud )
+          else if ( k_lh_start_rcm > k_lh_start_rcm_in_cloud ) then
+            k_lh_start(i) = rand_integer_in_range( k_lh_start_rcm_in_cloud, k_lh_start_rcm )
+          end if
+        end if
+      else if ( l_rcm_in_cloud_k_lh_start ) then
+        k_lh_start(i) = k_lh_start_rcm_in_cloud
+      else ! .not. l_random_k_lh_start .and. .not. l_rcm_in_cloud_k_lh_start
+        k_lh_start(i) = k_lh_start_rcm
+      end if
+
+      ! If there's no cloud k_lh_start appears to end up being 1. Check if
+      ! k_lh_start is 1 or nz and set it to the middle of the domain in that
+      ! case.
+      if ( k_lh_start(i) == nz .or. k_lh_start(i) == 1 ) then
+        k_lh_start(i) = nz / 2
+      end if
+      
+    end do
 
     return
   end function compute_k_lh_start
@@ -1049,19 +1056,19 @@ module latin_hypercube_driver_module
       pdf_dim,      & ! Number of variates in X_nl
       hydromet_dim    ! Number of hydrometeor species
 
-    integer, dimension(ngrdcol,nz,num_samples), intent(in) :: &
+    integer, dimension(ngrdcol,num_samples,nz), intent(in) :: &
       X_mixt_comp_all_levs   ! Which component this sample is in (1 or 2)
 
-    type(pdf_parameter), dimension(ngrdcol), intent(in) :: &
+    type(pdf_parameter), intent(in) :: &
       pdf_params             ! **The** PDF parameters!
 
     ! ------------------- Input/Output Variable -------------------
     
-    real( kind = core_rknd ), dimension(ngrdcol,nz,num_samples,pdf_dim), intent(inout) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,num_samples,nz,pdf_dim), intent(inout) :: &
       X_nl_all_levs    ! SILHS sample points    [units vary]
 
     ! ------------------- Output Variables -------------------
-    real( kind = core_rknd ), dimension(ngrdcol,nz,num_samples), intent(out) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,num_samples,nz), intent(out) :: &
       lh_rt_clipped,  & ! rt generated from silhs sample points
       lh_thl_clipped, & ! thl generated from silhs sample points
       lh_rc_clipped,  & ! rc generated from silhs sample points
@@ -1094,16 +1101,16 @@ module latin_hypercube_driver_module
     ! and Nc.
     
     do i = 1, ngrdcol
-      rt_1(i,:) = pdf_params(i)%rt_1(:)
-      rt_2(i,:) = pdf_params(i)%rt_2(:)
-      thl_1(i,:) = pdf_params(i)%thl_1(:)
-      thl_2(i,:) = pdf_params(i)%thl_2(:)
-      crt_1(i,:) = pdf_params(i)%crt_1(:)
-      crt_2(i,:) = pdf_params(i)%crt_2(:)
-      cthl_1(i,:) = pdf_params(i)%cthl_1(:)
-      cthl_2(i,:) = pdf_params(i)%cthl_2(:)
-      mu_chi_1(i,:) = pdf_params(i)%chi_1(:)
-      mu_chi_2(i,:) = pdf_params(i)%chi_2(:)
+      rt_1(i,:) = pdf_params%rt_1(i,:)
+      rt_2(i,:) = pdf_params%rt_2(i,:)
+      thl_1(i,:) = pdf_params%thl_1(i,:)
+      thl_2(i,:) = pdf_params%thl_2(i,:)
+      crt_1(i,:) = pdf_params%crt_1(i,:)
+      crt_2(i,:) = pdf_params%crt_2(i,:)
+      cthl_1(i,:) = pdf_params%cthl_1(i,:)
+      cthl_2(i,:) = pdf_params%cthl_2(i,:)
+      mu_chi_1(i,:) = pdf_params%chi_1(i,:)
+      mu_chi_2(i,:) = pdf_params%chi_2(i,:)
     end do
         
     ! Compute lh_rt and lh_thl
@@ -1122,41 +1129,41 @@ module latin_hypercube_driver_module
     do sample = 1, num_samples
       do i = 1, ngrdcol
         ! These parameters are not computed at the model lower level.
-        lh_rt_clipped(i,1,sample)  = zero
-        lh_thl_clipped(i,1,sample) = zero
-        lh_rc_clipped(i,1,sample)  = zero
-        lh_rv_clipped(i,1,sample)  = zero
-        lh_Nc_clipped(i,1,sample)  = zero
+        lh_rt_clipped(i,sample,1)  = zero
+        lh_thl_clipped(i,sample,1) = zero
+        lh_rc_clipped(i,sample,1)  = zero
+        lh_rv_clipped(i,sample,1)  = zero
+        lh_Nc_clipped(i,sample,1)  = zero
       end do
     end do
     
     !$acc parallel loop collapse(3) default(present) async(1)
-    do sample = 1, num_samples
-      do k = 2, nz
+    do k = 2, nz
+      do sample = 1, num_samples
         do i = 1, ngrdcol
     
           ! If necessary, clip rt      
-          lh_rt_clipped(i,k,sample) = max( lh_rt_clipped(i,k,sample), rt_tol )
+          lh_rt_clipped(i,sample,k) = max( lh_rt_clipped(i,sample,k), rt_tol )
           
           ! Compute lh_rc, rc = chi * H(chi), where H(x) is the Heaviside step function
-          lh_rc_clipped(i,k,sample) = max( X_nl_all_levs(i,k,sample,iiPDF_chi), zero )
+          lh_rc_clipped(i,sample,k) = max( X_nl_all_levs(i,sample,k,iiPDF_chi), zero )
           
           ! Clip lh_rc.
-          lh_rc_clipped(i,k,sample) = min( lh_rc_clipped(i,k,sample), &
-                                              lh_rt_clipped(i,k,sample) - rt_tol )
+          lh_rc_clipped(i,sample,k) = min( lh_rc_clipped(i,sample,k), &
+                                              lh_rt_clipped(i,sample,k) - rt_tol )
           
           ! Compute lh_rv
-          lh_rv_clipped(i,k,sample) = lh_rt_clipped(i,k,sample) - lh_rc_clipped(i,k,sample)
+          lh_rv_clipped(i,sample,k) = lh_rt_clipped(i,sample,k) - lh_rc_clipped(i,sample,k)
           
           if ( l_use_Ncn_to_Nc ) then
              ! Compute lh_Nc, Nc = Ncn * H(chi), where H(x) is the Heaviside step function
-             if ( X_nl_all_levs(i,k,sample,iiPDF_chi) > zero ) then
-               lh_Nc_clipped(i,k,sample) = X_nl_all_levs(i,k,sample,iiPDF_Ncn)
+             if ( X_nl_all_levs(i,sample,k,iiPDF_chi) > zero ) then
+               lh_Nc_clipped(i,sample,k) = X_nl_all_levs(i,sample,k,iiPDF_Ncn)
              else
-               lh_Nc_clipped(i,k,sample) = zero
+               lh_Nc_clipped(i,sample,k) = zero
              end if
           else
-             lh_Nc_clipped(i,k,sample) = X_nl_all_levs(i,k,sample,iiPDF_Ncn)
+             lh_Nc_clipped(i,sample,k) = X_nl_all_levs(i,sample,k,iiPDF_Ncn)
           endif ! l_use_Ncn_to_Nc
         
         end do
@@ -1168,7 +1175,7 @@ module latin_hypercube_driver_module
     if ( l_clip_hydromet_samples ) then
       
 #ifdef _OPENACC
-       stop "CLUBB ERROR: Running SILHS with OpenACC requires l_clip_hydromet_samples=false"
+       error stop "CLUBB ERROR: Running SILHS with OpenACC requires l_clip_hydromet_samples=false"
 #endif
        ! Loop over all sample columns.
        do sample = 1, num_samples, 1
@@ -1178,7 +1185,7 @@ module latin_hypercube_driver_module
            ! with the size pdf_dim, into arrays with the size hydromet_dim.
            do hm_idx = 1, hydromet_dim, 1
               hydromet_pts(:,hm_idx) &
-              = X_nl_all_levs(i,:,sample,hydromet2pdf_idx(hm_idx))
+              = X_nl_all_levs(i,sample,:,hydromet2pdf_idx(hm_idx))
            enddo ! hm_idx = 1, hydromet_dim, 1
 
            ! Clip the hydrometeor concentration sample points based on
@@ -1192,7 +1199,7 @@ module latin_hypercube_driver_module
            ! in arrays with the size hydromet_dim, back into arrays with the size
            ! pdf_dim.
            do hm_idx = 1, hydromet_dim, 1
-             X_nl_all_levs(i,:,sample,hydromet2pdf_idx(hm_idx)) &
+             X_nl_all_levs(i,sample,:,hydromet2pdf_idx(hm_idx)) &
               = hydromet_pts_clipped(:,hm_idx)
            enddo ! hm_idx = 1, hydromet_dim, 1
 
@@ -1490,7 +1497,7 @@ module latin_hypercube_driver_module
         end if
 
       else
-        stop "X_u_chi not in correct range in assert_correct_cloud_normal"
+        error stop "X_u_chi not in correct range in assert_correct_cloud_normal"
       end if
 
     end do ! 1..num_samples
@@ -1833,11 +1840,11 @@ module latin_hypercube_driver_module
     real(kind=core_rknd), dimension(ngrdcol,nz), intent(in) :: &
       vert_corr ! Vertical correlation between k points in range [0,1]   [-]
       
-    real(kind = core_rknd), dimension(ngrdcol,nz,num_samples,pdf_dim+d_uniform_extra) :: &
+    real(kind = core_rknd), dimension(ngrdcol,num_samples,nz,pdf_dim+d_uniform_extra) :: &
       rand_pool ! Array of randomly generated numbers
 
     ! ---------------- Output Variables ----------------
-    real(kind=core_rknd),dimension(ngrdcol,nz,num_samples,pdf_dim+d_uniform_extra),intent(inout)::&
+    real(kind=core_rknd),dimension(ngrdcol,num_samples,nz,pdf_dim+d_uniform_extra),intent(inout)::&
       X_u_all_levs ! Uniform distribution of 1 variate at all levels [-]
                    ! The value of this variate at k_lh_start should already be populated
                    ! in this array and will be used to fill in the other levels.
@@ -1858,14 +1865,14 @@ module latin_hypercube_driver_module
         do i = 1, ngrdcol
         
           k_lh_start_i = k_lh_start(i)
-          unbounded_point = X_u_all_levs(i,k_lh_start_i,sample,p)
+          unbounded_point = X_u_all_levs(i,sample,k_lh_start_i,p)
         
           do k = k_lh_start_i, nz-1
            
             half_width = one - vert_corr(i,k+1)
             min_val = unbounded_point - half_width
 
-            offset = two * half_width * rand_pool(i,k+1,sample,p)
+            offset = two * half_width * rand_pool(i,sample,k+1,p)
 
             unbounded_point = min_val + offset
            
@@ -1877,7 +1884,7 @@ module latin_hypercube_driver_module
               unbounded_point = - unbounded_point + two * single_prec_thresh
             end if
            
-            X_u_all_levs(i,k+1,sample,p) = unbounded_point
+            X_u_all_levs(i,sample,k+1,p) = unbounded_point
            
           end do ! k_lh_start..nz-1
         end do ! 1..ngrdcol
@@ -1892,14 +1899,14 @@ module latin_hypercube_driver_module
         do i = 1, ngrdcol
         
           k_lh_start_i = k_lh_start(i)
-          unbounded_point = X_u_all_levs(i,k_lh_start_i,sample,p)
+          unbounded_point = X_u_all_levs(i,sample,k_lh_start_i,p)
 
           do k = k_lh_start_i, 2, -1
 
             half_width = one - vert_corr(i,k-1)
             min_val = unbounded_point - half_width
 
-            offset = two * half_width * rand_pool(i,k-1,sample,p)
+            offset = two * half_width * rand_pool(i,sample,k-1,p)
 
             unbounded_point = min_val + offset
            
@@ -1911,7 +1918,7 @@ module latin_hypercube_driver_module
               unbounded_point = - unbounded_point + two * single_prec_thresh
             end if
            
-            X_u_all_levs(i,k-1,sample,p) = unbounded_point
+            X_u_all_levs(i,sample,k-1,p) = unbounded_point
 
           end do ! k_lh_start..2 decrementing
         end do
@@ -1981,7 +1988,7 @@ module latin_hypercube_driver_module
       stats_lh_zt, &
       stats_lh_sfc
 
-    use math_utilities, only: &
+    use math_utilities, only: & ! Procedure(s)
       compute_sample_mean, & ! Procedure(s)
       compute_sample_variance
 
@@ -2024,13 +2031,13 @@ module latin_hypercube_driver_module
     real( kind = core_rknd ), intent(in), dimension(nz) :: &
       rho_ds_zt  ! Dry, static density (thermo. levs.) [kg/m^3]
 
-    real( kind = core_rknd ), intent(in), dimension(nz,num_samples) :: &
+    real( kind = core_rknd ), intent(in), dimension(num_samples,nz) :: &
       lh_sample_point_weights
 
-    real( kind = core_rknd ), intent(in), dimension(nz,num_samples,pdf_dim) :: &
+    real( kind = core_rknd ), intent(in), dimension(num_samples,nz,pdf_dim) :: &
       X_nl_all_levs ! Sample that is transformed ultimately to normal-lognormal
       
-    real( kind = core_rknd ), dimension(nz,num_samples), intent(in) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz), intent(in) :: &
       lh_rt_clipped,  & ! rt generated from silhs sample points
       lh_thl_clipped, & ! thl generated from silhs sample points
       lh_rc_clipped,  & ! rc generated from silhs sample points
@@ -2038,10 +2045,10 @@ module latin_hypercube_driver_module
       lh_Nc_clipped     ! Nc generated from silhs sample points
 
     ! Local variables
-    real( kind = core_rknd ), dimension(nz,num_samples) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz) :: &
       Ncn_all_points ! Cloud nuclei conc. for all levs.; Nc=Ncn*H(chi) [#/kg]
 
-    real( kind = core_rknd ), dimension(nz,num_samples,hydromet_dim) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz,hydromet_dim) :: &
       hydromet_all_points ! Hydrometeor species    [units vary]
 
     real( kind = core_rknd ), dimension(nz,hydromet_dim) :: &
@@ -2195,8 +2202,8 @@ module latin_hypercube_driver_module
       if ( ilh_cloud_frac > 0 ) then
         lh_cloud_frac(:) = zero
         do sample = 1, num_samples
-          where ( X_nl_all_levs(:,sample,iiPDF_chi) > zero )
-            lh_cloud_frac(:) = lh_cloud_frac(:) + one * lh_sample_point_weights(:,sample)
+          where ( X_nl_all_levs(sample,:,iiPDF_chi) > zero )
+            lh_cloud_frac(:) = lh_cloud_frac(:) + one * lh_sample_point_weights(sample,:)
           end where
         end do
         lh_cloud_frac(:) = lh_cloud_frac(:) / real( num_samples, kind = core_rknd )
@@ -2212,7 +2219,7 @@ module latin_hypercube_driver_module
       if ( ilh_cloud_frac_unweighted > 0 ) then
         lh_cloud_frac(:) = zero
         do sample = 1, num_samples
-          where ( X_nl_all_levs(:,sample,iiPDF_chi) > zero )
+          where ( X_nl_all_levs(sample,:,iiPDF_chi) > zero )
             lh_cloud_frac(:) = lh_cloud_frac(:) + one
           end where
         end do
@@ -2229,7 +2236,7 @@ module latin_hypercube_driver_module
       if ( ilh_chi > 0 ) then
         lh_chi(1:nz) &
         = compute_sample_mean( nz, num_samples, lh_sample_point_weights, &
-                               X_nl_all_levs(1:nz, 1:num_samples, iiPDF_chi) )
+                               X_nl_all_levs(1:num_samples, 1:nz, iiPDF_chi) )
 !        call stat_update_var( ilh_chi, lh_chi, stats_lh_zt )
         do k = 1, nz
            call stat_update_var_pt( ilh_chi, k, lh_chi(k), stats_lh_zt )
@@ -2252,7 +2259,7 @@ module latin_hypercube_driver_module
       if ( ilh_eta > 0 ) then
         lh_eta(1:nz) &
         = compute_sample_mean( nz, num_samples, lh_sample_point_weights, &
-                               X_nl_all_levs(1:nz, 1:num_samples, iiPDF_eta) )
+                               X_nl_all_levs(1:num_samples, 1:nz, iiPDF_eta) )
 
 !        call stat_update_var( ilh_eta, lh_eta, stats_lh_zt )
         do k = 1, nz
@@ -2420,7 +2427,7 @@ module latin_hypercube_driver_module
   end subroutine stats_accumulate_lh
 
   !-----------------------------------------------------------------------
-  subroutine stats_accumulate_uniform_lh( nz, num_samples, l_in_precip_all_levs, &
+  subroutine stats_accumulate_uniform_lh( nz, num_samples, ngrdcol, l_in_precip_all_levs, &
                                           X_mixt_comp_all_levs, X_u_chi_all_levs, pdf_params, &
                                           lh_sample_point_weights, k_lh_start )
 
@@ -2468,27 +2475,28 @@ module latin_hypercube_driver_module
 
     ! Input Variables
     integer, intent(in) :: &
-      nz, &         ! Number of vertical levels
-      num_samples ! Number of SILHS sample points
+      nz,          & ! Number of vertical levels
+      num_samples, & ! Number of SILHS sample points
+      ngrdcol        ! Number of grid columns
 
-    logical, dimension(nz,num_samples), intent(in) :: &
+    logical, dimension(ngrdcol,num_samples,nz), intent(in) :: &
       l_in_precip_all_levs ! Boolean variables indicating whether a sample is in
                            ! precipitation at a given height level
 
-    integer, dimension(nz,num_samples), intent(in) :: &
+    integer, dimension(ngrdcol,num_samples,nz), intent(in) :: &
       X_mixt_comp_all_levs ! Integers indicating which mixture component a
                            ! sample is in at a given height level
 
-    real( kind = core_rknd ), dimension(nz,num_samples), intent(in) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,num_samples,nz), intent(in) :: &
       X_u_chi_all_levs     ! Uniform value of chi
 
     type(pdf_parameter), intent(in) :: &
       pdf_params           ! The official PDF parameters!
 
-    real( kind = core_rknd ), dimension(nz,num_samples), intent(in) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,num_samples,nz), intent(in) :: &
       lh_sample_point_weights ! The weight of each sample
 
-    integer, intent(in) :: &
+    integer, dimension(ngrdcol), intent(in) :: &
       k_lh_start           ! Vertical level for sampling preferentially within       [-]
                            ! cloud
 
@@ -2500,7 +2508,7 @@ module latin_hypercube_driver_module
       lh_precip_frac, &
       lh_mixt_frac
 
-    real( kind = core_rknd ), dimension(nz,num_samples) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz) :: &
       int_in_precip, & ! '1' for samples in precipitation, '0' otherwise
       int_mixt_comp    ! '1' for samples in the first PDF component, '0' otherwise
 
@@ -2520,140 +2528,144 @@ module latin_hypercube_driver_module
     integer, dimension(num_importance_categories) :: &
       category_counts  ! Count of number of samples in each importance category
 
-    integer :: k, isample, icategory
+    integer :: k, isample, icategory, i
   !-----------------------------------------------------------------------
 
     !----- Begin Code -----
+    
+    do i = 1, ngrdcol
 
-    ! Switch back to using stat_update_var once the code is generalized
-    ! to pass in the number of vertical levels.
+      ! Switch back to using stat_update_var once the code is generalized
+      ! to pass in the number of vertical levels.
 
-    ! Estimate of lh_precip_frac
-    if ( ilh_precip_frac > 0 ) then
-      where ( l_in_precip_all_levs )
-        int_in_precip = 1.0_core_rknd
-      else where
-        int_in_precip = 0.0_core_rknd
-      end where
-      lh_precip_frac(:) = compute_sample_mean( nz, num_samples, lh_sample_point_weights, &
-                                               int_in_precip )
-!      call stat_update_var( ilh_precip_frac, lh_precip_frac, stats_lh_zt )
-      do k = 1, nz
-         call stat_update_var_pt( ilh_precip_frac, k, lh_precip_frac(k), &
-                                  stats_lh_zt )
-      enddo ! k = 1, nz
-    end if
+      ! Estimate of lh_precip_frac
+      if ( ilh_precip_frac > 0 ) then
+        where ( l_in_precip_all_levs(i,:,:) )
+          int_in_precip = 1.0_core_rknd
+        else where
+          int_in_precip = 0.0_core_rknd
+        end where
+        lh_precip_frac(:) = compute_sample_mean( nz, num_samples, lh_sample_point_weights(i,:,:), &
+                                                 int_in_precip )
+  !      call stat_update_var( ilh_precip_frac, lh_precip_frac, stats_lh_zt )
+        do k = 1, nz
+           call stat_update_var_pt( ilh_precip_frac, k, lh_precip_frac(k), &
+                                    stats_lh_zt )
+        enddo ! k = 1, nz
+      end if
 
-    ! Unweighted estimate of lh_precip_frac
-    if ( ilh_precip_frac_unweighted > 0 ) then
-      where ( l_in_precip_all_levs )
-        int_in_precip = 1.0_core_rknd
-      else where
-        int_in_precip = 0.0_core_rknd
-      end where
-      one_weights = one
-      lh_precip_frac(:) = compute_sample_mean( nz, num_samples, one_weights, &
-                                               int_in_precip )
-!      call stat_update_var( ilh_precip_frac_unweighted, lh_precip_frac, stats_lh_zt )
-      do k = 1, nz
-         call stat_update_var_pt( ilh_precip_frac_unweighted, k, &
-                                  lh_precip_frac(k), stats_lh_zt )
-      enddo ! k = 1, nz
-    end if
+      ! Unweighted estimate of lh_precip_frac
+      if ( ilh_precip_frac_unweighted > 0 ) then
+        where ( l_in_precip_all_levs(i,:,:) )
+          int_in_precip = 1.0_core_rknd
+        else where
+          int_in_precip = 0.0_core_rknd
+        end where
+        one_weights = one
+        lh_precip_frac(:) = compute_sample_mean( nz, num_samples, one_weights, &
+                                                 int_in_precip )
+  !      call stat_update_var( ilh_precip_frac_unweighted, lh_precip_frac, stats_lh_zt )
+        do k = 1, nz
+           call stat_update_var_pt( ilh_precip_frac_unweighted, k, &
+                                    lh_precip_frac(k), stats_lh_zt )
+        enddo ! k = 1, nz
+      end if
 
-    ! Estimate of lh_mixt_frac
-    if ( ilh_mixt_frac > 0 ) then
-      where ( X_mixt_comp_all_levs == 1 )
-        int_mixt_comp = 1.0_core_rknd
-      else where
-        int_mixt_comp = 0.0_core_rknd
-      end where
-      lh_mixt_frac(:) = compute_sample_mean( nz, num_samples, lh_sample_point_weights, &
-                                             int_mixt_comp )
-!      call stat_update_var( ilh_mixt_frac, lh_mixt_frac, stats_lh_zt )
-      do k = 1, nz
-         call stat_update_var_pt( ilh_mixt_frac, k, lh_mixt_frac(k), &
-                                  stats_lh_zt )
-      enddo ! k = 1, nz
-    end if
+      ! Estimate of lh_mixt_frac
+      if ( ilh_mixt_frac > 0 ) then
+        where ( X_mixt_comp_all_levs(i,:,:) == 1 )
+          int_mixt_comp = 1.0_core_rknd
+        else where
+          int_mixt_comp = 0.0_core_rknd
+        end where
+        lh_mixt_frac(:) = compute_sample_mean( nz, num_samples, lh_sample_point_weights(i,:,:), &
+                                               int_mixt_comp )
+  !      call stat_update_var( ilh_mixt_frac, lh_mixt_frac, stats_lh_zt )
+        do k = 1, nz
+           call stat_update_var_pt( ilh_mixt_frac, k, lh_mixt_frac(k), &
+                                    stats_lh_zt )
+        enddo ! k = 1, nz
+      end if
 
-    ! Unweighted estimate of lh_mixt_frac
-    if ( ilh_mixt_frac_unweighted > 0 ) then
-      where ( X_mixt_comp_all_levs == 1 )
-        int_mixt_comp = 1.0_core_rknd
-      else where
-        int_mixt_comp = 0.0_core_rknd
-      end where
-      one_weights = one
-      lh_mixt_frac(:) = compute_sample_mean( nz, num_samples, one_weights, &
-                                             int_mixt_comp )
-!      call stat_update_var( ilh_mixt_frac_unweighted, lh_mixt_frac, stats_lh_zt )
-      do k = 1, nz
-         call stat_update_var_pt( ilh_mixt_frac_unweighted, k, &
-                                  lh_mixt_frac(k), stats_lh_zt )
-      enddo ! k = 1, nz
-    end if
+      ! Unweighted estimate of lh_mixt_frac
+      if ( ilh_mixt_frac_unweighted > 0 ) then
+        where ( X_mixt_comp_all_levs(i,:,:) == 1 )
+          int_mixt_comp = 1.0_core_rknd
+        else where
+          int_mixt_comp = 0.0_core_rknd
+        end where
+        one_weights = one
+        lh_mixt_frac(:) = compute_sample_mean( nz, num_samples, one_weights, &
+                                               int_mixt_comp )
+  !      call stat_update_var( ilh_mixt_frac_unweighted, lh_mixt_frac, stats_lh_zt )
+        do k = 1, nz
+           call stat_update_var_pt( ilh_mixt_frac_unweighted, k, &
+                                    lh_mixt_frac(k), stats_lh_zt )
+        enddo ! k = 1, nz
+      end if
 
-    ! k_lh_start is an integer, so it would be more appropriate to sample it
-    ! as an integer, but as far as I can tell our current sampling
-    ! infrastructure mainly supports sampling real numbers.
-    call stat_update_var_pt( ik_lh_start, 1, real( k_lh_start, kind=core_rknd ), stats_lh_sfc )
+      ! k_lh_start is an integer, so it would be more appropriate to sample it
+      ! as an integer, but as far as I can tell our current sampling
+      ! infrastructure mainly supports sampling real numbers.
+      call stat_update_var_pt( ik_lh_start, 1, real( k_lh_start(i), kind=core_rknd ), stats_lh_sfc )
 
-    if ( allocated( ilh_samp_frac_category ) ) then
-      if ( ilh_samp_frac_category(1) > 0 ) then
+      if ( allocated( ilh_samp_frac_category ) ) then
+        if ( ilh_samp_frac_category(1) > 0 ) then
 
-        importance_categories = define_importance_categories( )
+          importance_categories = define_importance_categories( )
 
-        do k=1, nz
-          category_counts(:) = 0
+          do k=1, nz
+            category_counts(:) = 0
 
-          do isample=1, num_samples
+            do isample=1, num_samples
 
-            if ( X_mixt_comp_all_levs(k,isample) == 1 ) then
-              l_in_comp_1 = .true.
-              cloud_frac_i = pdf_params%cloud_frac_1(k)
-            else
-              l_in_comp_1 = .false.
-              cloud_frac_i = pdf_params%cloud_frac_2(k)
-            end if
+              if ( X_mixt_comp_all_levs(i,isample,k) == 1 ) then
+                l_in_comp_1 = .true.
+                cloud_frac_i = pdf_params%cloud_frac_1(i,k)
+              else
+                l_in_comp_1 = .false.
+                cloud_frac_i = pdf_params%cloud_frac_2(i,k)
+              end if
 
-            l_in_cloud = X_u_chi_all_levs(k,isample) > (one - cloud_frac_i)
+              l_in_cloud = X_u_chi_all_levs(i,isample,k) > (one - cloud_frac_i)
+
+              do icategory=1, num_importance_categories
+                if ( (l_in_cloud .eqv. importance_categories(icategory)%l_in_cloud) .and. &
+                     (l_in_precip_all_levs(i,isample,k) .eqv. importance_categories(icategory)%&
+                                                           l_in_precip) .and. &
+                     (l_in_comp_1 .eqv. importance_categories(icategory)%l_in_component_1) ) then
+
+                  category_counts(icategory) = category_counts(icategory) + 1
+                  exit
+
+                end if
+              end do
+
+            end do ! isample=1, num_samples
 
             do icategory=1, num_importance_categories
-              if ( (l_in_cloud .eqv. importance_categories(icategory)%l_in_cloud) .and. &
-                   (l_in_precip_all_levs(k,isample) .eqv. importance_categories(icategory)%&
-                                                         l_in_precip) .and. &
-                   (l_in_comp_1 .eqv. importance_categories(icategory)%l_in_component_1) ) then
-
-                category_counts(icategory) = category_counts(icategory) + 1
-                exit
-
-              end if
+              lh_samp_frac(k,icategory) = real( category_counts(icategory), kind=core_rknd ) / &
+                                          real( num_samples, kind=core_rknd )
             end do
 
-          end do ! isample=1, num_samples
+          end do ! k=2, nz
+
+          ! Microphysics is not run at lower level
+          lh_samp_frac(1,:) = zero
 
           do icategory=1, num_importance_categories
-            lh_samp_frac(k,icategory) = real( category_counts(icategory), kind=core_rknd ) / &
-                                        real( num_samples, kind=core_rknd )
-          end do
+  !          call stat_update_var( ilh_samp_frac_category(icategory), lh_samp_frac(:,icategory), &
+  !                                stats_lh_zt )
+            do k = 1, nz
+               call stat_update_var_pt( ilh_samp_frac_category(icategory), k, &
+                                        lh_samp_frac(k,icategory), stats_lh_zt )
+            enddo ! k = 1, nz
+          end do ! icategory=1, num_importance_categories
 
-        end do ! k=2, nz
-
-        ! Microphysics is not run at lower level
-        lh_samp_frac(1,:) = zero
-
-        do icategory=1, num_importance_categories
-!          call stat_update_var( ilh_samp_frac_category(icategory), lh_samp_frac(:,icategory), &
-!                                stats_lh_zt )
-          do k = 1, nz
-             call stat_update_var_pt( ilh_samp_frac_category(icategory), k, &
-                                      lh_samp_frac(k,icategory), stats_lh_zt )
-          enddo ! k = 1, nz
-        end do ! icategory=1, num_importance_categories
-
-      end if ! ilh_samp_frac_category(1) > 0
-    end if ! allocated( ilh_samp_frac_category )
+        end if ! ilh_samp_frac_category(1) > 0
+      end if ! allocated( ilh_samp_frac_category )
+      
+    end do
 
     return
   end subroutine stats_accumulate_uniform_lh
@@ -2703,16 +2715,16 @@ module latin_hypercube_driver_module
       pdf_dim,   & ! Number of variates
       num_samples    ! Number of calls to microphysics
 
-    real( kind = core_rknd ), dimension(nz,num_samples,pdf_dim), intent(in) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz,pdf_dim), intent(in) :: &
       X_nl_all_levs ! Sample that is transformed ultimately to normal-lognormal
 
     real( kind = core_rknd ), dimension(nz,hydromet_dim), intent(in) :: &
       hydromet ! Hydrometeor species    [units vary]
 
-    real( kind = core_rknd ), dimension(nz,num_samples,hydromet_dim), intent(out) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz,hydromet_dim), intent(out) :: &
       hydromet_all_points ! Hydrometeor species    [units vary]
 
-    real( kind = core_rknd ), dimension(nz,num_samples), intent(out) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz), intent(out) :: &
       Ncn_all_points    ! Cloud nuclei conc. (simplified); Nc=Ncn*H(chi)  [#/kg]
 
     integer :: sample, ivar
@@ -2722,55 +2734,55 @@ module latin_hypercube_driver_module
       do ivar = 1, hydromet_dim, 1
         if ( ivar == iirr .and. iiPDF_rr > 0 ) then
           ! Use a sampled value of rain water mixing ratio
-          hydromet_all_points(:,sample,ivar) = &
-            real( X_nl_all_levs(:,sample,iiPDF_rr), kind = core_rknd )
+          hydromet_all_points(sample,:,ivar) = &
+            real( X_nl_all_levs(sample,:,iiPDF_rr), kind = core_rknd )
 
         else if ( ivar == iirs .and. iiPDF_rs > 0 ) then
           ! Use a sampled value of rain water mixing ratio
-          hydromet_all_points(:,sample,ivar) = &
-            real( X_nl_all_levs(:,sample,iiPDF_rs), kind = core_rknd )
+          hydromet_all_points(sample,:,ivar) = &
+            real( X_nl_all_levs(sample,:,iiPDF_rs), kind = core_rknd )
 
         else if ( ivar == iiri .and. iiPDF_ri > 0 ) then
           ! Use a sampled value of rain water mixing ratio
-          hydromet_all_points(:,sample,ivar) = &
-            real( X_nl_all_levs(:,sample,iiPDF_ri), kind = core_rknd )
+          hydromet_all_points(sample,:,ivar) = &
+            real( X_nl_all_levs(sample,:,iiPDF_ri), kind = core_rknd )
 
         else if ( ivar == iirg .and. iiPDF_rg > 0 ) then
           ! Use a sampled value of rain water mixing ratio
-          hydromet_all_points(:,sample,ivar) = &
-            real( X_nl_all_levs(:,sample,iiPDF_rg), kind = core_rknd )
+          hydromet_all_points(sample,:,ivar) = &
+            real( X_nl_all_levs(sample,:,iiPDF_rg), kind = core_rknd )
 
         else if ( ivar == iiNr .and. iiPDF_Nr > 0 ) then
           ! Use a sampled value of rain droplet number concentration
-          hydromet_all_points(:,sample,ivar) = &
-            real( X_nl_all_levs(:,sample,iiPDF_Nr), kind = core_rknd )
+          hydromet_all_points(sample,:,ivar) = &
+            real( X_nl_all_levs(sample,:,iiPDF_Nr), kind = core_rknd )
 
         else if ( ivar == iiNs .and. iiPDF_Ns > 0 ) then
           ! Use a sampled value of rain droplet number concentration
-          hydromet_all_points(:,sample,ivar) = &
-            real( X_nl_all_levs(:,sample,iiPDF_Ns), kind = core_rknd )
+          hydromet_all_points(sample,:,ivar) = &
+            real( X_nl_all_levs(sample,:,iiPDF_Ns), kind = core_rknd )
 
         else if ( ivar == iiNg .and. iiPDF_Ng > 0 ) then
           ! Use a sampled value of rain droplet number concentration
-          hydromet_all_points(:,sample,ivar) = &
-            real( X_nl_all_levs(:,sample,iiPDF_Ng), kind = core_rknd )
+          hydromet_all_points(sample,:,ivar) = &
+            real( X_nl_all_levs(sample,:,iiPDF_Ng), kind = core_rknd )
 
         else if ( ivar == iiNi .and. iiPDF_Ni > 0 ) then
           ! Use a sampled value of rain droplet number concentration
-          hydromet_all_points(:,sample,ivar) = &
-            real( X_nl_all_levs(:,sample,iiPDF_Ni), kind = core_rknd )
+          hydromet_all_points(sample,:,ivar) = &
+            real( X_nl_all_levs(sample,:,iiPDF_Ni), kind = core_rknd )
 
         else ! Use the mean field, rather than a sample point
           ! This is the case for hail and graupel in the Morrison microphysics
           ! currently -dschanen 23 March 2010
-          hydromet_all_points(:,sample,ivar) = hydromet(:,ivar)
+          hydromet_all_points(sample,:,ivar) = hydromet(:,ivar)
 
         end if
       end do ! 1..hydromet_dim
       ! Copy Ncn into Ncn all points
       if ( iiPDF_Ncn > 0 ) then
-        Ncn_all_points(:,sample) = &
-          real( X_nl_all_levs(:,sample,iiPDF_Ncn), kind=core_rknd )
+        Ncn_all_points(sample,:) = &
+          real( X_nl_all_levs(sample,:,iiPDF_Ncn), kind=core_rknd )
       end if
     end do ! 1..num_samples
 

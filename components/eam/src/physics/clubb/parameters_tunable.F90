@@ -56,7 +56,7 @@ module parameters_tunable
     C2b         = 1.300000_core_rknd,    & ! High Skewness in C2 Skw. Function   [-]
     C2c         = 5.000000_core_rknd,    & ! Degree of Slope of C2 Skw. Function [-]
     C4          = 2.000000_core_rknd,    & ! Used only when l_tke_aniso is true  [-]
-    C_uu_shr    = 0.300000_core_rknd,    & ! Coef. in pressure terms (shear): w'^2 eqn   [-]
+    C_uu_shr    = 0.400000_core_rknd,    & ! Coef. in pressure terms (shear): w'^2 eqn   [-]
     C_uu_buoy   = 0.300000_core_rknd,    & ! Coef. in pressure terms (buoyancy): w'^2 eqn [-]
     C6rt        = 2.000000_core_rknd,    & ! Low Skewness in C6rt Skw. Function  [-]
     C6rtb       = 2.000000_core_rknd,    & ! High Skewness in C6rt Skw. Function [-]
@@ -76,13 +76,14 @@ module parameters_tunable
     C12         = 1.000000_core_rknd,    & ! Constant in w'^3 Crank-Nich. diff.  [-]
     C13         = 0.100000_core_rknd,    & ! Not currently used in model         [-]
     C14         = 1.000000_core_rknd,    & ! Constant for u'^2 and v'^2 terms    [-]
-    C_wp3_turb  = 0.000000_core_rknd,    & ! Coefficient for the wp3_pr_turb term  [-]
+    C_wp3_pr_turb = 0.000000_core_rknd,  & ! Coefficient for the wp3_pr_turb term [-]
+    C_wp3_pr_dfsn = 0.000000_core_rknd,  & ! Coefficient for the wp3_pr_dfsn term [-]
     C_wp2_splat = 2.000000_core_rknd       ! Coefficient for gustiness near ground [-]
 !$omp threadprivate(C1, C1b, C1c, C2, C2b, C2c, &
 !$omp   C2rt, C2thl, C2rtthl, C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, &
 !$omp   C6thl, C6thlb, C6thlc, &
 !$omp   C7, C7b, C7c, C8, C8b, C10, C11, C11b, C11c, C12, &
-!$omp   C13, C14, C_wp3_turb, C_wp2_splat)
+!$omp   C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat)
 
   real( kind = core_rknd ), public ::    &
     C6rt_Lscale0  = 14.0_core_rknd,      & ! Damp C6rt as a fnct. of Lscale  [-]
@@ -286,9 +287,9 @@ module parameters_tunable
 !$omp threadprivate( thlp2_rad_coef, thlp2_rad_cloud_frac_thresh )
 
   real( kind = core_rknd ), public :: &
-    up2_vp2_factor = 4.0_core_rknd               ! Coefficients of up2 and vp2    [-]
+    up2_sfc_coef = 4.0_core_rknd               ! Coefficients of up2 and vp2    [-]
 
-!$omp threadprivate( up2_vp2_factor )
+!$omp threadprivate( up2_sfc_coef )
 
   real( kind = core_rknd ), public :: &
     xp3_coef_base  = 0.25_core_rknd, & ! "Base" value of xp3_coef in simple eqn
@@ -317,7 +318,7 @@ module parameters_tunable
     C2rt, C2thl, C2rtthl, C4, C_uu_shr, C_uu_buoy, & 
     C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, & 
     C7, C7b, C7c, C8, C8b, C10, C11, C11b, C11c, & 
-    C12, C13, C14, C_wp3_turb, C_wp2_splat, & 
+    C12, C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, & 
     C6rt_Lscale0, C6thl_Lscale0, &
     C7_Lscale0, wpxp_L_thresh, c_K, c_K1, nu1, c_K2, nu2, & 
     c_K6, nu6, c_K8, nu8, c_K9, nu9, nu10, &
@@ -328,7 +329,7 @@ module parameters_tunable
     omicron, zeta_vrnce_rat, upsilon_precip_frac_rat, &
     lambda0_stability_coef, mult_coef, taumin, taumax, mu, Lscale_mu_coef, &
     Lscale_pert_coef, alpha_corr, Skw_denom_coef, c_K10, c_K10h, &
-    thlp2_rad_coef, thlp2_rad_cloud_frac_thresh, up2_vp2_factor, &
+    thlp2_rad_coef, thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
     Skw_max_mag, xp3_coef_base, xp3_coef_slope, altitude_threshold, &
     rtp2_clip_coef, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
     C_invrs_tau_shear, C_invrs_tau_N2, C_invrs_tau_N2_wp2, &
@@ -363,8 +364,8 @@ module parameters_tunable
        "C10                         ", "C11                         ", &
        "C11b                        ", "C11c                        ", &
        "C12                         ", "C13                         ", &
-       "C14                         ", "C_wp3_turb                  ", &
-       "C_wp2_splat                 ",  &
+       "C14                         ", "C_wp3_pr_turb               ", &
+       "C_wp3_pr_dfsn               ", "C_wp2_splat                 ", &
        "C6rt_Lscale0                ", "C6thl_Lscale0               ", &
        "C7_Lscale0                  ", "wpxp_L_thresh               ", &
        "c_K                         ", "c_K1                        ", &
@@ -387,7 +388,7 @@ module parameters_tunable
        "Lscale_pert_coef            ", "alpha_corr                  ", &
        "Skw_denom_coef              ", "c_K10                       ", &
        "c_K10h                      ", "thlp2_rad_coef              ", &
-       "thlp2_rad_cloud_frac_thresh ", "up2_vp2_factor              ", &
+       "thlp2_rad_cloud_frac_thresh ", "up2_sfc_coef                ", &
        "Skw_max_mag                 ", "C_invrs_tau_bkgnd           ", &
        "C_invrs_tau_sfc             ", "C_invrs_tau_shear           ", &
        "C_invrs_tau_N2              ", "C_invrs_tau_N2_wp2          ", &
@@ -434,7 +435,8 @@ module parameters_tunable
     clubb_C11b,                         &
     clubb_C11c,                         &
     clubb_C14,                          &
-    clubb_C_wp3_turb,                   &
+    clubb_C_wp3_pr_turb,                &
+    clubb_C_wp3_pr_dfsn,                &
     clubb_beta,                         &
     clubb_gamma_coef,                   &
     clubb_gamma_coefb,                  &
@@ -456,7 +458,7 @@ module parameters_tunable
     clubb_lmin_coef,                    &
     clubb_mult_coef,                    &
     clubb_Skw_denom_coef,               &
-    clubb_up2_vp2_factor,               &
+    clubb_up2_sfc_coef,               &
     clubb_Skw_max_mag,                  &
     clubb_C_invrs_tau_bkgnd,            &
     clubb_C_invrs_tau_sfc,              &
@@ -483,13 +485,13 @@ module parameters_tunable
 !$omp   clubb_C_uu_shr, clubb_C_uu_buoy, clubb_C6rt, clubb_C6rtb, clubb_C6rtc, &
 !$omp   clubb_C6thl, clubb_C6thlb, clubb_C6thlc, &
 !$omp   clubb_C7, clubb_C7b, clubb_C8, clubb_C8b, clubb_C11, clubb_C11b, &
-!$omp   clubb_C11c, clubb_C14, clubb_C_wp3_turb, &
+!$omp   clubb_C11c, clubb_C14, clubb_C_wp3_pr_turb, clubb_C_wp3_pr_dfsn, &
 !$omp   clubb_beta, clubb_gamma_coef, clubb_gamma_coefb, clubb_gamma_coefc, &
 !$omp   clubb_pdf_component_stdev_factor_w, clubb_mu, clubb_c_K1, clubb_nu1, &
 !$omp   clubb_c_K2, clubb_nu2, clubb_c_K8, clubb_nu8, clubb_c_K9, clubb_nu9, &
 !$omp   clubb_c_K10, clubb_c_K10h, clubb_c_K_hmb, clubb_wpxp_L_thresh, &
 !$omp   clubb_lmin_coef, clubb_mult_coef, clubb_Skw_denom_coef, &
-!$omp   clubb_up2_vp2_factor, clubb_Skw_max_mag, clubb_C_invrs_tau_bkgnd, &
+!$omp   clubb_up2_sfc_coef, clubb_Skw_max_mag, clubb_C_invrs_tau_bkgnd, &
 !$omp   clubb_C_invrs_tau_sfc, clubb_C_invrs_tau_shear, clubb_C_invrs_tau_N2, &
 !$omp   clubb_C_invrs_tau_N2_wp2, clubb_C_invrs_tau_N2_xp2, &
 !$omp   clubb_C_invrs_tau_N2_wpxp, clubb_C_invrs_tau_N2_clear_wp3, &
@@ -610,7 +612,7 @@ module parameters_tunable
                C1, C1b, C1c, C2, C2b, C2c, C2rt, C2thl, C2rtthl, &
                C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, &
                C7, C7b, C7c, C8, C8b, C10, &
-               C11, C11b, C11c, C12, C13, C14, C_wp3_turb, C_wp2_splat, &
+               C11, C11b, C11c, C12, C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
                C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
                c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8, &
                c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
@@ -621,7 +623,7 @@ module parameters_tunable
                lambda0_stability_coef, mult_coef, taumin, taumax, &
                Lscale_mu_coef, Lscale_pert_coef, alpha_corr, &
                Skw_denom_coef, c_K10, c_K10h, thlp2_rad_coef, &
-               thlp2_rad_cloud_frac_thresh, up2_vp2_factor, &
+               thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
                Skw_max_mag, xp3_coef_base, xp3_coef_slope, &
                altitude_threshold, rtp2_clip_coef, C_invrs_tau_bkgnd, &
                C_invrs_tau_sfc, C_invrs_tau_shear, C_invrs_tau_N2, &
@@ -992,7 +994,7 @@ module parameters_tunable
         ! Eric Raut added to remove compiler warning. (Obviously, this value is not used)
         avg_deltaz = 0.0_core_rknd
         write(fstderr,*) "Invalid grid_type:", grid_type
-        stop "Fatal error"
+        error stop "Fatal error"
 
       end if ! grid_type
 
@@ -1094,7 +1096,8 @@ module parameters_tunable
     clubb_C11b,                         &
     clubb_C11c,                         &
     clubb_C14,                          &
-    clubb_C_wp3_turb,                   &
+    clubb_C_wp3_pr_turb,                &
+    clubb_C_wp3_pr_dfsn,                &
     clubb_beta,                         &
     clubb_gamma_coef,                   &
     clubb_gamma_coefb,                  &
@@ -1116,7 +1119,7 @@ module parameters_tunable
     clubb_lmin_coef,                    &
     clubb_mult_coef,                    &
     clubb_Skw_denom_coef,               &
-    clubb_up2_vp2_factor,               &
+    clubb_up2_sfc_coef,               &
     clubb_Skw_max_mag,                  &
     clubb_C_invrs_tau_bkgnd,            &
     clubb_C_invrs_tau_sfc,              &
@@ -1169,7 +1172,8 @@ module parameters_tunable
     clubb_C11b = init_value
     clubb_C11c = init_value
     clubb_C14 = init_value
-    clubb_C_wp3_turb = init_value
+    clubb_C_wp3_pr_turb = init_value
+    clubb_C_wp3_pr_dfsn = init_value
     clubb_beta = init_value
     clubb_gamma_coef = init_value
     clubb_gamma_coefb = init_value
@@ -1191,7 +1195,7 @@ module parameters_tunable
     clubb_lmin_coef = init_value
     clubb_mult_coef = init_value
     clubb_Skw_denom_coef = init_value
-    clubb_up2_vp2_factor = init_value
+    clubb_up2_sfc_coef = init_value
     clubb_Skw_max_mag = init_value
     clubb_C_invrs_tau_bkgnd = init_value
     clubb_C_invrs_tau_sfc = init_value
@@ -1251,7 +1255,8 @@ module parameters_tunable
    call mpibcast(clubb_C11b,       1, mpir8,  0, mpicom)
    call mpibcast(clubb_C11c,       1, mpir8,  0, mpicom)
    call mpibcast(clubb_C14,        1, mpir8,  0, mpicom)
-   call mpibcast(clubb_C_wp3_turb, 1, mpir8,  0, mpicom)
+   call mpibcast(clubb_C_wp3_pr_turb, 1, mpir8,  0, mpicom)
+   call mpibcast(clubb_C_wp3_pr_dfsn, 1, mpir8,  0, mpicom)
    call mpibcast(clubb_beta,       1, mpir8,  0, mpicom)
    call mpibcast(clubb_gamma_coef, 1, mpir8,  0, mpicom)
    call mpibcast(clubb_gamma_coefb,1, mpir8,  0, mpicom)
@@ -1273,7 +1278,7 @@ module parameters_tunable
    call mpibcast(clubb_lmin_coef,  1, mpir8,  0, mpicom)
    call mpibcast(clubb_mult_coef,  1, mpir8,  0, mpicom)
    call mpibcast(clubb_Skw_denom_coef, 1, mpir8,  0, mpicom)
-   call mpibcast(clubb_up2_vp2_factor, 1, mpir8,  0, mpicom)
+   call mpibcast(clubb_up2_sfc_coef, 1, mpir8,  0, mpicom)
    call mpibcast(clubb_Skw_max_mag, 1, mpir8,  0, mpicom)
    call mpibcast(clubb_C_invrs_tau_bkgnd, 1, mpir8,  0, mpicom)
    call mpibcast(clubb_C_invrs_tau_sfc, 1, mpir8,  0, mpicom)
@@ -1380,7 +1385,8 @@ module parameters_tunable
     if (clubb_C11b /= init_value) C11b = clubb_C11b
     if (clubb_C11c /= init_value) C11c = clubb_C11c
     if (clubb_C14 /= init_value) C14 = clubb_C14
-    if (clubb_C_wp3_turb /= init_value) C_wp3_turb = clubb_C_wp3_turb
+    if (clubb_C_wp3_pr_turb /= init_value) C_wp3_pr_turb = clubb_C_wp3_pr_turb
+    if (clubb_C_wp3_pr_dfsn /= init_value) C_wp3_pr_dfsn = clubb_C_wp3_pr_dfsn
     if (clubb_beta /= init_value) beta = clubb_beta
     ! if clubb_gamma_coefb not specified, continue to use gamma_coefb=gamma_coef
     ! to preserve existing compsets that have assumed so  and only vary gamma_coef
@@ -1410,8 +1416,8 @@ module parameters_tunable
     if (clubb_mult_coef /= init_value) mult_coef = clubb_mult_coef
     if (clubb_Skw_denom_coef /= init_value) &
        Skw_denom_coef = clubb_Skw_denom_coef
-    if (clubb_up2_vp2_factor /= init_value) &
-       up2_vp2_factor = clubb_up2_vp2_factor
+    if (clubb_up2_sfc_coef /= init_value) &
+       up2_sfc_coef = clubb_up2_sfc_coef
     if (clubb_Skw_max_mag /= init_value) &
        Skw_max_mag = clubb_Skw_max_mag
     if (clubb_C_invrs_tau_bkgnd /= init_value) &
@@ -1455,7 +1461,7 @@ module parameters_tunable
              ( C1, C1b, C1c, C2, C2b, C2c, C2rt, C2thl, C2rtthl, &
                C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, &
                C7, C7b, C7c, C8, C8b, C10, &
-               C11, C11b, C11c, C12, C13, C14, C_wp3_turb, C_wp2_splat, &
+               C11, C11b, C11c, C12, C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
                C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
                c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8, &
                c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
@@ -1466,7 +1472,7 @@ module parameters_tunable
                lambda0_stability_coef, mult_coef, taumin, taumax, &
                Lscale_mu_coef, Lscale_pert_coef, alpha_corr, &
                Skw_denom_coef, c_K10, c_K10h, thlp2_rad_coef, &
-               thlp2_rad_cloud_frac_thresh, up2_vp2_factor, &
+               thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
                Skw_max_mag, xp3_coef_base, xp3_coef_slope, &
                altitude_threshold, rtp2_clip_coef, C_invrs_tau_bkgnd, &
                C_invrs_tau_sfc, C_invrs_tau_shear, C_invrs_tau_N2, &
@@ -1485,7 +1491,7 @@ module parameters_tunable
       end if
     end do
 
-    if ( l_error ) stop "Fatal error."
+    if ( l_error ) error stop "Fatal error."
 
     return
 
@@ -1539,7 +1545,7 @@ module parameters_tunable
       C2rt, C2thl, C2rtthl, C4, C_uu_shr, C_uu_buoy, & 
       C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, & 
       C7, C7b, C7c, C8, C8b, C10, C11, C11b, C11c, & 
-      C12, C13, C14, C_wp3_turb, C_wp2_splat, &
+      C12, C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
       C6rt_Lscale0, C6thl_Lscale0, &
       C7_Lscale0, wpxp_L_thresh, c_K, c_K1, nu1, c_K2, nu2, & 
       c_K6, nu6, c_K8, nu8, c_K9, nu9, nu10, &
@@ -1550,7 +1556,7 @@ module parameters_tunable
       omicron, zeta_vrnce_rat, upsilon_precip_frac_rat, &
       lambda0_stability_coef, mult_coef, taumin, taumax, mu, Lscale_mu_coef, &
       Lscale_pert_coef, alpha_corr, Skw_denom_coef, c_K10, c_K10h, &
-      thlp2_rad_coef, thlp2_rad_cloud_frac_thresh, up2_vp2_factor, &
+      thlp2_rad_coef, thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
       Skw_max_mag, xp3_coef_base, xp3_coef_slope, altitude_threshold, &
       rtp2_clip_coef, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
       C_invrs_tau_shear, C_invrs_tau_N2, C_invrs_tau_N2_wp2, &
@@ -1573,7 +1579,7 @@ module parameters_tunable
              ( C1, C1b, C1c, C2, C2b, C2c, C2rt, C2thl, C2rtthl, &
                C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, &
                C7, C7b, C7c, C8, C8b, C10, &
-               C11, C11b, C11c, C12, C13, C14, C_wp3_turb, C_wp2_splat, &
+               C11, C11b, C11c, C12, C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
                C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
                c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8, &
                c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
@@ -1584,7 +1590,7 @@ module parameters_tunable
                lambda0_stability_coef, mult_coef, taumin, taumax, &
                Lscale_mu_coef, Lscale_pert_coef, alpha_corr, &
                Skw_denom_coef, c_K10, c_K10h, thlp2_rad_coef, &
-               thlp2_rad_cloud_frac_thresh, up2_vp2_factor, &
+               thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
                Skw_max_mag, xp3_coef_base, xp3_coef_slope, &
                altitude_threshold, rtp2_clip_coef, C_invrs_tau_bkgnd, &
                C_invrs_tau_sfc, C_invrs_tau_shear, C_invrs_tau_N2, &
@@ -1604,7 +1610,7 @@ module parameters_tunable
       end if
     end do
 
-    if ( l_error ) stop "Fatal error."
+    if ( l_error ) error stop "Fatal error."
 
     ! Initialize to zero
     nindex(1:nparams) = 0
@@ -1629,7 +1635,7 @@ module parameters_tunable
              ( C1, C1b, C1c, C2, C2b, C2c, C2rt, C2thl, C2rtthl, &
                C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, &
                C7, C7b, C7c, C8, C8b, C10, &
-               C11, C11b, C11c, C12, C13, C14, C_wp3_turb, C_wp2_splat, &
+               C11, C11b, C11c, C12, C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
                C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
                c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8, &
                c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
@@ -1640,7 +1646,7 @@ module parameters_tunable
                lambda0_stability_coef, mult_coef, taumin, taumax, &
                Lscale_mu_coef, Lscale_pert_coef, alpha_corr, &
                Skw_denom_coef, c_K10, c_K10h, thlp2_rad_coef, &
-               thlp2_rad_cloud_frac_thresh, up2_vp2_factor, &
+               thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
                Skw_max_mag, xp3_coef_base, xp3_coef_slope, &
                altitude_threshold, rtp2_clip_coef, C_invrs_tau_bkgnd, &
                C_invrs_tau_sfc, C_invrs_tau_shear, C_invrs_tau_N2, &
@@ -1689,7 +1695,8 @@ module parameters_tunable
       iC12, & 
       iC13, & 
       iC14, &
-      iC_wp3_turb, &
+      iC_wp3_pr_turb, &
+      iC_wp3_pr_dfsn, &
       iC_wp2_splat
 
     use parameter_indices, only: &
@@ -1740,7 +1747,7 @@ module parameters_tunable
       ic_K10h, &
       ithlp2_rad_coef, &
       ithlp2_rad_cloud_frac_thresh, &
-      iup2_vp2_factor, &
+      iup2_sfc_coef, &
       iSkw_max_mag, &
       ixp3_coef_base, &
       ixp3_coef_slope, &
@@ -1769,7 +1776,7 @@ module parameters_tunable
       C1, C1b, C1c, C2, C2b, C2c, C2rt, C2thl, C2rtthl, & 
       C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, & 
       C7, C7b, C7c, C8, C8b, C10, & 
-      C11, C11b, C11c, C12, C13, C14, C_wp3_turb, C_wp2_splat, & 
+      C11, C11b, C11c, C12, C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, & 
       C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
       c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8,  & 
       c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
@@ -1779,7 +1786,7 @@ module parameters_tunable
       omicron, zeta_vrnce_rat, upsilon_precip_frac_rat, &
       lambda0_stability_coef, mult_coef, taumin, taumax, Lscale_mu_coef, &
       Lscale_pert_coef, alpha_corr, Skw_denom_coef, c_K10, c_K10h, &
-      thlp2_rad_coef, thlp2_rad_cloud_frac_thresh, up2_vp2_factor, &
+      thlp2_rad_coef, thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
       Skw_max_mag, xp3_coef_base, xp3_coef_slope, altitude_threshold, &
       rtp2_clip_coef, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
       C_invrs_tau_shear, C_invrs_tau_N2, C_invrs_tau_N2_wp2, &
@@ -1821,7 +1828,8 @@ module parameters_tunable
     params(iC13)     = C13
     params(iC14)     = C14
 
-    params(iC_wp3_turb)         = C_wp3_turb
+    params(iC_wp3_pr_turb)      = C_wp3_pr_turb
+    params(iC_wp3_pr_dfsn)      = C_wp3_pr_dfsn
     params(iC_wp2_splat)        = C_wp2_splat
 
     params(iC6rt_Lscale0)       = C6rt_Lscale0
@@ -1879,7 +1887,7 @@ module parameters_tunable
     params(ic_K10h) = c_K10h
     params(ithlp2_rad_coef) = thlp2_rad_coef
     params(ithlp2_rad_cloud_frac_thresh) = thlp2_rad_cloud_frac_thresh
-    params(iup2_vp2_factor) = up2_vp2_factor
+    params(iup2_sfc_coef) = up2_sfc_coef
     params(iSkw_max_mag) = Skw_max_mag
     params(ixp3_coef_base) = xp3_coef_base
     params(ixp3_coef_slope) = xp3_coef_slope
@@ -1910,7 +1918,7 @@ module parameters_tunable
                C1, C1b, C1c, C2, C2b, C2c, C2rt, C2thl, C2rtthl, &
                C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, &
                C7, C7b, C7c, C8, C8b, C10, &
-               C11, C11b, C11c, C12, C13, C14, C_wp3_turb, C_wp2_splat, &
+               C11, C11b, C11c, C12, C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
                C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
                c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8, &
                c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
@@ -1921,7 +1929,7 @@ module parameters_tunable
                lambda0_stability_coef, mult_coef, taumin, taumax, &
                Lscale_mu_coef, Lscale_pert_coef, alpha_corr, &
                Skw_denom_coef, c_K10, c_K10h, thlp2_rad_coef, &
-               thlp2_rad_cloud_frac_thresh, up2_vp2_factor, &
+               thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
                Skw_max_mag, xp3_coef_base, xp3_coef_slope, &
                altitude_threshold, rtp2_clip_coef, C_invrs_tau_bkgnd, &
                C_invrs_tau_sfc, C_invrs_tau_shear, C_invrs_tau_N2, & 
@@ -1970,7 +1978,8 @@ module parameters_tunable
       iC12, & 
       iC13, & 
       iC14, &
-      iC_wp3_turb, &
+      iC_wp3_pr_turb, &
+      iC_wp3_pr_dfsn, &
       iC_wp2_splat
 
     use parameter_indices, only: &
@@ -2021,7 +2030,7 @@ module parameters_tunable
       ic_K10h, & 
       ithlp2_rad_coef, &
       ithlp2_rad_cloud_frac_thresh, &
-      iup2_vp2_factor, &
+      iup2_sfc_coef, &
       iSkw_max_mag, &
       ixp3_coef_base, &
       ixp3_coef_slope, &
@@ -2053,7 +2062,7 @@ module parameters_tunable
       C1, C1b, C1c, C2, C2b, C2c, C2rt, C2thl, C2rtthl, & 
       C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, & 
       C7, C7b, C7c, C8, C8b, C10, & 
-      C11, C11b, C11c, C12, C13, C14, C_wp3_turb, C_wp2_splat, & 
+      C11, C11b, C11c, C12, C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, & 
       C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
       c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8,  & 
       c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
@@ -2063,7 +2072,7 @@ module parameters_tunable
       omicron, zeta_vrnce_rat, upsilon_precip_frac_rat, &
       lambda0_stability_coef, mult_coef, taumin, taumax, Lscale_mu_coef, &
       Lscale_pert_coef, alpha_corr, Skw_denom_coef, c_K10, c_K10h, &
-      thlp2_rad_coef, thlp2_rad_cloud_frac_thresh, up2_vp2_factor, &
+      thlp2_rad_coef, thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
       Skw_max_mag, xp3_coef_base, xp3_coef_slope, altitude_threshold, &
       rtp2_clip_coef, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
       C_invrs_tau_shear, C_invrs_tau_N2, C_invrs_tau_N2_wp2, &
@@ -2102,7 +2111,8 @@ module parameters_tunable
     C13     = params(iC13)
     C14     = params(iC14)
 
-    C_wp3_turb         = params(iC_wp3_turb)
+    C_wp3_pr_turb      = params(iC_wp3_pr_turb)
+    C_wp3_pr_dfsn      = params(iC_wp3_pr_dfsn)
     C_wp2_splat        = params(iC_wp2_splat)
 
     C6rt_Lscale0       = params(iC6rt_Lscale0)
@@ -2161,7 +2171,7 @@ module parameters_tunable
 
     thlp2_rad_coef = params(ithlp2_rad_coef)
     thlp2_rad_cloud_frac_thresh = params(ithlp2_rad_cloud_frac_thresh)
-    up2_vp2_factor = params(iup2_vp2_factor)
+    up2_sfc_coef = params(iup2_sfc_coef)
     Skw_max_mag = params(iSkw_max_mag)
     xp3_coef_base = params(ixp3_coef_base)
     xp3_coef_slope = params(ixp3_coef_slope)
@@ -2204,7 +2214,7 @@ module parameters_tunable
              ( C1, C1b, C1c, C2, C2b, C2c, C2rt, C2thl, C2rtthl, &
                C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, &
                C7, C7b, C7c, C8, C8b, C10, &
-               C11, C11b, C11c, C12, C13, C14, C_wp3_turb, C_wp2_splat, &
+               C11, C11b, C11c, C12, C13, C14, C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
                C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
                c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8, &
                c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
@@ -2215,7 +2225,7 @@ module parameters_tunable
                lambda0_stability_coef, mult_coef, taumin, taumax, &
                Lscale_mu_coef, Lscale_pert_coef, alpha_corr, &
                Skw_denom_coef, c_K10, c_K10h, thlp2_rad_coef, &
-               thlp2_rad_cloud_frac_thresh, up2_vp2_factor, &
+               thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
                Skw_max_mag, xp3_coef_base, xp3_coef_slope, &
                altitude_threshold, rtp2_clip_coef, C_invrs_tau_bkgnd, &
                C_invrs_tau_sfc, C_invrs_tau_shear, C_invrs_tau_N2, &
@@ -2272,7 +2282,8 @@ module parameters_tunable
     C12                          = init_value
     C13                          = init_value
     C14                          = init_value
-    C_wp3_turb                   = init_value
+    C_wp3_pr_turb                = init_value
+    C_wp3_pr_dfsn                = init_value
     C_wp2_splat                  = init_value 
     C6rt_Lscale0                 = init_value
     C6thl_Lscale0                = init_value
@@ -2319,7 +2330,7 @@ module parameters_tunable
     c_K10h                       = init_value
     thlp2_rad_coef               = init_value
     thlp2_rad_cloud_frac_thresh  = init_value
-    up2_vp2_factor               = init_value
+    up2_sfc_coef               = init_value
     Skw_max_mag                  = init_value
     xp3_coef_base                = init_value
     xp3_coef_slope               = init_value

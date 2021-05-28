@@ -41,12 +41,14 @@ module stats_zm_module
         iwp3_zm, &
         ithlp3_zm, &
         irtp3_zm, &
+        iwp2up2, &
+        iwp2vp2, &
         iwp4, &
         iwpthvp, &
         irtpthvp, &
         ithlpthvp, &
         itau_zm, &
-        iRi_zm, &
+        isqrt_Ri_zm, &
         iKh_zm, &
         iK_hm, &
         iwprcp, &
@@ -626,6 +628,21 @@ module stats_zm_module
              var_units="(kg^3)/(kg^3)", l_silhs=.false., grid_kind=stats_zm )
         k = k + 1
 
+      case ('wp2up2')
+        iwp2up2 = k
+        call stat_assign( var_index=iwp2up2, var_name="wp2up2", &
+             var_description="w'^2u'^2, 4th-order moment of vertical and zonal air velocity", &
+             var_units="(m^4)/(s^4)", l_silhs=.false., grid_kind=stats_zm )
+        k = k + 1
+
+      case ('wp2vp2')
+        iwp2vp2 = k
+        call stat_assign( var_index=iwp2vp2, var_name="wp2vp2", &
+             var_description &
+               ="w'^2v'^2, 4th-order moment of vert. and merid. air velocity", &
+             var_units="(m^4)/(s^4)", l_silhs=.false., grid_kind=stats_zm )
+        k = k + 1
+
       case ('wp4')
         iwp4 = k
         call stat_assign( var_index=iwp4, var_name="wp4", &
@@ -870,7 +887,7 @@ module stats_zm_module
       case ('sigma_sqd_w')
         isigma_sqd_w = k
         call stat_assign( var_index=isigma_sqd_w, var_name="sigma_sqd_w", &
-             var_description="sigma_sqd_w, Nondimensionalized w variance of Gaussian component", &
+             var_description="sigma_sqd_w, Nondim w variance of Gaussian component", &
              var_units="-", l_silhs=.false., grid_kind=stats_zm )
         k = k + 1
       case ('rho_ds_zm')
@@ -2461,14 +2478,14 @@ module stats_zm_module
       case ( 'bv_freq_sqd' )
         ibrunt_vaisala_freq_sqd = k
         call stat_assign( var_index=ibrunt_vaisala_freq_sqd, var_name="bv_freq_sqd", &
-             var_description="Brunt-Vaisala frequency squared [1/s^2]", &
+             var_description="Brunt-Vaisala frequency squared", &
              var_units="1/s^2", &
              l_silhs=.false., grid_kind=stats_zm )
         k = k + 1
 
-      case ( 'Ri_zm' )
-        iRi_zm = k
-        call stat_assign( var_index=iRi_zm,var_name="Ri_zm", &
+      case ( 'sqrt_Ri_zm' )
+        isqrt_Ri_zm = k
+        call stat_assign( var_index=isqrt_Ri_zm,var_name="sqrt_Ri_zm", &
              var_description="Richardson number [-]", var_units="-", &
              l_silhs=.false., grid_kind=stats_zm )
         k = k + 1

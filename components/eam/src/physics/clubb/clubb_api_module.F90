@@ -120,7 +120,8 @@ module clubb_api_module
     gr
 
   use hydromet_pdf_parameter_module, only : &
-    hydromet_pdf_parameter
+    hydromet_pdf_parameter, &
+    precipitation_fractions
 
   use model_flags, only : &
       clubb_config_flags_type, & ! Type
@@ -143,7 +144,7 @@ module clubb_api_module
     iC2rt, iC2thl, iC2rtthl, iC4, iC_uu_shr, iC_uu_buoy, &
     iC6rt, iC6rtb, iC6rtc, iC6thl, iC6thlb, iC6thlc, &
     iC7, iC7b, iC7c, iC8, iC8b, iC10, iC11, iC11b, iC11c, &
-    iC12, iC13, iC14, iC_wp3_turb, iC_wp2_splat, &
+    iC12, iC13, iC14, iC_wp3_pr_turb, iC_wp3_pr_dfsn, iC_wp2_splat, &
     iC6rt_Lscale0, iC6thl_Lscale0, &
     iC7_Lscale0, iwpxp_L_thresh, ic_K, ic_K1, inu1, &
     ic_K2, inu2, ic_K6, inu6, ic_K8, inu8, ic_K9, inu9, &
@@ -155,7 +156,7 @@ module clubb_api_module
     ilambda0_stability_coef, imult_coef, itaumin, itaumax, imu, &
     iLscale_mu_coef, iLscale_pert_coef, ialpha_corr, iSkw_denom_coef, &
     ic_K10, ic_K10h, ithlp2_rad_coef, ithlp2_rad_cloud_frac_thresh, &
-    iup2_vp2_factor, iSkw_max_mag, iC_invrs_tau_bkgnd, &
+    iup2_sfc_coef, iSkw_max_mag, iC_invrs_tau_bkgnd, &
     iC_invrs_tau_sfc, iC_invrs_tau_shear, iC_invrs_tau_N2, &
     iC_invrs_tau_N2_wp2, iC_invrs_tau_N2_xp2, iC_invrs_tau_N2_wpxp, &
     iC_invrs_tau_N2_clear_wp3, ialtitude_threshold, irtp2_clip_coef, &
@@ -255,7 +256,7 @@ module clubb_api_module
         iC2rt, iC2thl, iC2rtthl, iC4, iC_uu_shr, iC_uu_buoy, &
         iC6rt, iC6rtb, iC6rtc, iC6thl, iC6thlb, iC6thlc, &
         iC7, iC7b, iC7c, iC8, iC8b, iC10, iC11, iC11b, iC11c, &
-        iC12, iC13, iC14, iC_wp3_turb, iC_wp2_splat, & 
+        iC12, iC13, iC14, iC_wp3_pr_turb, iC_wp3_pr_dfsn, iC_wp2_splat, & 
         iC6rt_Lscale0, iC6thl_Lscale0, &
         iC7_Lscale0, iwpxp_L_thresh, ic_K, ic_K1, inu1, &
         ic_K2, inu2, ic_K6, inu6, ic_K8, inu8, ic_K9, inu9, &
@@ -267,7 +268,7 @@ module clubb_api_module
         ilambda0_stability_coef, imult_coef, itaumin, itaumax, imu, &
         iLscale_mu_coef, iLscale_pert_coef, ialpha_corr, iSkw_denom_coef, &
         ic_K10, ic_K10h, ithlp2_rad_coef, ithlp2_rad_cloud_frac_thresh, &
-        iup2_vp2_factor, iSkw_max_mag, iC_invrs_tau_bkgnd, &
+        iup2_sfc_coef, iSkw_max_mag, iC_invrs_tau_bkgnd, &
         iC_invrs_tau_sfc, iC_invrs_tau_shear, iC_invrs_tau_N2, &
         iC_invrs_tau_N2_wp2, iC_invrs_tau_N2_xp2, iC_invrs_tau_N2_wpxp, &
         iC_invrs_tau_N2_clear_wp3, ialtitude_threshold, irtp2_clip_coef, &
@@ -428,6 +429,8 @@ module clubb_api_module
     num_pdf_params, &
 !#endif
     init_pdf_params_api, &
+    init_precip_fracs_api, &
+    precipitation_fractions, &
     init_pdf_implicit_coefs_terms_api, &
     adj_low_res_nu_api, &
     assignment( = ), &
@@ -499,6 +502,10 @@ module clubb_api_module
     up2_vp2_sponge_damp_profile,    &
     initialize_tau_sponge_damp_api, & ! Procedure(s)
     finalize_tau_sponge_damp_api
+    
+  public &
+   copy_single_pdf_params_to_multi, &
+   copy_multi_pdf_params_to_single
 
   interface zt2zm_api
     module procedure zt2zm_scalar_api, zt2zm_prof_api
@@ -506,6 +513,11 @@ module clubb_api_module
 
   interface zm2zt_api
     module procedure zm2zt_scalar_api, zm2zt_prof_api
+  end interface
+  
+  interface setup_pdf_parameters_api
+    module procedure setup_pdf_parameters_api_single_col
+    module procedure setup_pdf_parameters_api_multi_col
   end interface
 
 contains
@@ -1346,7 +1358,7 @@ contains
       deltaz, zm_init, momentum_heights,  &
       thermodynamic_heights )
 
-    if ( err_code == clubb_fatal_error ) stop
+    if ( err_code == clubb_fatal_error ) error stop
 
   end subroutine setup_grid_heights_api
 
@@ -1629,7 +1641,7 @@ contains
   !================================================================================================
   ! init_pdf_params - allocates arrays for pdf_params
   !================================================================================================
-  subroutine init_pdf_params_api( nz, pdf_params )
+  subroutine init_pdf_params_api( nz, ngrdcol, pdf_params )
   
     use pdf_parameter_module, only : init_pdf_params
     
@@ -1637,15 +1649,195 @@ contains
 
     ! Input Variable(s)
     integer, intent(in) :: &
-      nz    ! Number of vertical grid levels    [-]
+      nz, &   ! Number of vertical grid levels    [-]
+      ngrdcol ! Number of grid columns            [-]
 
     ! Output Variable(s)
     type(pdf_parameter), intent(out) :: &
       pdf_params    ! PDF parameters            [units vary]
     
-    call init_pdf_params( nz, pdf_params )
+    call init_pdf_params( nz, ngrdcol, pdf_params )
     
   end subroutine init_pdf_params_api
+  
+  !================================================================================================
+  ! copy_single_pdf_params_to_multi - copies values of a single column version of pdf_params
+  !   to a multiple column version for a specified column.
+  !
+  ! NOTE: THIS SUBROUTINE IS INTENDED TO BE TEMPORARY AND SHOULD BECOME UNNECESSARY ONCE 
+  !       CLUBB IS ABLE TO OPERATE OVER MULTIPLE COLUMNS.
+  !       See https://github.com/larson-group/cam/issues/129#issuecomment-827944454
+  !================================================================================================
+  subroutine copy_single_pdf_params_to_multi( pdf_params_single, icol, &
+                                              pdf_params_multi )
+                                              
+    use pdf_parameter_module, only : init_pdf_params
+    
+    implicit none
+
+    ! Input Variable(s)
+    integer, intent(in) :: &
+      icol   ! Column number to copy to
+      
+    type(pdf_parameter), intent(in) :: &
+      pdf_params_single  ! PDF parameters            [units vary]
+
+    ! Output Variable(s)
+    type(pdf_parameter), intent(inout) :: &
+      pdf_params_multi  ! PDF parameters            [units vary]
+      
+    pdf_params_multi%w_1(icol,:)                  = pdf_params_single%w_1(1,:) 
+    pdf_params_multi%w_2(icol,:)                  = pdf_params_single%w_2(1,:) 
+    pdf_params_multi%varnce_w_1(icol,:)           = pdf_params_single%varnce_w_1(1,:) 
+    pdf_params_multi%varnce_w_2(icol,:)           = pdf_params_single%varnce_w_2(1,:) 
+    pdf_params_multi%rt_1(icol,:)                 = pdf_params_single%rt_1(1,:) 
+    pdf_params_multi%rt_2(icol,:)                 = pdf_params_single%rt_2(1,:) 
+    pdf_params_multi%varnce_rt_1(icol,:)          = pdf_params_single%varnce_rt_1(1,:) 
+    pdf_params_multi%varnce_rt_2(icol,:)          = pdf_params_single%varnce_rt_2(1,:) 
+    pdf_params_multi%thl_1(icol,:)                = pdf_params_single%thl_1(1,:) 
+    pdf_params_multi%thl_2(icol,:)                = pdf_params_single%thl_2(1,:) 
+    pdf_params_multi%varnce_thl_1(icol,:)         = pdf_params_single%varnce_thl_1(1,:) 
+    pdf_params_multi%varnce_thl_2(icol,:)         = pdf_params_single%varnce_thl_2(1,:) 
+    pdf_params_multi%corr_w_rt_1(icol,:)          = pdf_params_single%corr_w_rt_1(1,:) 
+    pdf_params_multi%corr_w_rt_2(icol,:)          = pdf_params_single%corr_w_rt_2(1,:) 
+    pdf_params_multi%corr_w_thl_1(icol,:)         = pdf_params_single%corr_w_thl_1(1,:) 
+    pdf_params_multi%corr_w_thl_2(icol,:)         = pdf_params_single%corr_w_thl_2(1,:) 
+    pdf_params_multi%corr_rt_thl_1(icol,:)        = pdf_params_single%corr_rt_thl_1(1,:) 
+    pdf_params_multi%corr_rt_thl_2(icol,:)        = pdf_params_single%corr_rt_thl_2(1,:) 
+    pdf_params_multi%alpha_thl(icol,:)            = pdf_params_single%alpha_thl(1,:) 
+    pdf_params_multi%alpha_rt(icol,:)             = pdf_params_single%alpha_rt(1,:) 
+    pdf_params_multi%crt_1(icol,:)                = pdf_params_single%crt_1(1,:) 
+    pdf_params_multi%crt_2(icol,:)                = pdf_params_single%crt_2(1,:) 
+    pdf_params_multi%cthl_1(icol,:)               = pdf_params_single%cthl_1(1,:) 
+    pdf_params_multi%cthl_2(icol,:)               = pdf_params_single%cthl_2(1,:) 
+    pdf_params_multi%chi_1(icol,:)                = pdf_params_single%chi_1(1,:) 
+    pdf_params_multi%chi_2(icol,:)                = pdf_params_single%chi_2(1,:) 
+    pdf_params_multi%stdev_chi_1(icol,:)          = pdf_params_single%stdev_chi_1(1,:) 
+    pdf_params_multi%stdev_chi_2(icol,:)          = pdf_params_single%stdev_chi_2(1,:) 
+    pdf_params_multi%stdev_eta_1(icol,:)          = pdf_params_single%stdev_eta_1(1,:) 
+    pdf_params_multi%stdev_eta_2(icol,:)          = pdf_params_single%stdev_eta_2(1,:) 
+    pdf_params_multi%covar_chi_eta_1(icol,:)      = pdf_params_single%covar_chi_eta_1(1,:) 
+    pdf_params_multi%covar_chi_eta_2(icol,:)      = pdf_params_single%covar_chi_eta_2(1,:) 
+    pdf_params_multi%corr_w_chi_1(icol,:)         = pdf_params_single%corr_w_chi_1(1,:) 
+    pdf_params_multi%corr_w_chi_2(icol,:)         = pdf_params_single%corr_w_chi_2(1,:) 
+    pdf_params_multi%corr_w_eta_1(icol,:)         = pdf_params_single%corr_w_eta_1(1,:) 
+    pdf_params_multi%corr_w_eta_2(icol,:)         = pdf_params_single%corr_w_eta_2(1,:) 
+    pdf_params_multi%corr_chi_eta_1(icol,:)       = pdf_params_single%corr_chi_eta_1(1,:) 
+    pdf_params_multi%corr_chi_eta_2(icol,:)       = pdf_params_single%corr_chi_eta_2(1,:) 
+    pdf_params_multi%rsatl_1(icol,:)              = pdf_params_single%rsatl_1(1,:) 
+    pdf_params_multi%rsatl_2(icol,:)              = pdf_params_single%rsatl_2(1,:) 
+    pdf_params_multi%rc_1(icol,:)                 = pdf_params_single%rc_1(1,:) 
+    pdf_params_multi%rc_2(icol,:)                 = pdf_params_single%rc_2(1,:) 
+    pdf_params_multi%cloud_frac_1(icol,:)         = pdf_params_single%cloud_frac_1(1,:) 
+    pdf_params_multi%cloud_frac_2(icol,:)         = pdf_params_single%cloud_frac_2(1,:) 
+    pdf_params_multi%mixt_frac(icol,:)            = pdf_params_single%mixt_frac(1,:) 
+    pdf_params_multi%ice_supersat_frac_1(icol,:)  = pdf_params_single%ice_supersat_frac_1(1,:) 
+    pdf_params_multi%ice_supersat_frac_2(icol,:)  = pdf_params_single%ice_supersat_frac_2(1,:) 
+    
+  end subroutine copy_single_pdf_params_to_multi
+  
+  !================================================================================================
+  ! copy_multi_pdf_params_to_single - copies values of a multiple column version of pdf_params
+  !   at a specified column to a single column version.
+  !
+  ! NOTE: THIS SUBROUTINE IS INTENDED TO BE TEMPORARY AND SHOULD BECOME UNNECESSARY ONCE 
+  !       CLUBB IS ABLE TO OPERATE OVER MULTIPLE COLUMNS.
+  !       See https://github.com/larson-group/cam/issues/129#issuecomment-827944454
+  !================================================================================================
+  subroutine copy_multi_pdf_params_to_single( pdf_params_multi, icol, &
+                                              pdf_params_single )
+                                              
+    use pdf_parameter_module, only : init_pdf_params
+    
+    implicit none
+
+    ! Input Variable(s)
+    integer, intent(in) :: &
+      icol   ! Column number to copy to
+      
+    type(pdf_parameter), intent(in) :: &
+      pdf_params_multi  ! PDF parameters            [units vary]
+
+    ! Output Variable(s)
+    type(pdf_parameter), intent(inout) :: &
+      pdf_params_single   ! PDF parameters            [units vary]
+      
+    pdf_params_single%w_1(1,:)                  = pdf_params_multi%w_1(icol,:) 
+    pdf_params_single%w_2(1,:)                  = pdf_params_multi%w_2(icol,:) 
+    pdf_params_single%varnce_w_1(1,:)           = pdf_params_multi%varnce_w_1(icol,:) 
+    pdf_params_single%varnce_w_2(1,:)           = pdf_params_multi%varnce_w_2(icol,:) 
+    pdf_params_single%rt_1(1,:)                 = pdf_params_multi%rt_1(icol,:) 
+    pdf_params_single%rt_2(1,:)                 = pdf_params_multi%rt_2(icol,:) 
+    pdf_params_single%varnce_rt_1(1,:)          = pdf_params_multi%varnce_rt_1(icol,:) 
+    pdf_params_single%varnce_rt_2(1,:)          = pdf_params_multi%varnce_rt_2(icol,:) 
+    pdf_params_single%thl_1(1,:)                = pdf_params_multi%thl_1(icol,:) 
+    pdf_params_single%thl_2(1,:)                = pdf_params_multi%thl_2(icol,:) 
+    pdf_params_single%varnce_thl_1(1,:)         = pdf_params_multi%varnce_thl_1(icol,:) 
+    pdf_params_single%varnce_thl_2(1,:)         = pdf_params_multi%varnce_thl_2(icol,:) 
+    pdf_params_single%corr_w_rt_1(1,:)          = pdf_params_multi%corr_w_rt_1(icol,:) 
+    pdf_params_single%corr_w_rt_2(1,:)          = pdf_params_multi%corr_w_rt_2(icol,:) 
+    pdf_params_single%corr_w_thl_1(1,:)         = pdf_params_multi%corr_w_thl_1(icol,:) 
+    pdf_params_single%corr_w_thl_2(1,:)         = pdf_params_multi%corr_w_thl_2(icol,:) 
+    pdf_params_single%corr_rt_thl_1(1,:)        = pdf_params_multi%corr_rt_thl_1(icol,:) 
+    pdf_params_single%corr_rt_thl_2(1,:)        = pdf_params_multi%corr_rt_thl_2(icol,:) 
+    pdf_params_single%alpha_thl(1,:)            = pdf_params_multi%alpha_thl(icol,:) 
+    pdf_params_single%alpha_rt(1,:)             = pdf_params_multi%alpha_rt(icol,:) 
+    pdf_params_single%crt_1(1,:)                = pdf_params_multi%crt_1(icol,:) 
+    pdf_params_single%crt_2(1,:)                = pdf_params_multi%crt_2(icol,:) 
+    pdf_params_single%cthl_1(1,:)               = pdf_params_multi%cthl_1(icol,:) 
+    pdf_params_single%cthl_2(1,:)               = pdf_params_multi%cthl_2(icol,:) 
+    pdf_params_single%chi_1(1,:)                = pdf_params_multi%chi_1(icol,:) 
+    pdf_params_single%chi_2(1,:)                = pdf_params_multi%chi_2(icol,:) 
+    pdf_params_single%stdev_chi_1(1,:)          = pdf_params_multi%stdev_chi_1(icol,:) 
+    pdf_params_single%stdev_chi_2(1,:)          = pdf_params_multi%stdev_chi_2(icol,:) 
+    pdf_params_single%stdev_eta_1(1,:)          = pdf_params_multi%stdev_eta_1(icol,:) 
+    pdf_params_single%stdev_eta_2(1,:)          = pdf_params_multi%stdev_eta_2(icol,:) 
+    pdf_params_single%covar_chi_eta_1(1,:)      = pdf_params_multi%covar_chi_eta_1(icol,:) 
+    pdf_params_single%covar_chi_eta_2(1,:)      = pdf_params_multi%covar_chi_eta_2(icol,:) 
+    pdf_params_single%corr_w_chi_1(1,:)         = pdf_params_multi%corr_w_chi_1(icol,:) 
+    pdf_params_single%corr_w_chi_2(1,:)         = pdf_params_multi%corr_w_chi_2(icol,:) 
+    pdf_params_single%corr_w_eta_1(1,:)         = pdf_params_multi%corr_w_eta_1(icol,:) 
+    pdf_params_single%corr_w_eta_2(1,:)         = pdf_params_multi%corr_w_eta_2(icol,:) 
+    pdf_params_single%corr_chi_eta_1(1,:)       = pdf_params_multi%corr_chi_eta_1(icol,:) 
+    pdf_params_single%corr_chi_eta_2(1,:)       = pdf_params_multi%corr_chi_eta_2(icol,:) 
+    pdf_params_single%rsatl_1(1,:)              = pdf_params_multi%rsatl_1(icol,:) 
+    pdf_params_single%rsatl_2(1,:)              = pdf_params_multi%rsatl_2(icol,:) 
+    pdf_params_single%rc_1(1,:)                 = pdf_params_multi%rc_1(icol,:) 
+    pdf_params_single%rc_2(1,:)                 = pdf_params_multi%rc_2(icol,:) 
+    pdf_params_single%cloud_frac_1(1,:)         = pdf_params_multi%cloud_frac_1(icol,:) 
+    pdf_params_single%cloud_frac_2(1,:)         = pdf_params_multi%cloud_frac_2(icol,:) 
+    pdf_params_single%mixt_frac(1,:)            = pdf_params_multi%mixt_frac(icol,:) 
+    pdf_params_single%ice_supersat_frac_1(1,:)  = pdf_params_multi%ice_supersat_frac_1(icol,:) 
+    pdf_params_single%ice_supersat_frac_2(1,:)  = pdf_params_multi%ice_supersat_frac_2(icol,:) 
+    
+  end subroutine copy_multi_pdf_params_to_single
+
+  
+  !================================================================================================
+  ! init_precip_fracs - allocates arrays for precip_fracs
+  !================================================================================================
+  subroutine init_precip_fracs_api( nz, ngrdcol, &
+                                    precip_fracs )
+
+    use hydromet_pdf_parameter_module, only : init_precip_fracs
+
+    implicit none
+    
+    ! Input Variable(s)
+    integer, intent(in) :: &
+      nz,     & ! Number of vertical grid levels    [-]
+      ngrdcol   ! Number of grid columns            [-]
+
+    ! Output Variable
+    type(precipitation_fractions), intent(out) :: &
+      precip_fracs    ! Hydrometeor PDF parameters      [units vary]
+
+    call init_precip_fracs( nz, ngrdcol, &
+                            precip_fracs )
+
+    return
+
+  end subroutine init_precip_fracs_api
   
   !================================================================================================
   ! init_pdf_implicit_coefs_terms - allocates arrays for the PDF implicit
@@ -1677,7 +1869,7 @@ contains
   ! setup_pdf_parameters
   !================================================================================================
 
-  subroutine setup_pdf_parameters_api( &
+  subroutine setup_pdf_parameters_api_single_col( &
     nz, pdf_dim, dt, &                      ! Intent(in)
     Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
     ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
@@ -1695,6 +1887,7 @@ contains
     sigma_x_1_n, sigma_x_2_n, &                 ! Intent(out)
     corr_array_1_n, corr_array_2_n, &           ! Intent(out)
     corr_cholesky_mtx_1, corr_cholesky_mtx_2, & ! Intent(out)
+    precip_fracs,  &                            ! Intent(out)
     hydromet_pdf_params )                       ! Intent(out)
 
     use setup_clubb_pdf_params, only : setup_pdf_parameters
@@ -1764,27 +1957,226 @@ contains
       hydrometp2    ! Variance of a hydrometeor (overall) (m-levs.)   [units^2]
 
     ! Output Variables
-    real( kind = core_rknd ), dimension(pdf_dim, nz), intent(out) :: &
+    real( kind = core_rknd ), dimension(nz,pdf_dim), intent(out) :: &
       mu_x_1_n,    & ! Mean array (normal space): PDF vars. (comp. 1) [un. vary]
       mu_x_2_n,    & ! Mean array (normal space): PDF vars. (comp. 2) [un. vary]
       sigma_x_1_n, & ! Std. dev. array (normal space): PDF vars (comp. 1) [u.v.]
       sigma_x_2_n    ! Std. dev. array (normal space): PDF vars (comp. 2) [u.v.]
 
-    real( kind = core_rknd ), dimension(pdf_dim,pdf_dim,nz), &
+    real( kind = core_rknd ), dimension(nz,pdf_dim,pdf_dim), &
       intent(out) :: &
       corr_array_1_n, & ! Corr. array (normal space):  PDF vars. (comp. 1)   [-]
       corr_array_2_n    ! Corr. array (normal space):  PDF vars. (comp. 2)   [-]
 
-    real( kind = core_rknd ), dimension(pdf_dim,pdf_dim,nz), &
+    real( kind = core_rknd ), dimension(nz,pdf_dim,pdf_dim), &
       intent(out) :: &
       corr_cholesky_mtx_1, & ! Transposed corr. cholesky matrix, 1st comp. [-]
       corr_cholesky_mtx_2    ! Transposed corr. cholesky matrix, 2nd comp. [-]
 
-    type(hydromet_pdf_parameter), dimension(nz), intent(out) :: &
+    ! This is only an output, but it contains allocated arrays, so we need to treat it as inout
+    type(precipitation_fractions), intent(inout) :: &
+      precip_fracs           ! Precipitation fractions      [-]
+
+    type(hydromet_pdf_parameter), dimension(nz), optional, intent(out) :: &
       hydromet_pdf_params    ! Hydrometeor PDF parameters        [units vary]
+      
+    ! -------------- Local Variables --------------
+    
+    real( kind = core_rknd ), dimension(1,nz) :: &
+      Nc_in_cloud_col,       & ! Mean (in-cloud) cloud droplet conc.       [num/kg]
+      rcm_col,               & ! Mean cloud water mixing ratio, < r_c >    [kg/kg]
+      cloud_frac_col,        & ! Cloud fraction                            [-]
+      Kh_zm_col,             & ! Eddy diffusivity coef. on momentum levels [m^2/s]
+      ice_supersat_frac_col    ! Ice supersaturation fraction              [-]
+
+    real( kind = core_rknd ), dimension(1,nz,hydromet_dim) :: &
+      hydromet_col,    & ! Mean of hydrometeor, hm (overall) (t-levs.) [units]
+      wphydrometp_col    ! Covariance < w'h_m' > (momentum levels)     [(m/s)units]
+      
+    ! Input/Output Variables
+    real( kind = core_rknd ), dimension(1,nz,hydromet_dim) :: &
+      hydrometp2_col    ! Variance of a hydrometeor (overall) (m-levs.)   [units^2]
+
+    ! Output Variables
+    real( kind = core_rknd ), dimension(1,nz,pdf_dim) :: &
+      mu_x_1_n_col,    & ! Mean array (normal space): PDF vars. (comp. 1) [un. vary]
+      mu_x_2_n_col,    & ! Mean array (normal space): PDF vars. (comp. 2) [un. vary]
+      sigma_x_1_n_col, & ! Std. dev. array (normal space): PDF vars (comp. 1) [u.v.]
+      sigma_x_2_n_col    ! Std. dev. array (normal space): PDF vars (comp. 2) [u.v.]
+
+    real( kind = core_rknd ), dimension(1,nz,pdf_dim,pdf_dim) :: &
+      corr_array_1_n_col, & ! Corr. array (normal space):  PDF vars. (comp. 1)   [-]
+      corr_array_2_n_col    ! Corr. array (normal space):  PDF vars. (comp. 2)   [-]
+
+    real( kind = core_rknd ), dimension(1,nz,pdf_dim,pdf_dim) :: &
+      corr_cholesky_mtx_1_col, & ! Transposed corr. cholesky matrix, 1st comp. [-]
+      corr_cholesky_mtx_2_col    ! Transposed corr. cholesky matrix, 2nd comp. [-]
+
+    type(hydromet_pdf_parameter), dimension(1,nz) :: &
+      hydromet_pdf_params_col    ! Hydrometeor PDF parameters        [units vary]
+
+
+    Nc_in_cloud_col(1,:) = Nc_in_cloud
+    rcm_col(1,:) = rcm
+    cloud_frac_col(1,:) = cloud_frac
+    Kh_zm_col(1,:) = Kh_zm
+    ice_supersat_frac_col(1,:) = ice_supersat_frac
+    
+    hydromet_col(1,:,:) = hydromet
+    wphydrometp_col(1,:,:) = wphydrometp
 
     call setup_pdf_parameters( &
-      nz, pdf_dim, dt, &                          ! Intent(in)
+      nz, 1, pdf_dim, dt, &                                   ! Intent(in)
+      Nc_in_cloud_col, rcm_col, cloud_frac_col, Kh_zm_col, &  ! Intent(in)
+      ice_supersat_frac_col, hydromet_col, wphydrometp_col, & ! Intent(in)
+      corr_array_n_cloud, corr_array_n_below, &               ! Intent(in)
+      pdf_params, l_stats_samp, &                             ! Intent(in)
+      iiPDF_type, &                                           ! Intent(in)
+      l_use_precip_frac, &                                    ! Intent(in)
+      l_predict_upwp_vpwp, &                                  ! Intent(in)
+      l_diagnose_correlations, &                              ! Intent(in)
+      l_calc_w_corr, &                                        ! Intent(in)
+      l_const_Nc_in_cloud, &                                  ! Intent(in)
+      l_fix_w_chi_eta_correlations, &                         ! Intent(in)
+      hydrometp2_col, &                                       ! Intent(inout)
+      mu_x_1_n_col, mu_x_2_n_col, &                           ! Intent(out)
+      sigma_x_1_n_col, sigma_x_2_n_col, &                     ! Intent(out)
+      corr_array_1_n_col, corr_array_2_n_col, &               ! Intent(out)
+      corr_cholesky_mtx_1_col, corr_cholesky_mtx_2_col, &     ! Intent(out)
+      precip_fracs, &                                         ! Intent(inout)
+      hydromet_pdf_params_col )                               ! Optional(out)
+
+    if ( err_code == clubb_fatal_error ) error stop
+    
+    hydrometp2 = hydrometp2_col(1,:,:)
+    mu_x_1_n = mu_x_1_n_col(1,:,:)
+    mu_x_2_n = mu_x_2_n_col(1,:,:)
+    sigma_x_1_n = sigma_x_1_n_col(1,:,:)
+    sigma_x_2_n = sigma_x_2_n_col(1,:,:)
+    corr_array_1_n = corr_array_1_n_col(1,:,:,:)
+    corr_array_2_n = corr_array_2_n_col(1,:,:,:)
+    corr_cholesky_mtx_1 = corr_cholesky_mtx_1_col(1,:,:,:)
+    corr_cholesky_mtx_2 = corr_cholesky_mtx_2_col(1,:,:,:)
+    if ( present(hydromet_pdf_params) ) then
+      hydromet_pdf_params = hydromet_pdf_params_col(1,:)
+    end if
+
+  end subroutine setup_pdf_parameters_api_single_col
+  
+  subroutine setup_pdf_parameters_api_multi_col( &
+    nz, ngrdcol, pdf_dim, dt, &                 ! Intent(in)
+    Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
+    ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
+    corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
+    pdf_params, l_stats_samp, &                 ! Intent(in)
+    iiPDF_type, &                               ! Intent(in)
+    l_use_precip_frac, &                        ! Intent(in)
+    l_predict_upwp_vpwp, &                      ! Intent(in)
+    l_diagnose_correlations, &                  ! Intent(in)
+    l_calc_w_corr, &                            ! Intent(in)
+    l_const_Nc_in_cloud, &                      ! Intent(in)
+    l_fix_w_chi_eta_correlations, &             ! Intent(in)
+    hydrometp2, &                               ! Intent(inout)
+    mu_x_1_n, mu_x_2_n, &                       ! Intent(out)
+    sigma_x_1_n, sigma_x_2_n, &                 ! Intent(out)
+    corr_array_1_n, corr_array_2_n, &           ! Intent(out)
+    corr_cholesky_mtx_1, corr_cholesky_mtx_2, & ! Intent(out)
+    precip_fracs, &                             ! Intent(out)
+    hydromet_pdf_params )                       ! Intent(out)
+
+    use setup_clubb_pdf_params, only : setup_pdf_parameters
+
+    use advance_windm_edsclrm_module, only: &
+      xpwp_fnc
+
+    use error_code, only : &
+        err_code, &         ! Error Indicator
+        clubb_fatal_error   ! Constant
+
+    implicit none
+
+    ! Input Variables
+    integer, intent(in) :: &
+      nz,          & ! Number of model vertical grid levels
+      pdf_dim,     & ! Number of variables in the correlation array
+      ngrdcol        ! Number of grid columns
+
+    real( kind = core_rknd ), intent(in) ::  &
+      dt    ! Model timestep                                           [s]
+
+    real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
+      Nc_in_cloud,       & ! Mean (in-cloud) cloud droplet conc.       [num/kg]
+      rcm,               & ! Mean cloud water mixing ratio, < r_c >    [kg/kg]
+      cloud_frac,        & ! Cloud fraction                            [-]
+      Kh_zm,             & ! Eddy diffusivity coef. on momentum levels [m^2/s]
+      ice_supersat_frac    ! Ice supersaturation fraction              [-]
+
+    real( kind = core_rknd ), dimension(ngrdcol,nz,hydromet_dim), intent(in) :: &
+      hydromet,    & ! Mean of hydrometeor, hm (overall) (t-levs.) [units]
+      wphydrometp    ! Covariance < w'h_m' > (momentum levels)     [(m/s)units]
+
+    real( kind = core_rknd ), dimension(pdf_dim,pdf_dim), &
+      intent(in) :: &
+      corr_array_n_cloud, & ! Prescribed norm. space corr. array in cloud    [-]
+      corr_array_n_below    ! Prescribed norm. space corr. array below cloud [-]
+
+    type(pdf_parameter), intent(in) :: &
+      pdf_params    ! PDF parameters                               [units vary]
+
+    logical, intent(in) :: &
+      l_stats_samp    ! Flag to sample statistics
+
+    integer, intent(in) :: &
+      iiPDF_type    ! Selected option for the two-component normal (double
+                    ! Gaussian) PDF type to use for the w, rt, and theta-l (or
+                    ! w, chi, and eta) portion of CLUBB's multivariate,
+                    ! two-component PDF.
+
+    logical, intent(in) :: &
+      l_use_precip_frac,            & ! Flag to use precipitation fraction in KK microphysics. The
+                                      ! precipitation fraction is automatically set to 1 when this
+                                      ! flag is turned off.
+      l_predict_upwp_vpwp,          & ! Flag to predict <u'w'> and <v'w'> along with <u> and <v>
+                                      ! alongside the advancement of <rt>, <w'rt'>, <thl>,
+                                      ! <wpthlp>, <sclr>, and <w'sclr'> in subroutine
+                                      ! advance_xm_wpxp.  Otherwise, <u'w'> and <v'w'> are still
+                                      ! approximated by eddy diffusivity when <u> and <v> are
+                                      ! advanced in subroutine advance_windm_edsclrm.
+      l_diagnose_correlations,      & ! Diagnose correlations instead of using fixed ones
+      l_calc_w_corr,                & ! Calculate the correlations between w and the hydrometeors
+      l_const_Nc_in_cloud,          & ! Use a constant cloud droplet conc. within cloud (K&K)
+      l_fix_w_chi_eta_correlations    ! Use a fixed correlation for s and t Mellor(chi/eta)
+
+    ! Input/Output Variables
+    real( kind = core_rknd ), dimension(ngrdcol,nz,hydromet_dim), intent(inout) :: &
+      hydrometp2    ! Variance of a hydrometeor (overall) (m-levs.)   [units^2]
+
+    ! Output Variables
+    real( kind = core_rknd ), dimension(ngrdcol,nz,pdf_dim), intent(out) :: &
+      mu_x_1_n,    & ! Mean array (normal space): PDF vars. (comp. 1) [un. vary]
+      mu_x_2_n,    & ! Mean array (normal space): PDF vars. (comp. 2) [un. vary]
+      sigma_x_1_n, & ! Std. dev. array (normal space): PDF vars (comp. 1) [u.v.]
+      sigma_x_2_n    ! Std. dev. array (normal space): PDF vars (comp. 2) [u.v.]
+
+    real( kind = core_rknd ), dimension(ngrdcol,nz,pdf_dim,pdf_dim), &
+      intent(out) :: &
+      corr_array_1_n, & ! Corr. array (normal space):  PDF vars. (comp. 1)   [-]
+      corr_array_2_n    ! Corr. array (normal space):  PDF vars. (comp. 2)   [-]
+
+    real( kind = core_rknd ), dimension(ngrdcol,nz,pdf_dim,pdf_dim), &
+      intent(out) :: &
+      corr_cholesky_mtx_1, & ! Transposed corr. cholesky matrix, 1st comp. [-]
+      corr_cholesky_mtx_2    ! Transposed corr. cholesky matrix, 2nd comp. [-]
+
+    type(hydromet_pdf_parameter), dimension(ngrdcol,nz), optional, intent(out) :: &
+      hydromet_pdf_params    ! Hydrometeor PDF parameters        [units vary]
+      
+    ! This is only an output, but it contains allocated arrays, so we need to treat it as inout
+    type(precipitation_fractions), intent(inout) :: &
+      precip_fracs           ! Precipitation fractions      [-]
+
+    call setup_pdf_parameters( &
+      nz, ngrdcol, pdf_dim, dt, &                 ! Intent(in)
       Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
       ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
       corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
@@ -1801,11 +2193,12 @@ contains
       sigma_x_1_n, sigma_x_2_n, &                 ! Intent(out)
       corr_array_1_n, corr_array_2_n, &           ! Intent(out)
       corr_cholesky_mtx_1, corr_cholesky_mtx_2, & ! Intent(out)
-      hydromet_pdf_params )                       ! Intent(out)
+      precip_fracs, &                             ! Intent(inout)
+      hydromet_pdf_params )                       ! Optional(out)
 
-    if ( err_code == clubb_fatal_error ) stop
+    if ( err_code == clubb_fatal_error ) error stop
 
-  end subroutine setup_pdf_parameters_api
+  end subroutine setup_pdf_parameters_api_multi_col
 
   !================================================================================================
   ! stats_init - Initializes the statistics saving functionality of the CLUBB model.
@@ -1882,7 +2275,7 @@ contains
       grad_zt, nnrad_zm, grad_zm, day, month, year, &
       lon_vals, lat_vals, time_current, delt, l_silhs_out_in )
 
-    if ( err_code == clubb_fatal_error ) stop
+    if ( err_code == clubb_fatal_error ) error stop
     
   end subroutine stats_init_api
 
@@ -1950,7 +2343,7 @@ contains
 #endif
                               )
 
-    if ( err_code == clubb_fatal_error ) stop
+    if ( err_code == clubb_fatal_error ) error stop
 
   end subroutine stats_end_timestep_api
 
@@ -2590,6 +2983,8 @@ contains
                                                  l_call_pdf_closure_twice, & ! Out
                                                  l_standard_term_ta, & ! Out
                                                  l_partial_upwind_wp3, & ! Out
+                                                 l_godunov_upwind_wpxp_ta, & ! Out
+                                                 l_godunov_upwind_xpyp_ta, & ! Out
                                                  l_use_cloud_cover, & ! Out
                                                  l_diagnose_correlations, & ! Out
                                                  l_calc_w_corr, & ! Out
@@ -2693,6 +3088,14 @@ contains
                                       ! of the wp3 turbulent advection term for ADG1
                                       ! that is linearized in terms of wp3<t+1>.
                                       ! (Requires ADG1 PDF and l_standard_term_ta).
+      l_godunov_upwind_wpxp_ta,     & ! This flag determines whether we want to use an upwind
+                                      ! differencing approximation rather than a centered 
+                                      ! differencing for turbulent advection terms. 
+                                      ! It affects  wpxp only.
+      l_godunov_upwind_xpyp_ta,     & ! This flag determines whether we want to use an upwind
+                                      ! differencing approximation rather than a centered 
+                                      ! differencing for turbulent advection terms. It affects
+                                      ! xpyp only.
       l_use_cloud_cover,            & ! Use cloud_cover and rcm_in_layer to help boost cloud_frac
                                       ! and rcm to help increase cloudiness at coarser grid
                                       ! resolutions.
@@ -2746,6 +3149,8 @@ contains
                                          l_call_pdf_closure_twice, & ! Out
                                          l_standard_term_ta, & ! Out
                                          l_partial_upwind_wp3, & ! Out
+                                         l_godunov_upwind_wpxp_ta, & ! Out
+                                         l_godunov_upwind_xpyp_ta, & ! Out
                                          l_use_cloud_cover, & ! Out
                                          l_diagnose_correlations, & ! Out
                                          l_calc_w_corr, & ! Out
@@ -2797,6 +3202,8 @@ contains
                                                      l_call_pdf_closure_twice, & ! In
                                                      l_standard_term_ta, & ! In
                                                      l_partial_upwind_wp3, & ! In
+                                                     l_godunov_upwind_wpxp_ta, & ! In
+                                                     l_godunov_upwind_xpyp_ta, & ! In
                                                      l_use_cloud_cover, & ! In
                                                      l_diagnose_correlations, & ! In
                                                      l_calc_w_corr, & ! In
@@ -2902,6 +3309,14 @@ contains
                                       ! of the wp3 turbulent advection term for ADG1
                                       ! that is linearized in terms of wp3<t+1>.
                                       ! (Requires ADG1 PDF and l_standard_term_ta).
+      l_godunov_upwind_wpxp_ta,     & ! This flag determines whether we want to use an upwind
+                                      ! differencing approximation rather than a centered
+                                      ! differencing for turbulent advection terms. 
+                                      ! It affects  wpxp only.
+      l_godunov_upwind_xpyp_ta,     & ! This flag determines whether we want to use an upwind
+                                      ! differencing approximation rather than a centered 
+                                      ! differencing for turbulent advection terms. It affects
+                                      ! xpyp only.
       l_use_cloud_cover,            & ! Use cloud_cover and rcm_in_layer to help boost cloud_frac
                                       ! and rcm to help increase cloudiness at coarser grid
                                       ! resolutions.
@@ -2959,6 +3374,8 @@ contains
                                              l_call_pdf_closure_twice, & ! In
                                              l_standard_term_ta, & ! In
                                              l_partial_upwind_wp3, & ! In
+                                             l_godunov_upwind_wpxp_ta, & ! In
+                                             l_godunov_upwind_xpyp_ta, & ! In
                                              l_use_cloud_cover, & ! In
                                              l_diagnose_correlations, & ! In
                                              l_calc_w_corr, & ! In

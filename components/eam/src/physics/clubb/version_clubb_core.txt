@@ -1,72 +1,80 @@
-commit c689c7ea3afdf52ae339bed55a04c18523cbe31e
-Author: bmg929 <bmg2@uwm.edu>
-Date:   Mon Jan 25 15:16:16 2021 -0600
+commit b0feee8d65aa980edaf16d71a04dc52b754d179b
+Author: Vincent Larson <vlarson@users.noreply.github.com>
+Date:   Thu May 27 14:03:40 2021 -0500
 
-    I updated silhs_api_module so that vert_decorr_coef is publically available
-    for some host models (e.g. SAM and WRF).
+    Add rule to name subroutines using verbs.
 
-commit 778133ad076fbc057f00e8fb50ca16f86bd80dd3
-Author: bmg929 <bmg2@uwm.edu>
-Date:   Mon Jan 25 15:04:57 2021 -0600
+commit e908c383b187e87a396bee5a1ecf8d6caa3d6579
+Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
+Date:   Tue May 25 09:02:38 2021 -0500
 
-    Revert "This will allow for a better interface of SILHS parameter"
+    Deleting comments around the old "magic number" for the near-surface clipping.
     
-    This reverts commit 47032b78a9fd8ddf19c30483abff933e099c9e43.
+    See #921.
 
-commit 7ca99a9587b3ff40237ec07dfc2cebd4e88dc843
-Author: bmg929 <bmg2@uwm.edu>
-Date:   Mon Jan 25 15:04:42 2021 -0600
+commit 5e53e0cc0bcd487e20e6e22e203defab1bb41a13
+Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
+Date:   Wed May 5 10:11:03 2021 -0500
 
-    Revert "Fixed a preprocessor command."
-    
-    This reverts commit b349140012f53280aaf8294c1c3d6bc95f8d85b2.
+    Makes surface clipping of wp3 consistent with clipping aloft, per #921. This is BIT_CHANGING since it affects how clipping is applied near the surface.
 
-commit 785a18ee89e5b16f1f1de725d7d1d59b3591bb03
-Author: bmg929 <bmg2@uwm.edu>
-Date:   Mon Jan 25 15:04:27 2021 -0600
-
-    Revert "I'm adding the api entry for read_silhs_parameters, called"
-    
-    This reverts commit f2dc5c25386fd37bc1bf8ccff7844c66ee79ac36.
-
-commit f941d8616092085ec75c64085200304fb0ae82c4
+commit 0a67773b3e07b493a4a97f6738a771a8bdcf2158
 Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
-Date:   Fri Jan 22 08:26:56 2021 -0600
+Date:   Sun May 23 20:50:28 2021 -0500
 
-    Create linux_x86_64_ifort_compy.bash
+    Update Case_definitions.py
     
-    Copying this file from Shixuan Zhang and Chris Vogl's pull request (https://github.com/larson-group/clubb_release/pull/1/files).
+    Removing path to GABLS2 COAMPS files since the main LES output files only have one time step.
 
-commit abd2c7a25e075d4314870c91ce01cc136dd0e1a3
+commit 7887bf57213c4a01cf06fef5ecc08dec2207ccc6
+Author: RhodesKeegan <rhodesk@msoe.edu>
+Date:   Sat May 22 14:53:05 2021 -0500
+
+    Added intent comments for advance_xp2_xpyp_module.F90.
+    Additionally, I made changes to certain argument lists to better reflect the coding standard.
+    Changed confirmed to be BFB.
+    For ticket #924.
+
+commit a00e509513edf74b47faf4f54b5f97e94723d5f3
+Author: RhodesKeegan <rhodesk@msoe.edu>
+Date:   Sat May 22 14:16:03 2021 -0500
+
+    Added intent comments.
+    For the file advance_xm_wpxp_module.F90.
+    I also changed the order of arguments in certain arugment lists to conform to the coding standard.
+    Changes confirmed to be BFB.
+    For ticket #924.
+
+commit 2550ba10c41c38490d5d1b93c220909262aaa06c
+Author: RhodesKeegan <rhodesk@msoe.edu>
+Date:   Sat May 22 13:00:33 2021 -0500
+
+    Added intent comments.
+    For file advance_wp2_wp3_module.F90.
+    Results are confirmed to be BFB.
+    For ticket #924.
+
+commit 0032d0d7450495c4853b4c7d32f30b0b1711058f
+Merge: 6598213 cd1b872
+Author: vlarson <vlarson@uwm.edu>
+Date:   Fri May 14 12:46:02 2021 -0500
+
+    Merge branch 'master' of https://github.com/larson-group/clubb
+
+commit cd1b872d020d40c317c91a17eab52f459ff154c1
 Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
-Date:   Fri Jan 22 08:25:46 2021 -0600
+Date:   Fri May 14 12:37:28 2021 -0500
 
-    Create linux_x86_64_gfortran_compy.bash
+    Removing one instance of "l_input_fields"...
     
-    Copying this file from Shixuan Zhang and Chris Vogl's [pull request](https://github.com/larson-group/clubb_release/pull/1/files).
+    ...since it was duplicated in this file.
 
-commit f2dc5c25386fd37bc1bf8ccff7844c66ee79ac36
-Author: bmg929 <bmg2@uwm.edu>
-Date:   Thu Jan 21 22:14:47 2021 -0600
+commit 65982131da3b7dcb589db54e5bb58f8bbee75f5c
+Author: vlarson <vlarson@uwm.edu>
+Date:   Fri May 14 12:36:25 2021 -0500
 
-    I'm adding the api entry for read_silhs_parameters, called
-    read_silhs_parameters_api.
-
-commit b349140012f53280aaf8294c1c3d6bc95f8d85b2
-Author: bmg929 <bmg2@uwm.edu>
-Date:   Thu Jan 21 17:11:51 2021 -0600
-
-    Fixed a preprocessor command.
-
-commit 47032b78a9fd8ddf19c30483abff933e099c9e43
-Author: bmg929 <bmg2@uwm.edu>
-Date:   Thu Jan 21 17:00:40 2021 -0600
-
-    This will allow for a better interface of SILHS parameter
-    vert_decorr_coef with host model codes.
-
-commit f46edb4600cb33f2e8746d753e40bd27b05a061d
-Author: pbroels <pbroels@uwm.edu>
-Date:   Thu Jan 21 14:20:00 2021 -0600
-
-    Removing Jenkinsfile from root directory.
+    Introduce user-chosen scaling factor for dashboard plots.
+    It is useful for plotting parameters such as C_invrs_tau_wpxp_N2_thresh,
+    which has much smaller values than other parameters.
+    
+    For #910.

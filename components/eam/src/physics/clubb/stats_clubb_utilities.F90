@@ -789,7 +789,7 @@ module stats_clubb_utilities
 
       if ( err_code == clubb_fatal_error ) return
 #else
-      stop "This CLUBB program was not compiled with netCDF support."
+      error stop "This CLUBB program was not compiled with netCDF support."
 #endif
 
     end if
@@ -882,7 +882,7 @@ module stats_clubb_utilities
 
         if ( err_code == clubb_fatal_error ) return
 #else
-        stop "This CLUBB program was not compiled with netCDF support."
+        error stop "This CLUBB program was not compiled with netCDF support."
 #endif
 
       end if
@@ -950,7 +950,7 @@ module stats_clubb_utilities
 
         if ( err_code == clubb_fatal_error ) return
 #else
-        stop "This CLUBB program was not compiled with netCDF support."
+        error stop "This CLUBB program was not compiled with netCDF support."
 #endif
 
       end if
@@ -1210,7 +1210,7 @@ module stats_clubb_utilities
 
       if ( err_code == clubb_fatal_error ) return
 #else
-      stop "This CLUBB program was not compiled with netCDF support."
+      error stop "This CLUBB program was not compiled with netCDF support."
 #endif
     end if
 
@@ -1280,7 +1280,7 @@ module stats_clubb_utilities
 
         if ( err_code == clubb_fatal_error ) return
 #else
-        stop "This CLUBB program was not compiled with netCDF support."
+        error stop "This CLUBB program was not compiled with netCDF support."
 #endif
       end if
 
@@ -1349,7 +1349,7 @@ module stats_clubb_utilities
 
         if ( err_code == clubb_fatal_error ) return
 #else
-        stop "This CLUBB program was not compiled with netCDF support."
+        error stop "This CLUBB program was not compiled with netCDF support."
 #endif
       end if
 
@@ -1420,7 +1420,7 @@ module stats_clubb_utilities
 
       if ( err_code == clubb_fatal_error ) return
 #else
-      stop "This CLUBB program was not compiled with netCDF support."
+      error stop "This CLUBB program was not compiled with netCDF support."
 #endif
     end if
 
@@ -1762,7 +1762,7 @@ module stats_clubb_utilities
             
         if ( err_code == clubb_fatal_error ) return
 #else
-        stop "This program was not compiled with netCDF support"
+        error stop "This program was not compiled with netCDF support"
 #endif /* NETCDF */
       end if ! l_grads
 
@@ -1813,7 +1813,8 @@ module stats_clubb_utilities
                      Lscale_up, Lscale_down, tau_zt, Kh_zt, wp2rcp, &
                      wprtpthlp, sigma_sqd_w_zt, rsat, wp2_zt, thlp2_zt, &
                      wpthlp_zt, wprtp_zt, rtp2_zt, rtpthlp_zt, up2_zt, &
-                     vp2_zt, upwp_zt, vpwp_zt, wp4, tau_zm, Kh_zm, thlprcp, &
+                     vp2_zt, upwp_zt, vpwp_zt, wp2up2, wp2vp2, wp4, &
+                     tau_zm, Kh_zm, thlprcp, &
                      rtprcp, rcp2, em, a3_coef, a3_coef_zt, &
                      wp3_zm, wp3_on_wp2, wp3_on_wp2_zt, Skw_velocity, &
                      pdf_params, pdf_params_zm, sclrm, sclrp2, &
@@ -1954,6 +1955,8 @@ module stats_clubb_utilities
         irtpthlp, &
         iwprtp,  &
         iwpthlp, &
+        iwp2up2, &
+        iwp2vp2, &
         iwp4,  &
         iwpthvp, &
         irtpthvp
@@ -2156,6 +2159,8 @@ module stats_clubb_utilities
         vp2_zt,        & ! v'^2 on thermo. grid                  [m^2/s^2]
         upwp_zt,       & ! u'w' on thermo. grid                  [m^2/s^2]
         vpwp_zt,       & ! v'w' on thermo. grid                  [m^2/s^2]
+        wp2up2,        & ! < w'^2u'^2 > (momentum levels)        [m^4/s^4]
+        wp2vp2,        & ! < w'^2v'^2 > (momentum levels)        [m^4/s^4]
         wp4,           & ! < w'^4 > (momentum levels)            [m^4/s^4]
         tau_zm,        & ! Eddy diss. time scale; momentum levs. [s]
         Kh_zm,         & ! Eddy diff. coef. on momentum levels   [m^2/s]
@@ -2267,49 +2272,49 @@ module stats_clubb_utilities
         call stat_update_var( irsati, rsati, stats_zt )
       end if
 
-      call stat_update_var( imixt_frac, pdf_params%mixt_frac, stats_zt )
-      call stat_update_var( iw_1, pdf_params%w_1, stats_zt )
-      call stat_update_var( iw_2, pdf_params%w_2, stats_zt )
-      call stat_update_var( ivarnce_w_1, pdf_params%varnce_w_1, stats_zt )
-      call stat_update_var( ivarnce_w_2, pdf_params%varnce_w_2, stats_zt )
-      call stat_update_var( ithl_1, pdf_params%thl_1, stats_zt )
-      call stat_update_var( ithl_2, pdf_params%thl_2, stats_zt )
-      call stat_update_var( ivarnce_thl_1, pdf_params%varnce_thl_1, stats_zt )
-      call stat_update_var( ivarnce_thl_2, pdf_params%varnce_thl_2, stats_zt )
-      call stat_update_var( irt_1, pdf_params%rt_1, stats_zt )
-      call stat_update_var( irt_2, pdf_params%rt_2, stats_zt )
-      call stat_update_var( ivarnce_rt_1, pdf_params%varnce_rt_1, stats_zt )
-      call stat_update_var( ivarnce_rt_2, pdf_params%varnce_rt_2, stats_zt )
-      call stat_update_var( irc_1, pdf_params%rc_1, stats_zt )
-      call stat_update_var( irc_2, pdf_params%rc_2, stats_zt )
-      call stat_update_var( irsatl_1, pdf_params%rsatl_1, stats_zt )
-      call stat_update_var( irsatl_2, pdf_params%rsatl_2, stats_zt )
-      call stat_update_var( icloud_frac_1, pdf_params%cloud_frac_1, stats_zt )
-      call stat_update_var( icloud_frac_2, pdf_params%cloud_frac_2, stats_zt )
-      call stat_update_var( ichi_1, pdf_params%chi_1, stats_zt )
-      call stat_update_var( ichi_2, pdf_params%chi_2, stats_zt )
-      call stat_update_var( istdev_chi_1, pdf_params%stdev_chi_1, stats_zt )
-      call stat_update_var( istdev_chi_2, pdf_params%stdev_chi_2, stats_zt )
-      call stat_update_var( istdev_eta_1, pdf_params%stdev_eta_1, stats_zt )
-      call stat_update_var( istdev_eta_2, pdf_params%stdev_eta_2, stats_zt )
-      call stat_update_var( icovar_chi_eta_1, pdf_params%covar_chi_eta_1, stats_zt )
-      call stat_update_var( icovar_chi_eta_2, pdf_params%covar_chi_eta_2, stats_zt )
-      call stat_update_var( icorr_w_chi_1, pdf_params%corr_w_chi_1, stats_zt )
-      call stat_update_var( icorr_w_chi_2, pdf_params%corr_w_chi_2, stats_zt )
-      call stat_update_var( icorr_w_eta_1, pdf_params%corr_w_eta_1, stats_zt )
-      call stat_update_var( icorr_w_eta_2, pdf_params%corr_w_eta_2, stats_zt )
-      call stat_update_var( icorr_chi_eta_1, pdf_params%corr_chi_eta_1, stats_zt )
-      call stat_update_var( icorr_chi_eta_2, pdf_params%corr_chi_eta_2, stats_zt )
-      call stat_update_var( icorr_w_rt_1, pdf_params%corr_w_rt_1, stats_zt )
-      call stat_update_var( icorr_w_rt_2, pdf_params%corr_w_rt_2, stats_zt )
-      call stat_update_var( icorr_w_thl_1, pdf_params%corr_w_thl_1, stats_zt )
-      call stat_update_var( icorr_w_thl_2, pdf_params%corr_w_thl_2, stats_zt )
-      call stat_update_var( icorr_rt_thl_1, pdf_params%corr_rt_thl_1, stats_zt )
-      call stat_update_var( icorr_rt_thl_2, pdf_params%corr_rt_thl_2, stats_zt )
-      call stat_update_var( icrt_1, pdf_params%crt_1, stats_zt )
-      call stat_update_var( icrt_2, pdf_params%crt_2, stats_zt )
-      call stat_update_var( icthl_1, pdf_params%cthl_1, stats_zt )
-      call stat_update_var( icthl_2, pdf_params%cthl_2, stats_zt )
+      call stat_update_var( imixt_frac, pdf_params%mixt_frac(1,:), stats_zt )
+      call stat_update_var( iw_1, pdf_params%w_1(1,:), stats_zt )
+      call stat_update_var( iw_2, pdf_params%w_2(1,:), stats_zt )
+      call stat_update_var( ivarnce_w_1, pdf_params%varnce_w_1(1,:), stats_zt )
+      call stat_update_var( ivarnce_w_2, pdf_params%varnce_w_2(1,:), stats_zt )
+      call stat_update_var( ithl_1, pdf_params%thl_1(1,:), stats_zt )
+      call stat_update_var( ithl_2, pdf_params%thl_2(1,:), stats_zt )
+      call stat_update_var( ivarnce_thl_1, pdf_params%varnce_thl_1(1,:), stats_zt )
+      call stat_update_var( ivarnce_thl_2, pdf_params%varnce_thl_2(1,:), stats_zt )
+      call stat_update_var( irt_1, pdf_params%rt_1(1,:), stats_zt )
+      call stat_update_var( irt_2, pdf_params%rt_2(1,:), stats_zt )
+      call stat_update_var( ivarnce_rt_1, pdf_params%varnce_rt_1(1,:), stats_zt )
+      call stat_update_var( ivarnce_rt_2, pdf_params%varnce_rt_2(1,:), stats_zt )
+      call stat_update_var( irc_1, pdf_params%rc_1(1,:), stats_zt )
+      call stat_update_var( irc_2, pdf_params%rc_2(1,:), stats_zt )
+      call stat_update_var( irsatl_1, pdf_params%rsatl_1(1,:), stats_zt )
+      call stat_update_var( irsatl_2, pdf_params%rsatl_2(1,:), stats_zt )
+      call stat_update_var( icloud_frac_1, pdf_params%cloud_frac_1(1,:), stats_zt )
+      call stat_update_var( icloud_frac_2, pdf_params%cloud_frac_2(1,:), stats_zt )
+      call stat_update_var( ichi_1, pdf_params%chi_1(1,:), stats_zt )
+      call stat_update_var( ichi_2, pdf_params%chi_2(1,:), stats_zt )
+      call stat_update_var( istdev_chi_1, pdf_params%stdev_chi_1(1,:), stats_zt )
+      call stat_update_var( istdev_chi_2, pdf_params%stdev_chi_2(1,:), stats_zt )
+      call stat_update_var( istdev_eta_1, pdf_params%stdev_eta_1(1,:), stats_zt )
+      call stat_update_var( istdev_eta_2, pdf_params%stdev_eta_2(1,:), stats_zt )
+      call stat_update_var( icovar_chi_eta_1, pdf_params%covar_chi_eta_1(1,:), stats_zt )
+      call stat_update_var( icovar_chi_eta_2, pdf_params%covar_chi_eta_2(1,:), stats_zt )
+      call stat_update_var( icorr_w_chi_1, pdf_params%corr_w_chi_1(1,:), stats_zt )
+      call stat_update_var( icorr_w_chi_2, pdf_params%corr_w_chi_2(1,:), stats_zt )
+      call stat_update_var( icorr_w_eta_1, pdf_params%corr_w_eta_1(1,:), stats_zt )
+      call stat_update_var( icorr_w_eta_2, pdf_params%corr_w_eta_2(1,:), stats_zt )
+      call stat_update_var( icorr_chi_eta_1, pdf_params%corr_chi_eta_1(1,:), stats_zt )
+      call stat_update_var( icorr_chi_eta_2, pdf_params%corr_chi_eta_2(1,:), stats_zt )
+      call stat_update_var( icorr_w_rt_1, pdf_params%corr_w_rt_1(1,:), stats_zt )
+      call stat_update_var( icorr_w_rt_2, pdf_params%corr_w_rt_2(1,:), stats_zt )
+      call stat_update_var( icorr_w_thl_1, pdf_params%corr_w_thl_1(1,:), stats_zt )
+      call stat_update_var( icorr_w_thl_2, pdf_params%corr_w_thl_2(1,:), stats_zt )
+      call stat_update_var( icorr_rt_thl_1, pdf_params%corr_rt_thl_1(1,:), stats_zt )
+      call stat_update_var( icorr_rt_thl_2, pdf_params%corr_rt_thl_2(1,:), stats_zt )
+      call stat_update_var( icrt_1, pdf_params%crt_1(1,:), stats_zt )
+      call stat_update_var( icrt_2, pdf_params%crt_2(1,:), stats_zt )
+      call stat_update_var( icthl_1, pdf_params%cthl_1(1,:), stats_zt )
+      call stat_update_var( icthl_2, pdf_params%cthl_2(1,:), stats_zt )
       call stat_update_var( iwp2_zt, wp2_zt, stats_zt )
       call stat_update_var( ithlp2_zt, thlp2_zt, stats_zt )
       call stat_update_var( ithlp3, thlp3, stats_zt )
@@ -2327,16 +2332,16 @@ module stats_clubb_utilities
 
       if ( ichi > 0 ) then
         ! Determine 's' from Mellor (1977) (extended liquid water)
-        chi(:) = pdf_params%mixt_frac * pdf_params%chi_1 &
-                    + (1.0_core_rknd-pdf_params%mixt_frac) * pdf_params%chi_2
+        chi(:) = pdf_params%mixt_frac(1,:) * pdf_params%chi_1(1,:) &
+                    + (1.0_core_rknd-pdf_params%mixt_frac(1,:)) * pdf_params%chi_2(1,:)
         call stat_update_var( ichi, chi, stats_zt )
       end if
 
       ! Calculate variance of chi
       if ( ichip2 > 0 ) then
-        chip2 = compute_variance_binormal( chi, pdf_params%chi_1, pdf_params%chi_2, &
-                                         pdf_params%stdev_chi_1, pdf_params%stdev_chi_2, &
-                                         pdf_params%mixt_frac )
+        chip2 = compute_variance_binormal( chi, pdf_params%chi_1(1,:), pdf_params%chi_2(1,:), &
+                                         pdf_params%stdev_chi_1(1,:), pdf_params%stdev_chi_2(1,:), &
+                                         pdf_params%mixt_frac(1,:) )
         call stat_update_var( ichip2, chip2, stats_zt )
       end if
 
@@ -2374,6 +2379,8 @@ module stats_clubb_utilities
       call stat_update_var( irtpthlp, rtpthlp, stats_zm )
       call stat_update_var( iwprtp, wprtp, stats_zm )
       call stat_update_var( iwpthlp, wpthlp, stats_zm )
+      call stat_update_var( iwp2up2, wp2up2, stats_zm )
+      call stat_update_var( iwp2vp2, wp2vp2, stats_zm )
       call stat_update_var( iwp4, wp4, stats_zm )
       call stat_update_var( iwpthvp, wpthvp, stats_zm )
       call stat_update_var( irtpthvp, rtpthvp, stats_zm )
@@ -2404,11 +2411,11 @@ module stats_clubb_utilities
       call stat_update_var( ircm_zm, rcm_zm, stats_zm )
       call stat_update_var( irtm_zm, rtm_zm, stats_zm )
       call stat_update_var( ithlm_zm, thlm_zm, stats_zm )
-      call stat_update_var( iw_1_zm, pdf_params_zm%w_1, stats_zm )
-      call stat_update_var( iw_2_zm, pdf_params_zm%w_2, stats_zm )
-      call stat_update_var( ivarnce_w_1_zm, pdf_params_zm%varnce_w_1, stats_zm )
-      call stat_update_var( ivarnce_w_2_zm, pdf_params_zm%varnce_w_2, stats_zm )
-      call stat_update_var( imixt_frac_zm, pdf_params_zm%mixt_frac, stats_zm )
+      call stat_update_var( iw_1_zm, pdf_params_zm%w_1(1,:), stats_zm )
+      call stat_update_var( iw_2_zm, pdf_params_zm%w_2(1,:), stats_zm )
+      call stat_update_var( ivarnce_w_1_zm, pdf_params_zm%varnce_w_1(1,:), stats_zm )
+      call stat_update_var( ivarnce_w_2_zm, pdf_params_zm%varnce_w_2(1,:), stats_zm )
+      call stat_update_var( imixt_frac_zm, pdf_params_zm%mixt_frac(1,:), stats_zm )
 
       if ( sclr_dim > 0 ) then
         do isclr=1, sclr_dim
@@ -2482,7 +2489,7 @@ module stats_clubb_utilities
 
       end if
 
-      ! Vapor Water Path (Preciptable Water)
+      ! Vapor Water Path (Precipitable Water)
       if ( ivwp > 0 ) then
 
         xtmp &
@@ -2975,7 +2982,7 @@ module stats_clubb_utilities
       call close_netcdf( stats_rad_zm%file )
       call close_netcdf( stats_sfc%file )
 #else
-      stop "This program was not compiled with netCDF support"
+      error stop "This program was not compiled with netCDF support"
 #endif
     end if
 

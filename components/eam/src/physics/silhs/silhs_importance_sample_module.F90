@@ -31,7 +31,8 @@ module silhs_importance_sample_module
   subroutine importance_sampling_driver &
              ( num_samples,                                               &
                cloud_frac_1, cloud_frac_2,                                &
-               mixt_frac, hydromet_pdf_params,                            &
+               mixt_frac,                                                 &
+               precip_frac_1, precip_frac_2,                              &
                cluster_allocation_strategy, l_lh_clustered_sampling,      &
                l_lh_limit_weights, l_lh_var_frac, l_lh_normalize_weights, &
                X_u_chi_one_lev, X_u_dp1_one_lev, X_u_dp2_one_lev,         &
@@ -53,9 +54,6 @@ module silhs_importance_sample_module
     use constants_clubb, only: &
       fstderr           ! Constant
 
-    use hydromet_pdf_parameter_module, only: &
-      hydromet_pdf_parameter ! Type
-
     use parameters_silhs, only: &
       eight_cluster_allocation_opt, & ! Constant(s)
       four_cluster_allocation_opt, &
@@ -72,10 +70,8 @@ module silhs_importance_sample_module
 
     real( kind = core_rknd ), intent(in) :: &
       cloud_frac_1, cloud_frac_2, &
-      mixt_frac
-
-    type(hydromet_pdf_parameter), intent(in) :: &
-      hydromet_pdf_params
+      mixt_frac, &
+      precip_frac_1, precip_frac_2
 
     integer, intent(in) :: &
       cluster_allocation_strategy ! Strategy for distributing sample points
@@ -126,7 +122,8 @@ module silhs_importance_sample_module
 
     category_real_probs = compute_category_real_probs( importance_categories, &
                                                        cloud_frac_1, cloud_frac_2, &
-                                                       mixt_frac, hydromet_pdf_params )
+                                                       mixt_frac, &
+                                                       precip_frac_1, precip_frac_2 )
 
     if ( l_lh_clustered_sampling ) then
 
@@ -147,7 +144,7 @@ module silhs_importance_sample_module
                                       l_lh_var_frac )
       case default
         write(fstderr,*) "Unsupported allocation strategy:", cluster_allocation_strategy
-        stop "Fatal error in importance_sampling_driver"
+        error stop "Fatal error in importance_sampling_driver"
       end select
 
       if ( l_lh_limit_weights ) then
@@ -183,7 +180,8 @@ module silhs_importance_sample_module
       call scale_sample_to_category &
            ( importance_categories(int_sample_category(sample)), & ! In
              cloud_frac_1, cloud_frac_2, &
-             mixt_frac, hydromet_pdf_params, & ! In
+             mixt_frac, & ! In
+             precip_frac_1, precip_frac_2, & ! In
              X_u_chi_one_lev(sample), X_u_dp1_one_lev(sample), X_u_dp2_one_lev(sample) ) ! In/Out
 
       ! Pick a weight for the sample point
@@ -207,11 +205,13 @@ module silhs_importance_sample_module
              category_prescribed_probs, category_sample_weights, X_u_chi_one_lev, & ! In
              X_u_dp1_one_lev, X_u_dp2_one_lev, lh_sample_point_weights, int_sample_category, & ! In
              cloud_frac_1, cloud_frac_2, & ! In
-             mixt_frac, hydromet_pdf_params, l_lh_normalize_weights, & ! In
+             mixt_frac, & ! In
+             precip_frac_1, precip_frac_2, & ! In
+             l_lh_normalize_weights, & ! In
              l_error ) ! Out
 
       if ( l_error ) then
-        stop "Fatal error in importance_sampling_driver"
+        error stop "Fatal error in importance_sampling_driver"
       end if ! l_error
 
     end if
@@ -282,7 +282,8 @@ module silhs_importance_sample_module
 !-----------------------------------------------------------------------
   function compute_category_real_probs( importance_categories, &
                                         cloud_frac_1, cloud_frac_2, &
-                                        mixt_frac, hydromet_pdf_params ) &
+                                        mixt_frac, &
+                                        precip_frac_1, precip_frac_2 ) &
 
   result( category_real_probs )
 
@@ -306,9 +307,6 @@ module silhs_importance_sample_module
     use constants_clubb, only: &
       one    ! Constant
 
-    use hydromet_pdf_parameter_module, only: &
-      hydromet_pdf_parameter  ! Type
-
     implicit none
 
     ! Input Variables
@@ -317,10 +315,8 @@ module silhs_importance_sample_module
 
     real( kind = core_rknd ), intent(in) :: &
       cloud_frac_1, cloud_frac_2, &
-      mixt_frac
-
-    type(hydromet_pdf_parameter), intent(in) :: &
-      hydromet_pdf_params    ! The hydrometeor PDF parameters!
+      mixt_frac, &
+      precip_frac_1, precip_frac_2
 
     ! Output Variable
     real( kind = core_rknd ), dimension(num_importance_categories) :: &
@@ -345,11 +341,11 @@ module silhs_importance_sample_module
       ! Determine component of category
       if ( importance_categories(icategory)%l_in_component_1 ) then
         cloud_frac_i     = cloud_frac_1
-        precip_frac_i    = hydromet_pdf_params%precip_frac_1
+        precip_frac_i    = precip_frac_1
         component_factor = mixt_frac
       else
         cloud_frac_i     = cloud_frac_2
-        precip_frac_i    = hydromet_pdf_params%precip_frac_2
+        precip_frac_i    = precip_frac_2
         component_factor = (one-mixt_frac)
       end if
 
@@ -516,7 +512,7 @@ module silhs_importance_sample_module
         ! weight. This could happen if the maximum weight is too low.
         write(fstderr,*) "The sample point weights could not be limited to the &
                          &maximum value."
-        stop "Fatal error in limit_category_weights"
+        error stop "Fatal error in limit_category_weights"
       end if
 
       ! Adjust the prescribed probabilities to achieve the minimum.
@@ -545,7 +541,7 @@ module silhs_importance_sample_module
             write(fstderr,*) "weight = ", weight
             write(fstderr,*) "min_presc_probs = ", min_presc_probs(icategory)
             write(fstderr,*) "min_presc_prob_diff = ", min_presc_prob_diff(icategory)
-            stop "Fatal error in limit_category_weights"
+            error stop "Fatal error in limit_category_weights"
           end if
         end if ! category_prescribed_probs(icategory) > zero
       end do ! icategory=1, num_importance_categories
@@ -665,7 +661,7 @@ module silhs_importance_sample_module
       if ( int_sample_category(sample) == 0 ) then
         write(fstderr,*) "Invalid rand_vect number in pick_sample_categories"
         write(fstderr,*) "rand_vect(sample) = ", rand_vect(sample)
-        stop "Fatal error"
+        error stop "Fatal error"
       end if
 
     end do ! sample=1, num_samples
@@ -676,7 +672,8 @@ module silhs_importance_sample_module
 
 !-----------------------------------------------------------------------
   subroutine scale_sample_to_category( category, cloud_frac_1, cloud_frac_2, &
-                                       mixt_frac, hydromet_pdf_params, &
+                                       mixt_frac, &
+                                       precip_frac_1, precip_frac_2, &
                                        X_u_chi, X_u_dp1, X_u_dp2 )
 
   ! Description:
@@ -693,9 +690,6 @@ module silhs_importance_sample_module
     use constants_clubb, only: &
       one                ! Constant
 
-    use hydromet_pdf_parameter_module, only: &
-      hydromet_pdf_parameter
-
     implicit none
 
     ! Input Variables
@@ -704,10 +698,8 @@ module silhs_importance_sample_module
 
     real( kind = core_rknd ), intent(in) :: &
       cloud_frac_1, cloud_frac_2, &
-      mixt_frac
-
-    type(hydromet_pdf_parameter), intent(in) :: &
-      hydromet_pdf_params
+      mixt_frac, &
+      precip_frac_1, precip_frac_2
 
     ! Input/Output Variable
     ! These uniform samples, upon input, are uniformly distributed in the
@@ -738,7 +730,7 @@ module silhs_importance_sample_module
 
       ! Choose appropriate component cloud and precipitation fractions
       cloud_frac_i  = cloud_frac_1
-      precip_frac_i = hydromet_pdf_params%precip_frac_1
+      precip_frac_i = precip_frac_1
 
     else  ! in component 2
 
@@ -747,7 +739,7 @@ module silhs_importance_sample_module
 
       ! Choose appropriate component cloud and precipitation fractions
       cloud_frac_i  = cloud_frac_2
-      precip_frac_i = hydromet_pdf_params%precip_frac_2
+      precip_frac_i = precip_frac_2
 
     end if ! category%l_in_component_1
 
@@ -861,7 +853,7 @@ module silhs_importance_sample_module
     if ( clubb_at_least_debug_level( 2 ) ) then
       if ( num_categories_in_cluster(iinocld_precip) /= 2 .or. &
            num_categories_in_cluster(iicld_or_precip) /= 6 ) then
-        stop "Invalid categories in two_cluster_cp_nocp"
+        error stop "Invalid categories in two_cluster_cp_nocp"
       end if
     end if
 
@@ -969,7 +961,7 @@ module silhs_importance_sample_module
         cluster_prescribed_probs(icategory) = eight_cluster_presc_probs%nocloud_noprecip_comp2
 
       else
-        stop "Invalid category in eight_cluster_allocation"
+        error stop "Invalid category in eight_cluster_allocation"
       end if
 
     end do ! icategory=1, num_importance_categories
@@ -1087,7 +1079,7 @@ module silhs_importance_sample_module
         cluster_categories(iincld_comp2,num_categories_in_cluster(iincld_comp2)) = icategory
 
       else
-        stop "Invalid category in four_cluster_no_precip"
+        error stop "Invalid category in four_cluster_no_precip"
       end if
 
     end do ! icategory=1, num_importance_categories
@@ -1095,7 +1087,7 @@ module silhs_importance_sample_module
     if ( clubb_at_least_debug_level( 2 ) ) then
       if ( any( num_categories_in_cluster /= 2 ) ) then
         write(fstderr,*) "Not all clusters have two categories"
-        stop "Fatal error in four_cluster_no_precip"
+        error stop "Fatal error in four_cluster_no_precip"
       end if
     end if
 
@@ -1521,7 +1513,9 @@ module silhs_importance_sample_module
                category_prescribed_probs, category_sample_weights, X_u_chi_one_lev, &
                X_u_dp1_one_lev, X_u_dp2_one_lev, lh_sample_point_weights, int_sample_category, &
                cloud_frac_1, cloud_frac_2, &
-               mixt_frac, hydromet_pdf_params, l_lh_normalize_weights, &
+               mixt_frac, &
+               precip_frac_1, precip_frac_2, &
+               l_lh_normalize_weights, &
                l_error )
 
   ! Description:
@@ -1537,9 +1531,6 @@ module silhs_importance_sample_module
     use constants_clubb, only: &      
       one, &               ! Constant(s)
       fstderr
-
-    use hydromet_pdf_parameter_module, only: &
-      hydromet_pdf_parameter
 
     implicit none
 
@@ -1567,10 +1558,8 @@ module silhs_importance_sample_module
 
     real( kind = core_rknd ), intent(in) :: &
       cloud_frac_1, cloud_frac_2, &
-      mixt_frac
-
-    type(hydromet_pdf_parameter), intent(in) :: &
-      hydromet_pdf_params
+      mixt_frac, &
+      precip_frac_1, precip_frac_2
 
     logical, intent(in) :: &
       l_lh_normalize_weights ! Normalize weights to sum to num_samples
@@ -1653,14 +1642,14 @@ module silhs_importance_sample_module
           l_error = .true.
         end if
         cloud_frac_i = cloud_frac_1
-        precip_frac_i = hydromet_pdf_params%precip_frac_1
+        precip_frac_i = precip_frac_1
       else ! .not. category%l_in_component_1
         if ( X_u_dp1_one_lev(isample) < mixt_frac ) then
           write(fstderr,*) "The component of a sample is incorrect."
           l_error = .true.
         end if
         cloud_frac_i = cloud_frac_2
-        precip_frac_i = hydromet_pdf_params%precip_frac_2
+        precip_frac_i = precip_frac_2
       end if ! category%l_in_component_1
 
       ! Verification of cloud
@@ -2021,7 +2010,7 @@ module silhs_importance_sample_module
       X_u_dp1_element = mixt_rand_element_scaled * (one - mixt_frac) + mixt_frac
 
     else
-      stop "Should not be here"
+      error stop "Should not be here"
     end if ! X_mixt_comp_one_lev == 1
 
     !---------------------------------------------------------------------
@@ -2117,7 +2106,7 @@ module silhs_importance_sample_module
       end if
 
       if ( iiPDF_rr == -1 ) then
-        stop "iiPDF_rr must be greater than zero for the category sampler to work."
+        error stop "iiPDF_rr must be greater than zero for the category sampler to work."
       end if
 
       if ( X_nl_one_lev(isample,iiPDF_rr) > zero ) then
@@ -2149,7 +2138,7 @@ module silhs_importance_sample_module
       end do ! icategory=1, num_importance_categories
 
       if ( found_category_index == -1 ) then
-        stop "Fatal error determining category in determine_sample_categories"
+        error stop "Fatal error determining category in determine_sample_categories"
       end if
 
       int_sample_category(isample) = found_category_index

@@ -70,10 +70,10 @@ module lh_microphys_var_covar_module
     real( kind = core_rknd ), intent(in) :: &
       dt                               ! Model time step                             [s]
 
-    real( kind = core_rknd ), dimension(nz,num_samples), intent(in) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz), intent(in) :: &
       lh_sample_point_weights          ! Weight of SILHS sample points
 
-    real( kind = core_rknd ), dimension(nz,num_samples), intent(in) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz), intent(in) :: &
       lh_rt_all, &                     ! SILHS samples of total water                [kg/kg]
       lh_thl_all, &                    ! SILHS samples of potential temperature      [K]
       lh_w_all, &                      ! SILHS samples of vertical velocity          [m/s]
@@ -93,7 +93,7 @@ module lh_microphys_var_covar_module
       lh_rtpthlp_mc_zt                 ! SILHS microphys. est. tendency of <rt'thl'> [K*(kg/kg)/s]
 
     ! Local Variables
-    real( kind = core_rknd ), dimension(nz,num_samples) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz) :: &
       lh_rt_mc_all
 
     real( kind = core_rknd ), dimension(nz) :: &
@@ -124,16 +124,16 @@ module lh_microphys_var_covar_module
     lh_rt_mc_all = lh_rcm_mc_all + lh_rvm_mc_all
 
     ! Calculate means, variances, and covariances needed for the tendency terms
-    mean_rt = pdf_params%mixt_frac * pdf_params%rt_1 &
-      + (one - pdf_params%mixt_frac) * pdf_params%rt_2
+    mean_rt = pdf_params%mixt_frac(1,:) * pdf_params%rt_1(1,:) &
+      + (one - pdf_params%mixt_frac(1,:)) * pdf_params%rt_2(1,:)
     mean_rt(1) = zero
     
-    mean_thl = pdf_params%mixt_frac * pdf_params%thl_1 &
-      + (one - pdf_params%mixt_frac) * pdf_params%thl_2
+    mean_thl = pdf_params%mixt_frac(1,:) * pdf_params%thl_1(1,:) &
+      + (one - pdf_params%mixt_frac(1,:)) * pdf_params%thl_2(1,:)
     mean_thl(1) = zero
     
-    mean_w = pdf_params%mixt_frac * pdf_params%w_1 &
-      + (one - pdf_params%mixt_frac) * pdf_params%w_2
+    mean_w = pdf_params%mixt_frac(1,:) * pdf_params%w_1(1,:) &
+      + (one - pdf_params%mixt_frac(1,:)) * pdf_params%w_2(1,:)
     mean_w(1) = zero
     
     ! Calculate means, variances, and covariances needed for the tendency terms

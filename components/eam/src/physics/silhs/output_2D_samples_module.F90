@@ -105,7 +105,7 @@ module output_2D_samples_module
                       day, month, year, lat_vals, lon_vals, &
                       time, dtwrite, n_2D_variables, sample_file, num_samples )
 #else
-    stop "This version of CLUBB was not compiled for netCDF output"
+    error stop "This version of CLUBB was not compiled for netCDF output"
 #endif
 
     return
@@ -139,7 +139,7 @@ module output_2D_samples_module
       num_samples, & ! Number of samples per variable
       pdf_dim   ! Number variates being sampled
 
-    real(kind=stat_rknd), intent(in), dimension(nz,num_samples,pdf_dim) :: &
+    real(kind=stat_rknd), intent(in), dimension(num_samples,nz,pdf_dim) :: &
       X_nl_all_levs ! Sample that is transformed ultimately to normal-lognormal
 
     logical, intent(in) :: &
@@ -164,7 +164,7 @@ module output_2D_samples_module
 
     do sample = 1, num_samples
       do j = 1, pdf_dim
-        lognormal_sample_file%samples_of_var(j)%ptr(sample,1,1,1:nz) = X_nl_all_levs(1:nz,sample,j)
+        lognormal_sample_file%samples_of_var(j)%ptr(sample,1,1,1:nz) = X_nl_all_levs(sample,1:nz,j)
       end do
     end do
 
@@ -175,7 +175,7 @@ module output_2D_samples_module
                        l_single_C2_Skw, &
                        lognormal_sample_file )
 #else
-    stop "This version of CLUBB was not compiled for netCDF output"
+    error stop "This version of CLUBB was not compiled for netCDF output"
 #endif
 
     do j = 1, pdf_dim
@@ -216,13 +216,13 @@ module output_2D_samples_module
       num_samples, & ! Number of samples per variable
       dp2            ! Number of variates being sampled + 2
 
-    real(kind=core_rknd), intent(in), dimension(nz,num_samples,dp2) :: &
+    real(kind=core_rknd), intent(in), dimension(num_samples,nz,dp2) :: &
       X_u_all_levs ! Uniformly distributed numbers between (0,1)
 
-    integer, intent(in), dimension(nz,num_samples) :: &
+    integer, intent(in), dimension(num_samples,nz) :: &
       X_mixt_comp_all_levs ! Either 1 or 2
 
-    real( kind = core_rknd ), dimension(nz,num_samples), intent(in) :: &
+    real( kind = core_rknd ), dimension(num_samples,nz), intent(in) :: &
       lh_sample_point_weights ! Weight of each sample
 
     logical, intent(in) :: &
@@ -248,13 +248,13 @@ module output_2D_samples_module
     do sample = 1, num_samples
       do j = 1, dp2
         uniform_sample_file%samples_of_var(j)%ptr(sample,1,1,1:nz) = &
-          real( X_u_all_levs(1:nz,sample,j), kind = stat_rknd )
+          real( X_u_all_levs(sample,1:nz,j), kind = stat_rknd )
       end do
       uniform_sample_file%samples_of_var(dp2+1)%ptr(sample,1,1,1:nz) = &
-        real( X_mixt_comp_all_levs(1:nz,sample), kind=stat_rknd )
+        real( X_mixt_comp_all_levs(sample,1:nz), kind=stat_rknd )
       do k = 1, nz 
         uniform_sample_file%samples_of_var(dp2+2)%ptr(sample,1,1,k) = &
-          real( lh_sample_point_weights(k,sample), kind=stat_rknd )
+          real( lh_sample_point_weights(sample,k), kind=stat_rknd )
       end do
     end do
 
@@ -265,7 +265,7 @@ module output_2D_samples_module
                        l_single_C2_Skw, &
                        uniform_sample_file )
 #else
-    stop "This version of CLUBB was not compiled for netCDF output"
+    error stop "This version of CLUBB was not compiled for netCDF output"
 #endif
 
     do j = 1, dp2+2
@@ -296,7 +296,7 @@ module output_2D_samples_module
 #ifdef NETCDF
     call close_netcdf( sample_file )
 #else
-    stop "This version of CLUBB was not compiled for netCDF output"
+    error stop "This version of CLUBB was not compiled for netCDF output"
 #endif
 
     deallocate( sample_file%lat_vals, sample_file%lon_vals, sample_file%samp_idx )
