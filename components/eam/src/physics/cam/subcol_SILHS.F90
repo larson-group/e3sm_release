@@ -1125,26 +1125,28 @@ contains
          do k = 1, pverp-top_lev+1
             khzm(i,k) = khzm_in(i,pverp-k+1)
          enddo
+      end do
 
-         ! make the call
-         call setup_pdf_parameters_api( pverp-top_lev+1, pdf_dim, ztodt, &                 ! In
-                                        Nc_in_cloud(i,:), rcm_in(i,:), cld_frac_in(i,:), khzm(i,:), &          ! In
-                                        ice_supersat_frac_in(i,:), hydromet(i,:,:), wphydrometp(i,:,:), &     ! In
-                                        corr_array_n_cloud, corr_array_n_below, &          ! In
-                                        pdf_params_chnk(i,lchnk), l_stats_samp, &          ! In
-                                        clubb_config_flags%iiPDF_type, &                   ! In
-                                        clubb_config_flags%l_use_precip_frac, &            ! In
-                                        clubb_config_flags%l_predict_upwp_vpwp, &          ! In
-                                        clubb_config_flags%l_diagnose_correlations, &      ! In
-                                        clubb_config_flags%l_calc_w_corr, &                ! In
-                                        clubb_config_flags%l_const_Nc_in_cloud, &          ! In
-                                        clubb_config_flags%l_fix_w_chi_eta_correlations, & ! In
-                                        hydrometp2(i,:,:), &                               ! Out
-                                        mu_x_1(i,:,:), mu_x_2(i,:,:), &                    ! Out
-                                        sigma_x_1(i,:,:), sigma_x_2(i,:,:), &              ! Out
-                                        corr_array_1(i,:,:,:), corr_array_2(i,:,:,:), &    ! Out
-                                        corr_cholesky_mtx_1(i,:,:,:), corr_cholesky_mtx_2(i,:,:,:), & ! Out
-                                        hydromet_pdf_params(i,:) )                              ! Out
+      call setup_pdf_parameters_api( pverp-top_lev+1, ngrdcol, pdf_dim, ztodt, &        ! In
+                                     Nc_in_cloud, rcm_in, cld_frac_in, khzm, &          ! In
+                                     ice_supersat_frac_in, hydromet, wphydrometp, &     ! In
+                                     corr_array_n_cloud, corr_array_n_below, &          ! In
+                                     pdf_params_chnk(:,lchnk), l_stats_samp, &          ! In
+                                     clubb_config_flags%iiPDF_type, &                   ! In
+                                     clubb_config_flags%l_use_precip_frac, &            ! In
+                                     clubb_config_flags%l_predict_upwp_vpwp, &          ! In
+                                     clubb_config_flags%l_diagnose_correlations, &      ! In
+                                     clubb_config_flags%l_calc_w_corr, &                ! In
+                                     clubb_config_flags%l_const_Nc_in_cloud, &          ! In
+                                     clubb_config_flags%l_fix_w_chi_eta_correlations, & ! In
+                                     hydrometp2, &                                      ! Out
+                                     mu_x_1, mu_x_2, &                                  ! Out
+                                     sigma_x_1, sigma_x_2, &                            ! Out
+                                     corr_array_1, corr_array_2, &                      ! Out
+                                     corr_cholesky_mtx_1, corr_cholesky_mtx_2, &        ! Out
+                                     hydromet_pdf_params )                              ! Out
+
+      do i = 1, ngrdcol
 
          ! allocate grid object
          call setup_grid_heights_api( l_implemented, grid_type, &
