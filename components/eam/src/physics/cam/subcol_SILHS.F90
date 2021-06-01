@@ -1180,30 +1180,27 @@ contains
 
      end do
 
-     do i = 1, ngrdcol
-       
-         ! Set the seed to the random number generator based on a quantity that
-         ! will be reproducible for restarts.
-         lh_seed = int( 1.0e4_r8 * rtm(i,pver), kind = genrand_intg )
-
-         ! Let's generate some subcolumns!!!!!
-         call generate_silhs_sample_api &
-              ( iter, pdf_dim, num_subcols, sequence_length, pverp-top_lev+1, & ! In
-                l_calc_weights_all_levs_itime, &                   ! In 
-                pdf_params_chnk(i,lchnk), delta_zm(i,:), rcm_in(i,:), Lscale(i,:), &            ! In
-                lh_seed, &                                         ! In
-                rho_ds_zt(i,:), &                                       ! In
-                mu_x_1(i,:,:), mu_x_2(i,:,:), sigma_x_1(i,:,:), sigma_x_2(i,:,:), &            ! In 
-                corr_cholesky_mtx_1(i,:,:,:), corr_cholesky_mtx_2(i,:,:,:), &        ! In
-                hydromet_pdf_params(i,:), silhs_config_flags, &         ! In
-                clubb_config_flags%l_uv_nudge, &                   ! In
-                clubb_config_flags%l_tke_aniso, &                  ! In
-                clubb_config_flags%l_standard_term_ta, &           ! In
-                clubb_config_flags%l_single_C2_Skw, &              ! In
-                vert_decorr_coef, &                                ! In
-                X_nl_all_levs(i,:,:,:), X_mixt_comp_all_levs(i,:,:), &             ! Out
-                lh_sample_point_weights(i,:,:))                           ! Out
-      end do
+     ! Set the seed to the random number generator based on a quantity that
+     ! will be reproducible for restarts.
+     lh_seed = int( 1.0e4_r8 * rtm(1,pver), kind = genrand_intg )
+     
+     ! Let's generate some subcolumns!!!!!
+     call generate_silhs_sample_api( &
+                   iter, pdf_dim, num_subcols, sequence_length, pverp-top_lev+1, ngrdcol, & ! In
+                   l_calc_weights_all_levs_itime, &                      ! In 
+                   pdf_params_chnk(:,lchnk), delta_zm, rcm_in, Lscale, & ! In
+                   lh_seed, &                                            ! In
+                   rho_ds_zt, &                                          ! In 
+                   mu_x_1, mu_x_2, sigma_x_1, sigma_x_2, &               ! In 
+                   corr_cholesky_mtx_1, corr_cholesky_mtx_2, &           ! In
+                   hydromet_pdf_params, silhs_config_flags, &            ! In
+                   clubb_config_flags%l_uv_nudge, &                      ! In
+                   clubb_config_flags%l_tke_aniso, &                     ! In
+                   clubb_config_flags%l_standard_term_ta, &              ! In
+                   clubb_config_flags%l_single_C2_Skw, &                 ! In
+                   vert_decorr_coef, &                                   ! In
+                   X_nl_all_levs, X_mixt_comp_all_levs, &                ! Out
+                   lh_sample_point_weights)                              ! Out
 
       ! Extract clipped variables from subcolumns
       call clip_transform_silhs_output_api( pverp-top_lev+1, ngrdcol, num_subcols, &   ! In
