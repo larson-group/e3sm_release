@@ -3400,9 +3400,15 @@ Constant of Newtonian damping of the variances of u-wind and v-wind
 Default: 1.0
 </entry>
 
-<entry id="clubb_C_wp3_turb" type="real" category="pblrad"
+<entry id="clubb_C_wp3_pr_turb" type="real" category="pblrad"
        group="clubb_param_nl" valid_values="" >
 Constant in buoyancy production term for CLUBB's 3rd-order vertical velocity, wp3
+Default: 0.0
+</entry>
+
+<entry id="clubb_C_wp3_pr_dfsn" type="real" category="pblrad"
+       group="clubb_param_nl" valid_values="" >
+Constant applied to wp3_pr_dfsn. Units [-]
 Default: 0.0
 </entry>
 
