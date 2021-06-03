@@ -279,10 +279,6 @@ module clubb_intr
 #ifdef CLUBB_SGS
   type(pdf_parameter), target, allocatable, public, protected :: &
                                               pdf_params_chnk(:)    ! PDF parameters (thermo. levs.) [units vary]
-
-  type(pdf_parameter) :: pdf_params_single_col, &
-                         pdf_params_zm_single_col
-
   type(pdf_parameter), target, allocatable :: pdf_params_zm_chnk(:) ! PDF parameters on momentum levs. [units vary]
   type(implicit_coefs_terms), target, allocatable :: pdf_implicit_coefs_terms_chnk(:,:) ! PDF impl. coefs. & expl. terms      [units vary]
 #endif
@@ -764,10 +760,6 @@ end subroutine clubb_init_cnst
        pdf_params_chnk(begchunk:endchunk),   &
        pdf_params_zm_chnk(begchunk:endchunk), &
        pdf_implicit_coefs_terms_chnk(pcols,begchunk:endchunk) )
-
-    ! Allocate arrays in single column versions of pdf_params
-    call init_pdf_params_api( pverp, 1, pdf_params_single_col )
-    call init_pdf_params_api( pverp, 1, pdf_params_zm_single_col )
 
     ! Allocate arrays in multi column version of pdf_params
     do idx_chunk = begchunk, endchunk
@@ -1334,6 +1326,8 @@ end subroutine clubb_init_cnst
                                         hydromet_dim, calculate_thlp2_rad_api, mu, update_xp2_mc_api, &
                                         sat_mixrat_liq_api, &
                                         copy_single_pdf_params_to_multi, &
+                                        pdf_parameter, &
+                                        init_pdf_params_api, &
                                         initialize_tau_sponge_damp_api, &
                                         finalize_tau_sponge_damp_api, &
                                         wp2_sponge_damp_settings, &
@@ -1742,6 +1736,9 @@ end subroutine clubb_init_cnst
    real(r8),parameter :: gust_faco = 1.0_r8 !gust fac for ocean
    real(r8),parameter :: gust_facc = 1.0_r8 !gust fac for clubb
 
+   type(pdf_parameter) :: pdf_params_single_col, &
+                          pdf_params_zm_single_col
+
 ! ZM gustiness equation below from Redelsperger et al. (2000)
 ! numbers are coefficients of the empirical equation
 
@@ -1963,6 +1960,10 @@ end subroutine clubb_init_cnst
    call pbuf_get_field(pbuf, prec_dp_idx, prec_dp)
    call pbuf_get_field(pbuf, snow_dp_idx, snow_dp)
    call pbuf_get_field(pbuf, vmag_gust_idx, vmag_gust)
+
+   ! Allocate arrays in single column versions of pdf_params
+   call init_pdf_params_api( pverp, 1, pdf_params_single_col )
+   call init_pdf_params_api( pverp, 1, pdf_params_zm_single_col )
 
    ! Intialize the apply_const variable (note special logic is due to eularian backstepping)
    if (clubb_do_adv .and. (is_first_step() .or. all(wpthlp(1:ncol,1:pver) .eq. 0._r8))) then
