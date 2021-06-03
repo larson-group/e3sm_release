@@ -1143,7 +1143,7 @@ contains
                                      Nc_in_cloud, rcm_in, cld_frac_in, khzm, &          ! In
                                      ice_supersat_frac_in, hydromet, wphydrometp, &     ! In
                                      corr_array_n_cloud, corr_array_n_below, &          ! In
-                                     pdf_params_chnk(:,lchnk), l_stats_samp, &          ! In
+                                     pdf_params_chnk(lchnk), l_stats_samp, &            ! In
                                      clubb_config_flags%iiPDF_type, &                   ! In
                                      clubb_config_flags%l_use_precip_frac, &            ! In
                                      clubb_config_flags%l_predict_upwp_vpwp, &          ! In
@@ -1202,7 +1202,7 @@ contains
      call generate_silhs_sample_api( &
                    iter, pdf_dim, num_subcols, sequence_length, pverp-top_lev+1, ngrdcol, & ! In
                    l_calc_weights_all_levs_itime, &                      ! In 
-                   pdf_params_chnk(:,lchnk), delta_zm, rcm_in, Lscale, & ! In
+                   pdf_params_chnk(lchnk), delta_zm, rcm_in, Lscale, &   ! In
                    lh_seed, &                                            ! In
                    rho_ds_zt, &                                          ! In 
                    mu_x_1, mu_x_2, sigma_x_1, sigma_x_2, &               ! In 
@@ -1221,22 +1221,23 @@ contains
                                             pdf_dim, hydromet_dim, & ! In
                                             X_mixt_comp_all_levs, & ! In
                                             X_nl_all_levs, &        ! In
-                                            pdf_params_chnk(:,lchnk), & ! In
+                                            pdf_params_chnk(lchnk), & ! In
                                             l_use_Ncn_to_Nc, & ! In
                                             lh_rt_clipped, lh_thl_clipped, & ! Out
                                             lh_rc_clipped, lh_rv_clipped, & ! Out
                                             lh_Nc_clipped ) ! Out
       
       if ( l_est_kessler_microphys ) then
-        do i = 1, ngrdcol
+        call endrun('subcol_SILHS: l_est_kessler_microphys = T is not currently supported')
+      !  do i = 1, ngrdcol
           ! Test subcolumns by comparing to an estimate of kessler autoconversion
-          call est_kessler_microphys_api &
-                ( pverp-top_lev+1, num_subcols, pdf_dim, X_nl_all_levs(i,:,:,:), &
-                  pdf_params_chnk(i,lchnk), &
-                  rcm_in(i,:), cld_frac_in(i,:), X_mixt_comp_all_levs(i,:,:), lh_sample_point_weights(i,:,:), &
-                  silhs_config_flags%l_lh_importance_sampling, &
-                  lh_AKm(i,:), AKm(i,:), AKstd(i,:), AKstd_cld(i,:), AKm_rcm(i,:), AKm_rcc(i,:), lh_rcm_avg(i,:))
-        end do
+      !    call est_kessler_microphys_api &
+      !          ( pverp-top_lev+1, num_subcols, pdf_dim, X_nl_all_levs(i,:,:,:), &
+      !            pdf_params_chnk(i,lchnk), &
+      !            rcm_in(i,:), cld_frac_in(i,:), X_mixt_comp_all_levs(i,:,:), lh_sample_point_weights(i,:,:), &
+      !            silhs_config_flags%l_lh_importance_sampling, &
+      !            lh_AKm(i,:), AKm(i,:), AKstd(i,:), AKstd_cld(i,:), AKm_rcm(i,:), AKm_rcc(i,:), lh_rcm_avg(i,:))
+      !  end do
       end if
 
       do k = top_lev, pverp
@@ -1840,7 +1841,10 @@ contains
      ! In this subroutine, use trop_cloud_top_lev as top_lev for both MG and P3
      use ref_pres,                only: top_lev => trop_cloud_top_lev
      use subcol_utils,            only: subcol_unpack, subcol_get_nsubcol, subcol_get_weight
-     use clubb_api_module,        only: T_in_K2thlm_api
+     use clubb_api_module,        only: T_in_K2thlm_api, &
+                                        init_pdf_params_api, &
+                                        copy_multi_pdf_params_to_single,&
+                                        pdf_parameter
      use silhs_api_module,        only: lh_microphys_var_covar_driver_api
 
      implicit none
@@ -1892,10 +1896,14 @@ contains
        wpthlp_mc_zt_idx,  &
        rtpthlp_mc_zt_idx
 
+     type(pdf_parameter):: pdf_params_single_col
+
      !----- Begin Code -----
 
      ! Don't do anything if this option isn't enabled.
      if ( .not. subcol_SILHS_var_covar_src ) return
+
+     call init_pdf_params_api( pverp+1-top_lev, 1, pdf_params_single_col )
 
      lchnk = state_sc%lchnk
      ngrdcol  = state_sc%ngrdcol
@@ -2020,10 +2028,16 @@ contains
           height_depndt_weights(igrdcol,1:ns,k) = weights(igrdcol,1:ns)
        end do
 
+       ! Copy the igrdcol column from the multicolumn pdf_params_chnk to the single column 
+       ! version of pdf_params_single_col since lh_microphys_var_covar_driver_api only
+       ! works over 1 column currently
+       call copy_multi_pdf_params_to_single( pdf_params_chnk(lchnk), igrdcol, &
+                                             pdf_params_single_col )
+
        ! Make the call!!!!!
        call lh_microphys_var_covar_driver_api &
             ( pverp-top_lev+1, ns, ztodt, height_depndt_weights(igrdcol,1:ns,1:pverp-top_lev+1), &
-              pdf_params_chnk(igrdcol,lchnk), &
+              pdf_params_single_col, &
               rt_all_clubb(igrdcol,1:ns,1:pverp-top_lev+1), thl_all_clubb(igrdcol,1:ns,1:pverp-top_lev+1), &
               w_all_clubb(igrdcol,1:ns,1:pverp-top_lev+1), qctend_clubb(igrdcol,1:ns,1:pverp-top_lev+1), &
               qvtend_clubb(igrdcol,1:ns,1:pverp-top_lev+1), thltend_clubb(igrdcol,1:ns,1:pverp-top_lev+1), &
