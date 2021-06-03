@@ -1085,7 +1085,7 @@ clubb_nu2              = 1
 clubb_nu8              = 60
 clubb_nu9              = 20
 clubb_wpxp_l_thresh            = 100.0D0
-clubb_up2_vp2_factor           = 2.0
+clubb_up2_sfc_coef             = 2.0
 clubb_altitude_threshold       = 300.
 clubb_rtp2_clip_coef           = 10.0
 
