@@ -678,7 +678,7 @@ end subroutine clubb_init_cnst
                                 imult_coef, ic_K10, ic_K_hmb, &
                                 iC8, iC8b, iC11, iC11b, iC4, iC14, inu1, &
                                 iomicron, iupsilon_precip_frac_rat, &
-                                iup2_vp2_factor, iSkw_max_mag, params_list, &
+                                iup2_sfc_coef, iSkw_max_mag, params_list, &
                                 init_pdf_params_api, init_pdf_implicit_coefs_terms_api, &
                                 wp2_sponge_damp_settings, wp3_sponge_damp_settings
 
