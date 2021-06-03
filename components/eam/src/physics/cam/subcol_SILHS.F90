@@ -704,12 +704,12 @@ contains
       ! Required for set_up_pdf_params_incl_hydromet
       !----------------
       real(r8), dimension(state%ngrdcol,pverp-top_lev+1) :: cld_frac_in  ! Cloud fraction
-      real(r8), dimension(state%ngrdcol,pverp-top_lev+1,pdf_dim,pdf_dim), allocatable :: &
+      real(r8), dimension(state%ngrdcol,pverp-top_lev+1,pdf_dim,pdf_dim) :: &
                           corr_array_1, corr_array_2  ! Correlation matrix for pdf components
-      real(r8), dimension(state%ngrdcol,pverp-top_lev+1,pdf_dim), allocatable :: &
+      real(r8), dimension(state%ngrdcol,pverp-top_lev+1,pdf_dim) :: &
                           mu_x_1, mu_x_2, &    ! Mean array for PDF components
                           sigma_x_1, sigma_x_2 ! Std dev arr for PDF components
-      real(r8), dimension(state%ngrdcol,pverp-top_lev+1,pdf_dim,pdf_dim), allocatable :: &
+      real(r8), dimension(state%ngrdcol,pverp-top_lev+1,pdf_dim,pdf_dim) :: &
                           corr_cholesky_mtx_1, corr_cholesky_mtx_2  ! Transposed corr cholesky mtx
       real(r8), dimension(state%ngrdcol,pverp-top_lev+1) :: Nc_in_cloud
       real(r8), dimension(state%ngrdcol,pverp-top_lev+1) :: ice_supersat_frac_in
@@ -1212,7 +1212,7 @@ contains
                    clubb_config_flags%l_tke_aniso, &                     ! In
                    clubb_config_flags%l_standard_term_ta, &              ! In
                    clubb_config_flags%l_single_C2_Skw, &                 ! In
-                   vert_decorr_coef, &                                   ! In
+                   subcol_SILHS_vert_decorr_coef, &                      ! In
                    X_nl_all_levs, X_mixt_comp_all_levs, &                ! Out
                    lh_sample_point_weights)                              ! Out
 
