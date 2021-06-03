@@ -1892,8 +1892,8 @@ contains
 
      ! Don't do anything if this option isn't enabled.
      if ( .not. subcol_SILHS_var_covar_src ) return
-
-     call init_pdf_params_api( pverp+1-top_lev, 1, pdf_params_single_col )
+     
+     call init_pdf_params_api( pverp, 1, pdf_params_single_col )
 
      lchnk = state_sc%lchnk
      ngrdcol  = state_sc%ngrdcol
