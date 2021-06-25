@@ -32,7 +32,7 @@ module micro_p3_interface
 #endif /*SILHS*/
                             pbuf_old_tim_idx
   use ref_pres,       only: top_lev=>trop_cloud_top_lev
-  use phys_control,   only: phys_getopts
+  use phys_control,   only: phys_getopts,use_hetfrz_classnuc
   use cam_abortutils, only: endrun
   use spmd_utils,     only: masterproc
   use cam_logfile,    only: iulog
@@ -44,6 +44,7 @@ module micro_p3_interface
   use cam_grid_support, only: cam_grid_check, cam_grid_id, cam_grid_get_dim_names
   use ncdio_atm,       only: infld
   use ppgrid,         only: begchunk, endchunk, pcols, pver, pverp,psubcols
+  use cam_history_support, only: add_hist_coord
        
   implicit none
   save
@@ -116,6 +117,11 @@ module micro_p3_interface
       snow_str_idx = -1,       &
       snow_pcw_idx = -1,       &
       snow_sed_idx = -1
+
+   integer :: &
+      frzimm_idx = -1, &
+      frzcnt_idx = -1, &
+      frzdep_idx = -1
 
 #ifdef SILHS
 ! Pbuf fields needed for subcol_SILHS
@@ -208,8 +214,12 @@ subroutine micro_p3_readnl(nlfile)
   select case (trim(micro_p3_tableversion))
     case ('4')
        ! Version 4 is valid
+    case ('4.1')
+      ! Version 4.1 is valid
     case ('4.1.1')
-       ! Version 4.1.1 is valid
+      ! Version 4.1.1 is valid
+    case ('4.1.2')
+      ! Version 4.1.2 is valid      
     case default
        print *, micro_p3_tableversion
        call bad_version_endrun()
@@ -338,6 +348,9 @@ end subroutine micro_p3_readnl
    call pbuf_add_field('MON_CCN_1',  'global', dtype_r8,(/pcols,pver/),mon_ccn_1_idx)
    call pbuf_add_field('MON_CCN_2',  'global', dtype_r8,(/pcols,pver/),mon_ccn_2_idx)
 
+   call add_hist_coord('P3_input_dim',  16, 'Input field dimension for p3_main subroutine',  'N/A', (/ 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16 /))
+   call add_hist_coord('P3_output_dim',    32, 'Output field dimension for p3_main subroutine', 'N/A', (/ 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32 /))
+
 #ifdef SILHS
   ! Register subcolumn pbuf fields
   if (use_subcol_microp) then
@@ -449,7 +462,6 @@ end subroutine micro_p3_readnl
   subroutine micro_p3_init(pbuf2d)
     use micro_p3,       only: p3_init
     use cam_history,    only: addfld, add_default, horiz_only
-    use cam_history_support, only: add_hist_coord 
     use micro_p3_utils, only: micro_p3_utils_init
 #ifdef SILHS
     use physics_buffer, only: col_type_subcol
@@ -502,6 +514,13 @@ end subroutine micro_p3_readnl
     prec_pcw_idx = pbuf_get_index('PREC_PCW') !! from physpkg 
     snow_pcw_idx = pbuf_get_index('SNOW_PCW') !! from physpkg 
 
+    if(use_hetfrz_classnuc)then
+      ! fields for the CNT primary/heterogeneous freezing
+      frzimm_idx = pbuf_get_index('FRZIMM')
+      frzcnt_idx = pbuf_get_index('FRZCNT')
+      frzdep_idx = pbuf_get_index('FRZDEP') 
+    endif 
+
 #ifdef SILHS
     ! Fields for subcol_SILHS hole filling
     qcsedten_idx = pbuf_get_index('QCSEDTEN', ierr)
@@ -526,8 +545,6 @@ end subroutine micro_p3_readnl
        call pbuf_set_field(pbuf2d, qv_prev_idx,  0._rtype)
        call pbuf_set_field(pbuf2d, t_prev_idx,  0._rtype)
 #endif /*SILHS*/
-       call pbuf_set_field(pbuf2d, mon_ccn_1_idx, 0._rtype)
-       call pbuf_set_field(pbuf2d, mon_ccn_2_idx, 0._rtype)
  
 #ifdef SILHS
        ! Fields for subcol_SILHS hole filling
@@ -649,13 +666,11 @@ end subroutine micro_p3_readnl
    call addfld('UMR', (/ 'lev' /), 'A',   'm/s', 'Mass-weighted rain  fallspeed'              )
 
    ! Record of inputs/outputs from p3_main
-   call add_hist_coord('P3_input_dim',  16, 'Input field dimension for p3_main subroutine',  'N/A', (/ 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16 /))
-   call add_hist_coord('P3_output_dim', 32, 'Output field dimension for p3_main subroutine', 'N/A', (/ 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32 /))
-   call addfld('P3_input',  (/ 'ilev         ', 'P3_input_dim ' /),  'I', 'N/A', 'Inputs for p3_main subroutine')
-   call addfld('P3_output', (/ 'ilev         ', 'P3_output_dim' /), 'I', 'N/A', 'Outputs for p3_main subroutine')
+   call addfld('P3_input',  (/ 'ilev',    'P3_input_dim ' /),    'I', 'N/A', 'Inputs for p3_main subroutine')
+   call addfld('P3_output', (/ 'ilev',    'P3_output_dim' /),    'I', 'N/A', 'Outputs for p3_main subroutine')
    ! Record of microphysics tendencies
    ! warm-phase process rates
-   call addfld('P3_qrcon',  (/ 'lev' /), 'A', 'kg/kg/s', 'P3 Tendency for rain condensation   (Not in paper?)')
+   !call addfld('P3_qrcon',  (/ 'lev' /), 'A', 'kg/kg/s', 'P3 Tendency for rain condensation   (Not in paper?)')
    call addfld('P3_qc2qr_accret_tend',  (/ 'lev' /), 'A', 'kg/kg/s', 'P3 Tendency for cloud droplet accretion by rain')
    call addfld('P3_qc2qr_autoconv_tend',  (/ 'lev' /), 'A', 'kg/kg/s', 'P3 Tendency for cloud droplet autoconversion to rain')
    call addfld('P3_nc_accret_tend',  (/ 'lev' /), 'A', 'kg/kg/s', 'P3 Tendency for change in cloud droplet number from accretion by rain')
@@ -706,16 +721,32 @@ end subroutine micro_p3_readnl
    call addfld('P3_mtend_NUMICE',  (/ 'lev' /), 'A', 'kg/kg/s', 'P3 Tendency for ice cloud number due to micro processes')
    call addfld('P3_mtend_Q',       (/ 'lev' /), 'A', 'kg/kg/s', 'P3 Tendency for water vapor due to micro processes')
    call addfld('P3_mtend_TH',      (/ 'lev' /), 'A', 'kg/kg/s', 'P3 Tendency for potential temp. number due to micro processes')
+
+   ! Precipitation / Hydrometeo flux
+   call addfld('precip_liq_flux',    (/ 'lev' /), 'A', 'Kg m^-2 s^-1', 'Precip liquid flux')
+   call addfld('precip_ice_flux',    (/ 'lev' /), 'A', 'Kg m^-2 s^-1', 'Precip ice flux')
+   call addfld('ice_flux',           (/ 'lev' /), 'A', 'Kg m^-2 s^-1', 'ice flux')
+   call addfld('rain_flux',          (/ 'lev' /), 'A', 'Kg m^-2 s^-1', 'rain flux')
+   call addfld('cldliq_flux',        (/ 'lev' /), 'A', 'Kg m^-2 s^-1', 'cld liquid flux')
+   call addfld ('LS_FLXPRC', (/ 'ilev' /), 'A', 'kg/m2/s', 'ls stratiform gbm interface rain+snow flux')
+   call addfld ('LS_FLXSNW', (/ 'ilev' /), 'A', 'kg/m2/s', 'ls stratiform gbm interface snow flux')
+   call addfld ('LS_REFFRAIN', (/ 'lev' /), 'A', 'micron', 'ls stratiform rain effective radius')
+   
    ! phase change tendencies
    call addfld('vap_liq_exchange',  (/ 'lev' /), 'A', 'kg/kg/s', 'Tendency for conversion from/to vapor phase to/from liquid phase')
    call addfld('vap_ice_exchange',  (/ 'lev' /), 'A', 'kg/kg/s', 'Tendency for conversion from/to vapor phase to/from frozen phase')
    call addfld('liq_ice_exchange',  (/ 'lev' /), 'A', 'kg/kg/s', 'Tendency for conversion from/to liquid phase to/from frozen phase')
+   call addfld('vap_liq_exchange_clubb',  (/ 'lev' /), 'A', 'kg/kg/s', 'Tendency for conversion from/to vapor to liquid phase in CLUBB')
+   call addfld('diag_equiv_reflectivity',  (/ 'lev' /), 'A', 'dBz', 'Equivalent reflectivity (rain + ice)')
+   call addfld('diag_ze_rain',      (/ 'lev' /), 'A', 'dBz', 'Equivalent reflectivity rain')
+   call addfld('diag_ze_ice',       (/ 'lev' /), 'A', 'dBz', 'Equivalent reflectivity ice')
 
    ! determine the add_default fields
    call phys_getopts(history_amwg_out           = history_amwg         , &
                      history_verbose_out        = history_verbose      , &
                      history_budget_out         = history_budget       , &
                      history_budget_histfile_num_out = budget_histfile)
+
    if (history_amwg) then
       call add_default ('FICE    ', 1, ' ')
       call add_default ('AQRAIN   ', 1, ' ')
@@ -748,10 +779,15 @@ end subroutine micro_p3_readnl
       call add_default('vap_liq_exchange',  1, ' ')
       call add_default('vap_ice_exchange',  1, ' ')
       call add_default('liq_ice_exchange',  1, ' ')
+      call add_default('vap_liq_exchange_clubb',  1, ' ')
+      call add_default('diag_equiv_reflectivity',  1, ' ')
+      call add_default('diag_ze_rain',  1, ' ')
+      call add_default('diag_ze_ice',  1, ' ')
+
       ! Microphysics tendencies
       ! warm-phase process rates
       if (micro_tend_output) then
-         call add_default('P3_qrcon',  1, ' ')
+         !call add_default('P3_qrcon',  1, ' ')
          call add_default('P3_qc2qr_accret_tend',  1, ' ')
          call add_default('P3_qc2qr_autoconv_tend',  1, ' ')
          call add_default('P3_nc_accret_tend',  1, ' ')
@@ -802,6 +838,13 @@ end subroutine micro_p3_readnl
          call add_default('P3_mtend_NUMICE',  1, ' ')
          call add_default('P3_mtend_Q',       1, ' ')
          call add_default('P3_mtend_TH',      1, ' ')
+         
+         ! Precip / Hydro sedimentation flux
+         call add_default('precip_liq_flux',      1, ' ')
+         call add_default('precip_ice_flux',      1, ' ')
+         call add_default('ice_flux',             1, ' ')
+         call add_default('rain_flux',            1, ' ')
+         call add_default('cldliq_flux',          1, ' ')
       end if
    end if
 
@@ -1044,6 +1087,9 @@ end subroutine micro_p3_readnl
     real(rtype) :: qv2qi_depos_tend(pcols,pver)
     real(rtype) :: precip_liq_flux(pcols,pver+1)     !grid-box average rain flux (kg m^-2s^-1) pverp
     real(rtype) :: precip_ice_flux(pcols,pver+1)     !grid-box average ice/snow flux (kg m^-2s^-1) pverp
+    real(rtype) :: rflx(pcols,pver+1)     !grid-box average rain flux (kg m^-2s^-1) pverp
+    real(rtype) :: sflx(pcols,pver+1)     !grid-box average ice/snow flux (kg m^-2s^-1) pverp
+    real(rtype) :: cflx(pcols,pver+1)     !grid-box average cloud flux (kg m^-2s^-1) pverp
     real(rtype) :: exner(pcols,pver)      !exner formula for converting between potential and normal temp
     real(rtype) :: cld_frac_r(pcols,pver)      !rain cloud fraction
     real(rtype) :: cld_frac_l(pcols,pver)      !liquid cloud fraction
@@ -1052,7 +1098,7 @@ end subroutine micro_p3_readnl
     real(rtype), dimension(pcols,pver) :: liq_ice_exchange ! sum of liq-ice phase change tendenices
     real(rtype), dimension(pcols,pver) :: vap_liq_exchange ! sum of vap-liq phase change tendenices
     real(rtype), dimension(pcols,pver) :: vap_ice_exchange ! sum of vap-ice phase change tendenices
-    real(rtype) :: dummy_out(pcols,pver)    ! dummy_output variable for p3_main to replace unused variables.
+    real(rtype), dimension(pcols,pver) :: diag_equiv_reflectivity,diag_ze_rain,diag_ze_ice ! equivalent reflectivity [dBz]
 
     !Prescribed CCN concentration
     real(rtype), dimension(pcols,pver) :: nccn_prescribed
@@ -1078,6 +1124,9 @@ end subroutine micro_p3_readnl
     real(rtype) :: qv2qi_depos_tend(state%psetcols,pver)
     real(rtype) :: precip_liq_flux(state%psetcols,pver+1)     !grid-box average rain flux (kg m^-2s^-1) pverp
     real(rtype) :: precip_ice_flux(state%psetcols,pver+1)     !grid-box average ice/snow flux (kg m^-2s^-1) pverp
+    real(rtype) :: rflx(state%psetcols,pver+1)     !grid-box average rain flux (kg m^-2s^-1) pverp
+    real(rtype) :: sflx(state%psetcols,pver+1)     !grid-box average ice/snow flux (kg m^-2s^-1) pverp
+    real(rtype) :: cflx(state%psetcols,pver+1)     !grid-box average cloud flux (kg m^-2s^-1) pverp
     real(rtype) :: exner(state%psetcols,pver)      !exner formula for converting between potential and normal temp
     real(rtype) :: cld_frac_r(state%psetcols,pver)      !rain cloud fraction
     real(rtype) :: cld_frac_l(state%psetcols,pver)      !liquid cloud fraction
@@ -1086,7 +1135,7 @@ end subroutine micro_p3_readnl
     real(rtype), dimension(state%psetcols,pver) :: liq_ice_exchange ! sum of liq-ice phase change tendenices
     real(rtype), dimension(state%psetcols,pver) :: vap_liq_exchange ! sum of vap-liq phase change tendenices
     real(rtype), dimension(state%psetcols,pver) :: vap_ice_exchange ! sum of vap-ice phase change tendenices
-    real(rtype) :: dummy_out(state%psetcols,pver)    ! dummy_output variable for p3_main to replace unused variables.
+    real(rtype), dimension(state%psetcols,pver) :: diag_equiv_reflectivity,diag_ze_rain,diag_ze_ice ! equivalent reflectivity [dBz]
 
     !Prescribed CCN concentration
     real(rtype), dimension(state%psetcols,pver) :: nccn_prescribed
@@ -1227,6 +1276,14 @@ end subroutine micro_p3_readnl
     real(rtype) :: cdnumc(pcols)      
     real(rtype) :: icinc(pcols,pver) 
     real(rtype) :: icwnc(pcols,pver) 
+
+    ! variables for the CNT primary / heterogeneous freezing
+    real(rtype), pointer :: frzimm(:,:)
+    real(rtype), pointer :: frzcnt(:,:)
+    real(rtype), pointer :: frzdep(:,:)
+    real(rtype) :: frzimm_in(pcols,pver)
+    real(rtype) :: frzcnt_in(pcols,pver)
+    real(rtype) :: frzdep_in(pcols,pver)
 #else
     ! For recording inputs/outputs to p3_main
     real(rtype) :: p3_main_inputs(state%psetcols,pver+1,17) ! Record of inputs for p3_main
@@ -1255,9 +1312,21 @@ end subroutine micro_p3_readnl
     real(rtype) :: cdnumc(state%psetcols)      
     real(rtype) :: icinc(state%psetcols,pver) 
     real(rtype) :: icwnc(state%psetcols,pver) 
+
+    ! variables for the CNT primary / heterogeneous freezing
+    real(rtype), pointer :: frzimm(:,:)
+    real(rtype), pointer :: frzcnt(:,:)
+    real(rtype), pointer :: frzdep(:,:)
+    real(rtype) :: frzimm_in(state%psetcols,pver)
+    real(rtype) :: frzcnt_in(state%psetcols,pver)
+    real(rtype) :: frzdep_in(state%psetcols,pver)
 #endif /*SILHS*/
 
 #ifdef SILHS
+    ! For recording inputs/outputs to p3_main
+    real(rtype) :: p3_main_inputs_grid(pcols,pver+1,17) ! Record of inputs for p3_main
+    real(rtype) :: p3_main_outputs_grid(pcols,pver+1,31) ! Record of outputs for p3_main
+
     ! Variables used to average subcolumn outputs back to grid column values for
     ! stats purposes.
     real(rtype) :: efcout_grid(pcols,pver)      
@@ -1274,6 +1343,15 @@ end subroutine micro_p3_readnl
     real(rtype), dimension(pcols,pver) :: liq_ice_exchange_grid ! sum of liq-ice phase change tendenices
     real(rtype), dimension(pcols,pver) :: vap_liq_exchange_grid ! sum of vap-liq phase change tendenices
     real(rtype), dimension(pcols,pver) :: vap_ice_exchange_grid ! sum of vap-ice phase change tendenices
+    real(rtype), dimension(pcols,pver) :: cmeliq_grid
+    real(rtype), dimension(pcols,pver+1) :: precip_liq_flux_grid !grid-box average rain flux (kg m^-2s^-1) pverp
+    real(rtype), dimension(pcols,pver+1) :: precip_ice_flux_grid !grid-box average ice/snow flux (kg m^-2s^-1) pverp
+    real(rtype), dimension(pcols,pver+1) :: rflx_grid !grid-box average rain flux (kg m^-2s^-1) pverp
+    real(rtype), dimension(pcols,pver+1) :: sflx_grid !grid-box average ice/snow flux (kg m^-2s^-1) pverp
+    real(rtype), dimension(pcols,pver+1) :: cflx_grid !grid-box average cloud flux (kg m^-2s^-1) pverp
+    real(rtype), dimension(pcols,pver) :: diag_equiv_reflectivity_grid
+    real(rtype), dimension(pcols,pver) :: diag_ze_rain_grid
+    real(rtype), dimension(pcols,pver) :: diag_ze_ice_grid
 
     logical :: use_subcol_microp
     integer :: col_type ! Flag to store whether accessing grid or sub-columns in pbuf_get_field
@@ -1310,9 +1388,23 @@ end subroutine micro_p3_readnl
     ! All external PBUF variables:
     ! INPUTS
     call pbuf_get_field(pbuf, ast_idx,         ast, start=(/1,1,itim_old/), kount=(/psetcols,pver,1/))
-    call pbuf_get_field(pbuf, ni_activated_idx,        ni_activated                                                  ) 
+    call pbuf_get_field(pbuf, ni_activated_idx,        ni_activated                                  ) 
     call pbuf_get_field(pbuf, npccn_idx,       npccn                                                 )
     call pbuf_get_field(pbuf, cmeliq_idx,      cmeliq                                                )
+    
+    if (use_hetfrz_classnuc) then
+      call pbuf_get_field(pbuf, frzimm_idx, frzimm                                               )
+      call pbuf_get_field(pbuf, frzcnt_idx, frzcnt                                               )
+      call pbuf_get_field(pbuf, frzdep_idx, frzdep                                               )
+      frzimm_in = frzimm
+      frzcnt_in = frzcnt
+      frzdep_in = frzdep
+    else
+      frzimm_in = 0.0_rtype
+      frzcnt_in = 0.0_rtype
+      frzdep_in = 0.0_rtype                                                 
+    end if
+
     ! OUTPUTS
     call pbuf_get_field(pbuf,    prec_str_idx,  prec_str)
     call pbuf_get_field(pbuf,    snow_str_idx,  snow_str)
@@ -1357,6 +1449,20 @@ end subroutine micro_p3_readnl
     call pbuf_get_field(pbuf, ni_activated_idx, ni_activated, col_type=col_type, copy_if_needed=use_subcol_microp)
     call pbuf_get_field(pbuf, npccn_idx,        npccn,        col_type=col_type, copy_if_needed=use_subcol_microp)
     call pbuf_get_field(pbuf, cmeliq_idx,       cmeliq,       col_type=col_type, copy_if_needed=use_subcol_microp)
+
+    if (use_hetfrz_classnuc) then
+      call pbuf_get_field(pbuf, frzimm_idx, frzimm. col_type=col_type, copy_if_needed=use_subcol_microp)
+      call pbuf_get_field(pbuf, frzcnt_idx, frzcnt, col_type=col_type, copy_if_needed=use_subcol_microp)
+      call pbuf_get_field(pbuf, frzdep_idx, frzdep, col_type=col_type, copy_if_needed=use_subcol_microp)
+      frzimm_in = frzimm
+      frzcnt_in = frzcnt
+      frzdep_in = frzdep
+    else
+      frzimm_in = 0.0_rtype
+      frzcnt_in = 0.0_rtype
+      frzdep_in = 0.0_rtype                                                 
+    end if
+
     ! OUTPUTS
     call pbuf_get_field(pbuf,    prec_str_idx,  prec_str, col_type=col_type)
     call pbuf_get_field(pbuf,    snow_str_idx,  snow_str, col_type=col_type)
@@ -1432,7 +1538,7 @@ end subroutine micro_p3_readnl
     ! Some pre-microphysics INITIALIZATION
     !==============
     cldo(:ncol,top_lev:pver)=ast(:ncol,top_lev:pver)
-
+    
     ! INITIALIZE PTEND
     !==============
     !ptend is an output variable. Since not substepping in micro, don't need 
@@ -1543,7 +1649,7 @@ end subroutine micro_p3_readnl
     numrain = state%q(:,:,ixnumrain)
     qv      = state%q(:,:,1)
     ice     = state%q(:,:,ixcldice)
-    qm   = state%q(:,:,ixcldrim) !Aaron, changed ixqm to ixcldrim to match Kai's code
+    qm      = state%q(:,:,ixcldrim) !Aaron, changed ixqm to ixcldrim to match Kai's code
     numice  = state%q(:,:,ixnumice)
     rimvol  = state%q(:,:,ixrimvol)
     its     = 1
@@ -1568,25 +1674,25 @@ end subroutine micro_p3_readnl
 
     p3_main_inputs(:,:,:) = -999._rtype
     do k = 1,pver
-      p3_main_inputs(1,k,1)  = ast(1,k)
-      p3_main_inputs(1,k,2)  = ni_activated(1,k)
-      p3_main_inputs(1,k,3)  = npccn(1,k)
-      p3_main_inputs(1,k,4)  = state%pmid(1,k)
-      p3_main_inputs(1,k,5)  = state%zi(1,k)
-      p3_main_inputs(1,k,6)  = state%T(1,k)
-      p3_main_inputs(1,k,7)  = qv(1,k)
-      p3_main_inputs(1,k,8)  = cldliq(1,k)
-      p3_main_inputs(1,k,9)  = ice(1,k)
-      p3_main_inputs(1,k,10) = numliq(1,k)
-      p3_main_inputs(1,k,11) = numice(1,k)
-      p3_main_inputs(1,k,12) = rain(1,k)
-      p3_main_inputs(1,k,13) = numrain(1,k)
-      p3_main_inputs(1,k,14) = qm(1,k)
-      p3_main_inputs(1,k,15) = rimvol(1,k)
-      p3_main_inputs(1,k,16) = state%pdel(1,k)
-      p3_main_inputs(1,k,17) = relvar(1,k)
+      p3_main_inputs(its:ite,k,1)  = ast(its:ite,k)
+      p3_main_inputs(its:ite,k,2)  = ni_activated(its:ite,k)
+      p3_main_inputs(its:ite,k,3)  = npccn(its:ite,k)
+      p3_main_inputs(its:ite,k,4)  = state%pmid(its:ite,k)
+      p3_main_inputs(its:ite,k,5)  = state%zi(its:ite,k)
+      p3_main_inputs(its:ite,k,6)  = state%T(its:ite,k)
+      p3_main_inputs(its:ite,k,7)  = qv(its:ite,k)
+      p3_main_inputs(its:ite,k,8)  = cldliq(its:ite,k)
+      p3_main_inputs(its:ite,k,9)  = ice(its:ite,k)
+      p3_main_inputs(its:ite,k,10) = numliq(its:ite,k)
+      p3_main_inputs(its:ite,k,11) = numice(its:ite,k)
+      p3_main_inputs(its:ite,k,12) = rain(its:ite,k)
+      p3_main_inputs(its:ite,k,13) = numrain(its:ite,k)
+      p3_main_inputs(its:ite,k,14) = qm(its:ite,k)
+      p3_main_inputs(its:ite,k,15) = rimvol(its:ite,k)
+      p3_main_inputs(its:ite,k,16) = state%pdel(its:ite,k)
+      p3_main_inputs(its:ite,k,17) = relvar(its:ite,k)
     end do
-    p3_main_inputs(1,pver+1,5) = state%zi(1,pver+1)
+    p3_main_inputs(its:ite,pver+1,5) = state%zi(its:ite,pver+1)
 
     !read in prescribed CCN if log_prescribeCCN is true
     if (do_prescribed_CCN) call get_prescribed_CCN(nccn_prescribed,micro_p3_lookup_dir,its,ite,kts,kte,pbuf,lchnk)
@@ -1594,7 +1700,6 @@ end subroutine micro_p3_readnl
     ! CALL P3
     !==============
     ! TODO: get proper value for 'it' from time module
-    dummy_out(:,:) = 0.0_rtype
     precip_liq_surf = 0.0_rtype
     precip_ice_surf = 0.0_rtype
     prec_pcw = 0.0_rtype
@@ -1619,6 +1724,9 @@ end subroutine micro_p3_readnl
          npccn(its:ite,kts:kte),      & ! IN ccn activation number tendency kg-1 s-1
          nccn_prescribed(its:ite,kts:kte), & ! IN ccn prescribed concentration
          ni_activated(its:ite,kts:kte),    & ! IN activated ice nuclei concentration kg-1
+         frzimm_in(its:ite,kts:kte), &
+         frzcnt_in(its:ite,kts:kte), & ! IN     CNT coupling
+         frzdep_in(its:ite,kts:kte), &
          relvar(its:ite,kts:kte),     & ! IN cloud liquid relative variance
          it,                          & ! IN     time step counter NOTE: starts at 1 for first time step
          precip_liq_surf(its:ite),            & ! OUT    surface liquid precip rate       m s-1
@@ -1641,6 +1749,9 @@ end subroutine micro_p3_readnl
          qr_evap_tend(its:ite,kts:kte),  & ! OUT rain evaporation
          precip_liq_flux(its:ite,kts:kte+1),     & ! OUT grid-box average rain flux (kg m^-2s^-1) pverp 
          precip_ice_flux(its:ite,kts:kte+1),     & ! OUT grid-box average ice/snow flux (kgm^-2 s^-1) pverp
+         rflx(its:ite,kts:kte+1),     & ! OUT grid-box average rain flux (kg m^-2 s^-1) pverp 
+         sflx(its:ite,kts:kte+1),     & ! OUT grid-box average ice/snow flux (kgm^-2 s^-1) pverp
+         cflx(its:ite,kts:kte+1),     & ! OUT grid-box average cld droplet flux (kgm^-2 s^-1) pverp
          cld_frac_r(its:ite,kts:kte),      & ! IN rain cloud fraction
          cld_frac_l(its:ite,kts:kte),      & ! IN liquid cloud fraction
          cld_frac_i(its:ite,kts:kte),      & ! IN ice cloud fraction
@@ -1652,9 +1763,11 @@ end subroutine micro_p3_readnl
          vap_ice_exchange(its:ite,kts:kte),& ! OUT sum of vap-ice phase change tendencies
          qv_prev(its:ite,kts:kte),         & ! IN  qv at end of prev p3_main call   kg kg-1
          t_prev(its:ite,kts:kte),          & ! IN  t at end of prev p3_main call    K
-         col_location(its:ite,:3)          & ! IN column locations
+         col_location(its:ite,:3),         & ! IN column locations
+         diag_equiv_reflectivity(its:ite,kts:kte), & !OUT equivalent reflectivity (rain + ice) [dBz]
+         diag_ze_rain(its:ite,kts:kte),diag_ze_ice(its:ite,kts:kte) & !OUT equivalent reflectivity for rain and ice [dBz]
 #ifdef SILHS
-         ,V_qc_out(its:ite,kts:kte),        & ! OUT Sedimentation velocity of qc
+         ,V_qc_out(its:ite,kts:kte),       & ! OUT Sedimentation velocity of qc
          V_qr_out(its:ite,kts:kte),        & ! OUT Sedimentation velocity of qr
          V_qi_out(its:ite,kts:kte)         & ! OUT Sedimentation velocity of qi
 #endif /*SILHS*/
@@ -1662,37 +1775,57 @@ end subroutine micro_p3_readnl
 
     p3_main_outputs(:,:,:) = -999._rtype
     do k = 1,pver
-      p3_main_outputs(1,k, 1) = cldliq(1,k)
-      p3_main_outputs(1,k, 2) = numliq(1,k)
-      p3_main_outputs(1,k, 3) = rain(1,k)
-      p3_main_outputs(1,k, 4) = numrain(1,k)
-      p3_main_outputs(1,k, 5) = th(1,k)
-      p3_main_outputs(1,k, 6) = qv(1,k)
-      p3_main_outputs(1,k, 7) = ice(1,k)
-      p3_main_outputs(1,k, 8) = qm(1,k)
-      p3_main_outputs(1,k, 9) = numice(1,k)
-      p3_main_outputs(1,k,10) = rimvol(1,k)
-      p3_main_outputs(1,k,14) = rel(1,k)
-      p3_main_outputs(1,k,15) = rei(1,k)
-      p3_main_outputs(1,k,18) = rho_qi(1,k)
-      p3_main_outputs(1,k,19) = qv2qi_depos_tend(1,k)
-      p3_main_outputs(1,k,20) = precip_total_tend(1,k)
-      p3_main_outputs(1,k,21) = nevapr(1,k)
-      p3_main_outputs(1,k,22) = qr_evap_tend(1,k)
-      p3_main_outputs(1,k,23) = precip_liq_flux(1,k)
-      p3_main_outputs(1,k,24) = precip_ice_flux(1,k)
-      p3_main_outputs(1,k,27) = mu(1,k)
-      p3_main_outputs(1,k,28) = lambdac(1,k)
-      p3_main_outputs(1,k,29) = liq_ice_exchange(1,k)
-      p3_main_outputs(1,k,30) = vap_liq_exchange(1,k)
-      p3_main_outputs(1,k,31) = vap_ice_exchange(1,k)
+      p3_main_outputs(:ncol,k, 1) = cldliq(:ncol,k)
+      p3_main_outputs(:ncol,k, 2) = numliq(:ncol,k)
+      p3_main_outputs(:ncol,k, 3) = rain(:ncol,k)
+      p3_main_outputs(:ncol,k, 4) = numrain(:ncol,k)
+      p3_main_outputs(:ncol,k, 5) = th(:ncol,k)
+      p3_main_outputs(:ncol,k, 6) = qv(:ncol,k)
+      p3_main_outputs(:ncol,k, 7) = ice(:ncol,k)
+      p3_main_outputs(:ncol,k, 8) = qm(:ncol,k)
+      p3_main_outputs(:ncol,k, 9) = numice(:ncol,k)
+      p3_main_outputs(:ncol,k,10) = rimvol(:ncol,k)
+      p3_main_outputs(:ncol,k,14) = rel(:ncol,k)
+      p3_main_outputs(:ncol,k,15) = rei(:ncol,k)
+      p3_main_outputs(:ncol,k,18) = rho_qi(:ncol,k)
+      p3_main_outputs(:ncol,k,19) = qv2qi_depos_tend(:ncol,k)
+      p3_main_outputs(:ncol,k,20) = precip_total_tend(:ncol,k)
+      p3_main_outputs(:ncol,k,21) = nevapr(:ncol,k)
+      p3_main_outputs(:ncol,k,22) = qr_evap_tend(:ncol,k)
+      p3_main_outputs(:ncol,k,23) = precip_liq_flux(:ncol,k)
+      p3_main_outputs(:ncol,k,24) = precip_ice_flux(:ncol,k)
+      p3_main_outputs(:ncol,k,27) = mu(:ncol,k)
+      p3_main_outputs(:ncol,k,28) = lambdac(:ncol,k)
+      p3_main_outputs(:ncol,k,29) = liq_ice_exchange(:ncol,k)
+      p3_main_outputs(:ncol,k,30) = vap_liq_exchange(:ncol,k)
+      p3_main_outputs(:ncol,k,31) = vap_ice_exchange(:ncol,k)
     end do
-    p3_main_outputs(1,1,11) = precip_liq_surf(1)
-    p3_main_outputs(1,1,12) = precip_ice_surf(1)
-    p3_main_outputs(1,pver+1,23) = precip_liq_flux(1,pver+1)
-    p3_main_outputs(1,pver+1,24) = precip_ice_flux(1,pver+1)
+    p3_main_outputs(:ncol,1,11) = precip_liq_surf(1)
+    p3_main_outputs(:ncol,1,12) = precip_ice_surf(1)
+    p3_main_outputs(:ncol,pver+1,23) = precip_liq_flux(:ncol,pver+1)
+    p3_main_outputs(:ncol,pver+1,24) = precip_ice_flux(:ncol,pver+1)
+#ifndef SILHS
     call outfld('P3_input',  p3_main_inputs,  pcols, lchnk)
     call outfld('P3_output', p3_main_outputs, pcols, lchnk)
+#else
+    if ( use_subcol_microp ) then
+       do indx = 1, 17, 1
+          call subcol_field_avg(p3_main_inputs(:,:,indx), ngrdcol, lchnk, p3_main_inputs_grid(:,:,indx))
+       enddo  ! indx = 1, 17, 1
+       do indx = 1, 31, 1
+          call subcol_field_avg(p3_main_outputs(:,:,indx), ngrdcol, lchnk, p3_main_outputs_grid(:,:,indx))
+       enddo  ! indx = 1, 31, 1
+    else
+       do indx = 1, 17, 1
+          p3_main_inputs_grid(:,:,indx) = p3_main_inputs(:,:,indx)
+       enddo  ! indx = 1, 17, 1
+       do indx = 1, 31, 1
+          p3_main_outputs_grid(:,:,indx) = p3_main_outputs(:,:,indx)
+       enddo  ! indx = 1, 31, 1
+    endif ! use_subcol_microp
+    call outfld('P3_input',  p3_main_inputs_grid,  pcols, lchnk)
+    call outfld('P3_output', p3_main_outputs_grid, pcols, lchnk)
+#endif /*SILHS*/
 
     !MASSAGE OUTPUT TO FIT E3SM EXPECTATIONS
     !============= 
@@ -1923,7 +2056,7 @@ end subroutine micro_p3_readnl
 
    ! Write p3 tendencies as output 
    ! warm-phase process rates
-   call outfld('P3_qrcon',  tend_out(:,:, 1), pcols, lchnk) 
+   !call outfld('P3_qrcon',  tend_out(:,:, 1), pcols, lchnk) 
    call outfld('P3_qc2qr_accret_tend',  tend_out(:,:, 2), pcols, lchnk) 
    call outfld('P3_qc2qr_autoconv_tend',  tend_out(:,:, 3), pcols, lchnk) 
    call outfld('P3_nc_accret_tend',  tend_out(:,:, 4), pcols, lchnk) 
@@ -1931,10 +2064,10 @@ end subroutine micro_p3_readnl
    call outfld('P3_nc_selfcollect_tend',  tend_out(:,:, 6), pcols, lchnk) 
    call outfld('P3_nr_selfcollect_tend',  tend_out(:,:, 7), pcols, lchnk) 
    call outfld('P3_nc_nuceat_tend',  tend_out(:,:, 8), pcols, lchnk) 
-   call outfld('P3_qccon',  tend_out(:,:, 9), pcols, lchnk) 
-   call outfld('P3_qcnuc',  tend_out(:,:,10), pcols, lchnk) 
+   !call outfld('P3_qccon',  tend_out(:,:, 9), pcols, lchnk) 
+   !call outfld('P3_qcnuc',  tend_out(:,:,10), pcols, lchnk) 
    call outfld('P3_qr2qv_evap_tend',  tend_out(:,:,11), pcols, lchnk) 
-   call outfld('P3_qcevp',  tend_out(:,:,12), pcols, lchnk) 
+   !call outfld('P3_qcevp',  tend_out(:,:,12), pcols, lchnk) 
    call outfld('P3_nr_evap_tend',  tend_out(:,:,13), pcols, lchnk) 
    call outfld('P3_ncautr', tend_out(:,:,14), pcols, lchnk) 
    ! ice-phase process rate
@@ -1976,9 +2109,23 @@ end subroutine micro_p3_readnl
    call outfld('P3_mtend_Q',       tend_out(:,:,48), pcols, lchnk)
    call outfld('P3_mtend_TH',      tend_out(:,:,49), pcols, lchnk)
    ! Phase change tendencies 
-   call outfld('vap_ice_exchange',      vap_ice_exchange,      pcols, lchnk)
-   call outfld('vap_liq_exchange',      vap_liq_exchange,      pcols, lchnk)
-   call outfld('liq_ice_exchange',      liq_ice_exchange,      pcols, lchnk)
+   call outfld('vap_ice_exchange',       vap_ice_exchange,      pcols, lchnk)
+   call outfld('vap_liq_exchange',       vap_liq_exchange,      pcols, lchnk)
+   call outfld('liq_ice_exchange',       liq_ice_exchange,      pcols, lchnk)
+   call outfld('vap_liq_exchange_clubb', cmeliq,                pcols, lchnk)
+   call outfld('diag_equiv_reflectivity', diag_equiv_reflectivity, pcols, lchnk)
+   call outfld('diag_ze_rain', diag_ze_rain, pcols, lchnk)
+   call outfld('diag_ze_ice', diag_ze_ice, pcols, lchnk)
+
+   ! +++ Precipitation flux 
+   call outfld('precip_liq_flux',    precip_liq_flux(:,:), pcols, lchnk)
+   call outfld('precip_ice_flux',    precip_ice_flux(:,:), pcols, lchnk)
+   call outfld('ice_flux',           sflx(:,:), pcols, lchnk)
+   call outfld('rain_flux',          rflx(:,:), pcols, lchnk)
+   call outfld('cldliq_flux',        cflx(:,:), pcols, lchnk)
+   call outfld ('LS_FLXPRC',         flxprc(:,:), pcols, lchnk)
+   call outfld ('LS_FLXSNW',         flxsnw(:,:), pcols, lchnk)
+   call outfld ('LS_REFFRAIN',       reffrain(:,:), pcols, lchnk)
 #else
    !! SILHS
    qcsedten(:,:) = tend_out(:,:,36)
@@ -2002,6 +2149,15 @@ end subroutine micro_p3_readnl
       call subcol_field_avg(vap_ice_exchange, ngrdcol, lchnk, vap_ice_exchange_grid)
       call subcol_field_avg(vap_liq_exchange, ngrdcol, lchnk, vap_liq_exchange_grid)
       call subcol_field_avg(liq_ice_exchange, ngrdcol, lchnk, liq_ice_exchange_grid)
+      call subcol_field_avg(cmeliq, ngrdcol, lchnk, cmeliq_grid)
+      call subcol_field_avg(precip_liq_flux, ngrdcol, lchnk, precip_liq_flux_grid)
+      call subcol_field_avg(precip_ice_flux, ngrdcol, lchnk, precip_ice_flux_grid)
+      call subcol_field_avg(sflx, ngrdcol, lchnk, sflx_grid)
+      call subcol_field_avg(rflx, ngrdcol, lchnk, rflx_grid)
+      call subcol_field_avg(cflx, ngrdcol, lchnk, cflx_grid)
+      call subcol_field_avg(diag_equiv_reflectivity, ngrdcol, lchnk, diag_equiv_reflectivity_grid)
+      call subcol_field_avg(diag_ze_rain, ngrdcol, lchnk, diag_ze_rain_grid)
+      call subcol_field_avg(diag_ze_ice, ngrdcol, lchnk, diag_ze_ice_grid)
       ! Average subcolumns back to grid average values for PBUF
       call subcol_field_avg(prec_str, ngrdcol, lchnk, prec_str_grid)
       call subcol_field_avg(snow_str, ngrdcol, lchnk, snow_str_grid)
@@ -2048,6 +2204,15 @@ end subroutine micro_p3_readnl
       vap_ice_exchange_grid = vap_ice_exchange
       vap_liq_exchange_grid = vap_liq_exchange
       liq_ice_exchange_grid = liq_ice_exchange
+      cmeliq_grid = cmeliq
+      precip_liq_flux_grid = precip_liq_flux
+      precip_ice_flux_grid = precip_ice_flux
+      sflx_grid = sflx_grid
+      rflx_grid = rflx_grid
+      cflx_grid = cflx_grid
+      diag_equiv_reflectivity_grid = diag_equiv_reflectivity
+      diag_ze_rain_grid = diag_ze_rain
+      diag_ze_ice_grid = diag_ze_ice
       ! Average subcolumns back to grid average values for PBUF
       prec_str_grid => prec_str
       snow_str_grid => snow_str
@@ -2154,10 +2319,25 @@ end subroutine micro_p3_readnl
    call outfld('vap_ice_exchange',      vap_ice_exchange_grid, pcols, lchnk)
    call outfld('vap_liq_exchange',      vap_liq_exchange_grid, pcols, lchnk)
    call outfld('liq_ice_exchange',      liq_ice_exchange_grid, pcols, lchnk)
+   call outfld('vap_liq_exchange_clubb', cmeliq_grid, pcols, lchnk)
+   call outfld('diag_equiv_reflectivity', diag_equiv_reflectivity_grid, pcols, lchnk)
+   call outfld('diag_ze_rain', diag_ze_rain_grid, pcols, lchnk)
+   call outfld('diag_ze_ice', diag_ze_ice_grid, pcols, lchnk)
+
+   ! +++ Precipitation flux 
+   call outfld('precip_liq_flux',    precip_liq_flux_grid(:,:), pcols, lchnk)
+   call outfld('precip_ice_flux',    precip_ice_flux_grid(:,:), pcols, lchnk)
+   call outfld('ice_flux',           sflx_grid(:,:), pcols, lchnk)
+   call outfld('rain_flux',          rflx_grid(:,:), pcols, lchnk)
+   call outfld('cldliq_flux',        cflx_grid(:,:), pcols, lchnk)
+   call outfld ('LS_FLXPRC',         flxprc_grid(:,:), pcols, lchnk)
+   call outfld ('LS_FLXSNW',         flxsnw_grid(:,:), pcols, lchnk)
+   call outfld ('LS_REFFRAIN',       reffrain_grid(:,:), pcols, lchnk)
 #endif /*SILHS*/
 
    call t_stopf('micro_p3_tend_finish')
   end subroutine micro_p3_tend
+
 
   !================================================================================================
 
