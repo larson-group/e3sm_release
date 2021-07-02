@@ -1451,7 +1451,7 @@ end subroutine micro_p3_readnl
     call pbuf_get_field(pbuf, cmeliq_idx,       cmeliq,       col_type=col_type, copy_if_needed=use_subcol_microp)
 
     if (use_hetfrz_classnuc) then
-      call pbuf_get_field(pbuf, frzimm_idx, frzimm. col_type=col_type, copy_if_needed=use_subcol_microp)
+      call pbuf_get_field(pbuf, frzimm_idx, frzimm, col_type=col_type, copy_if_needed=use_subcol_microp)
       call pbuf_get_field(pbuf, frzcnt_idx, frzcnt, col_type=col_type, copy_if_needed=use_subcol_microp)
       call pbuf_get_field(pbuf, frzdep_idx, frzdep, col_type=col_type, copy_if_needed=use_subcol_microp)
       frzimm_in = frzimm
@@ -2263,7 +2263,7 @@ end subroutine micro_p3_readnl
 
    ! Write p3 tendencies as output 
    ! warm-phase process rates
-   call outfld('P3_qrcon',  tend_out_grid(:,:, 1), pcols, lchnk) 
+   !call outfld('P3_qrcon',  tend_out_grid(:,:, 1), pcols, lchnk) 
    call outfld('P3_qc2qr_accret_tend',  tend_out_grid(:,:, 2), pcols, lchnk) 
    call outfld('P3_qc2qr_autoconv_tend',  tend_out_grid(:,:, 3), pcols, lchnk) 
    call outfld('P3_nc_accret_tend',  tend_out_grid(:,:, 4), pcols, lchnk) 
