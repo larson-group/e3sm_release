@@ -9,14 +9,9 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = NGD_clubb_silhs_P3_0p25deg
+set job_name       = NGD_clubb_silhs_p3_0p25deg
 set compset        = F2010SC5-P3
-#set compset        = A_WCYCL1850S_CMIP6
-#set compset        = FC5CLBMG2BCL72 # alternative compset
-#set compset        = FAMIPC5 
-#set resolution     = ne30_oECv3_ICG
-set resolution     = ne120_ne120
-#set resolution     = ne16_ne16
+set resolution     = ne120pg2_r0125_oRRS18to6v3
 set machine        = anvil
 setenv NUMSC 4
 setenv MGVER 2
@@ -1004,8 +999,8 @@ $xmlchange_exe --id DEBUG --val `uppercase $debug_compile`
 $xmlchange_exe  -file env_run.xml -id  CAM_NML_USE_CASE -val '2000_cam5_av1c-04p2_gust'
 
 cat <<EOF >> user_nl_elm
-  finidat='/lcrc/group/acme/public_html/inputdata/lnd/clm2/initdata_map/clmi.ICLM45BC.ne120_g16.71f4e1927.clm2.r.nc'
-  fsurdat='/lcrc/group/acme/public_html/inputdata/lnd/clm2/surfdata_map/surfdata_ne120np4_simyr2000_c160309.nc'
+  finidat='/lcrc/group/acme/public_html/inputdata/lnd/clm2/initdata/20200917.ICRUCLM45.r0125_oRRS18to6v3.clm2.r.2010-01-01-00000.nc'
+  fsurdat='/lcrc/group/acme/public_html/inputdata/lnd/clm2/surfdata_map/surfdata_0.125x0.125_simyr2010_c191025.nc'
 EOF
 
 cat <<EOF >> user_nl_docn
