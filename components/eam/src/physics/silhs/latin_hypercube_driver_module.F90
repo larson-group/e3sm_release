@@ -466,6 +466,29 @@ module latin_hypercube_driver_module
       error stop "Fatal error in generate_silhs_sample"
     end if
 
+
+!!!! Zhun
+    ! Clip subsaturated samples in order to boost sfc precip and latent heating
+    ! aloft
+!    do i = 1, ngrdcol
+!    do k=1, nz
+!       if ( pdf_params%ice_supersat_frac_1(i,k) >= 0.01_core_rknd .or.  &
+!          pdf_params%ice_supersat_frac_2(i,k) >= 0.01_core_rknd .or.  &
+!          pdf_params%cloud_frac_1(i,k) >= 0.01_core_rknd .or.   &
+!          pdf_params%cloud_frac_2(i,k) >= 0.01_core_rknd ) then ! we have cloud
+!             do sample=1, num_samples
+!                if ( X_nl_all_levs(i,k,sample,iiPDF_chi) .lt. 0.0_core_rknd ) then 
+!                   X_nl_all_levs(i,k,sample,iiPDF_chi) = &
+!                      X_nl_all_levs(i,k,sample,iiPDF_chi) * 0.0_core_rknd
+!                !write(fstderr,*) "SILHS sample has been clipped", "i= ", i, "k
+!                != ", k
+!                end if    
+!             end do
+!       end if
+!    end do
+!    end do
+!!!!
+
     return
   end subroutine generate_silhs_sample
 !-------------------------------------------------------------------------------

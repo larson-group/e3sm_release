@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = NGD_b0feee8_merge_test
+set job_name       = 
 set compset        = F2010SC5-CMIP6 
 #set compset        = A_WCYCL1850S_CMIP6
 #set compset        = FC5CLBMG2BCL72 # alternative compset
