@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = testtuner0706_n2thres3p2 
+set job_name       = tuner0706_vqitp45 
 set compset        = F2010SC5-P3
 #set compset        = A_WCYCL1850S_CMIP6
 #set compset        = FC5CLBMG2BCL72 # alternative compset
@@ -1064,7 +1064,7 @@ clubb_c_invrs_tau_n2_xp2               = 0.0
 clubb_c_invrs_tau_sfc                  = .3
 clubb_c_invrs_tau_shear                = 0.15
 clubb_C_invrs_tau_wpxp_Ri              = 3.0
-clubb_C_invrs_tau_wpxp_N2_thresh       = 3.2e-4
+clubb_C_invrs_tau_wpxp_N2_thresh       = 3.0e-4
 clubb_Richardson_num_min               = 100.0
 clubb_Richardson_num_max               = 400.0
 clubb_Cx_min                           = 0.95
