@@ -4388,8 +4388,8 @@ subroutine ice_sedimentation(kts,kte,ktop,kbot,kdir,    &
 
 #ifdef SILHS
          ! Output V_qit for use in SILHS hole filler.
-         V_qit = V_qit*0.38
-         V_nit = V_nit*0.38
+         V_qit = V_qit*0.45
+         V_nit = V_nit*0.45
          if ( dt_left == dt ) then
             V_qi_out = V_qit
          endif
