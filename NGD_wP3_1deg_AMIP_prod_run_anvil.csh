@@ -1100,7 +1100,7 @@ fincl4 = 'PRECT','TMQ' ! h3 hourly
 
 ! Below fto save fields over ARM sites for ARM_diags.
 ! When ZM scheme not in use, remove ZMFLXPRC and ZMFLXSNW
-fincl5 = 'PS', 'Q', 'T', 'Z3', 'CLOUD', 'CONCLD', 'CLDICE', 'CLDLIQ', 'FREQR', 'REI', 'REL', 'PRECT', 'TMQ', 'PRECC', 'TREFHT', 'QREFHT', 'OMEGA','CLDTOT', 'LHFLX', 'SHFLX', 'FLDS', 'FSDS', 'FLNS', 'FSNS', 'FLNSC', 'FSDSC', 'FSNSC', 'AODVIS', 'AODABS', 'LS_FLXPRC', 'LS_FLXSNW', 'LS_REFFRAIN', 'ZMFLXPRC', 'ZMFLXSNW'
+fincl5 = 'PS', 'Q', 'T', 'Z3', 'CLOUD', 'CONCLD', 'CLDICE', 'CLDLIQ', 'FREQR', 'REI', 'REL', 'PRECT', 'TMQ', 'PRECC', 'TREFHT', 'QREFHT', 'OMEGA','CLDTOT', 'LHFLX', 'SHFLX', 'FLDS', 'FSDS', 'FLNS', 'FSNS', 'FLNSC', 'FSDSC', 'FSNSC', 'AODVIS', 'AODABS', 'LS_FLXPRC', 'LS_FLXSNW', 'LS_REFFRAIN'
 fincl5lonlat='262.5e_36.6n','204.6e_71.3n','147.4e_2.0s','166.9e_0.5s','130.9e_12.4s','331.97e_39.09n'
 
 !
