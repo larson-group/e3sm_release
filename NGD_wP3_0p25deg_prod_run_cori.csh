@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = NGD_clubb_silhs_p3_0p25deg
+set job_name       = NGD_clubb_silhs_P3_0p25deg
 set compset        = F2010SC5-P3
 set resolution     = ne120pg2_r0125_oRRS18to6v3
 set machine        = cori-knl
@@ -18,7 +18,7 @@ setenv MGVER 2
 
 set walltime       = 12:00:00
 setenv project e3sm      
-setenv ntasks 2880
+setenv ntasks 19200
 setenv nthrds 1
 
 setenv init_aero_type none # keep this as none for REPLAY option 
@@ -1043,10 +1043,10 @@ clubb_c6thlb           = 1
 clubb_c6thlc           = 0.50
 clubb_c7               = 0.7
 clubb_c7b              = 0.7
-clubb_c8               = 0.5
+clubb_c8               = 0.54
 
 clubb_c_invrs_tau_bkgnd                = 1.5
-clubb_c_invrs_tau_n2                   = 0.3
+clubb_c_invrs_tau_n2                   = 0.35
 clubb_c_invrs_tau_n2_clear_wp3         = 2.0
 clubb_c_invrs_tau_n2_wp2               = 0.2
 clubb_c_invrs_tau_n2_wpxp              = 2.0
@@ -1054,7 +1054,7 @@ clubb_c_invrs_tau_n2_xp2               = 0.0
 clubb_c_invrs_tau_sfc                  = .3
 clubb_c_invrs_tau_shear                = 0.15
 clubb_C_invrs_tau_wpxp_Ri              = 3.0
-clubb_C_invrs_tau_wpxp_N2_thresh       = 2.3e-4
+clubb_C_invrs_tau_wpxp_N2_thresh       = 3.0e-4
 clubb_Richardson_num_min               = 100.0
 clubb_Richardson_num_max               = 400.0
 clubb_Cx_min                           = 0.95
@@ -1062,7 +1062,7 @@ clubb_Cx_max                           = 0.6
 
 
 clubb_c_k1             = 1
-clubb_c_k10            = 0.5
+clubb_c_k10            = 0.62
 clubb_c_k10h           = 0.35
 clubb_c_k2             = 0.1
 clubb_c_k8             = 10
@@ -1201,7 +1201,7 @@ microp_uniform = .true.     ! true
 
 clubb_do_adv = .false.
 clubb_expldiff = .false.
-clubb_rainevap_turb = .false.
+clubb_rainevap_turb = .true.
 clubb_cloudtop_cooling = .false.
 
 subcol_SILHS_weight = .true.
