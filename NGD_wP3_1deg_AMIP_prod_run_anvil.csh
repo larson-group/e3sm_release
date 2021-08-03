@@ -9,8 +9,8 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = NGD_clubb_silhs_P3_1deg
-set compset        = F2010SC5-P3
+set job_name       = NGD_clubb_silhs_P3_1deg_AMIP
+set compset        = F20TR-P3
 set resolution     = ne30pg2_r05_oECv3
 set machine        = anvil
 setenv NUMSC 4
@@ -70,7 +70,7 @@ set do_short_term_archiving     = false
 ### SIMULATION OPTIONS
 set atm_output_freq             = 0
 set records_per_atm_output_file = 1
-set start_date                  = '2010-01-01'
+set start_date                  = '1991-01-01'
 
 ### COUPLER HISTORY FILES
 set do_cpl_hist    = false
