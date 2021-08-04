@@ -1201,7 +1201,7 @@ microp_uniform = .true.     ! true
 
 clubb_do_adv = .false.
 clubb_expldiff = .false.
-clubb_rainevap_turb = .true.
+clubb_rainevap_turb = .false.
 clubb_cloudtop_cooling = .false.
 
 subcol_SILHS_weight = .true.
