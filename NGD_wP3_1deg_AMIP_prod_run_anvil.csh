@@ -997,8 +997,6 @@ $xmlchange_exe --id DEBUG --val `uppercase $debug_compile`
 $xmlchange_exe  -file env_run.xml -id  CAM_NML_USE_CASE -val '2000_cam5_av1c-04p2_gust'
 
 cat <<EOF >> user_nl_elm
-  check_finidat_year_consistency = .true.
-  finidat = '/lcrc/group/acme/ac.terai/20201103.IELM.r05_oECv3.elm.r.0030-01-01-00000.nc'
   fsurdat = '/lcrc/group/acme/public_html/inputdata/lnd/clm2/surfdata_map/surfdata_0.5x0.5_simyr2010_c191025.nc'
 EOF
 
