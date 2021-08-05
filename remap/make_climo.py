@@ -17,17 +17,17 @@ filepath=[ \
 '/lcrc/group/acme/ac.griffin/E3SM_simulations/',\
           ]
 cases=[ \
-'anvil.default.NGD_clubb_silhs_P3_std_fallspeed.ne30_ne30',\
+'anvil.default.NGD_clubb_silhs_P3_1deg.ne30pg2_r05_oECv3',\
 ]
 
-#years=[\
-#        2010]
-#nyear=[\
-#        6]
 years=[\
-        1]
+        2010]
 nyear=[\
-        1]
+        5]
+#years=[\
+#        1]
+#nyear=[\
+#        1]
 scd_flag = False
 
 import os
