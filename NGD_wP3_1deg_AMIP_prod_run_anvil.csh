@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = NGD_clubb_silhs_P3_1deg_AMIP
+set job_name       = NGD_clubb_silhs_ucP3_1deg_AMIP
 set compset        = F20TR-P3
 set resolution     = ne30pg2_r05_oECv3
 set machine        = anvil
@@ -49,8 +49,8 @@ set debug_queue      = False
 set processor_config = S
 
 ### STARTUP TYPE
-#set model_start_type = initial
-set model_start_type = continue
+set model_start_type = initial
+#set model_start_type = continue
 set restart_files_dir = none
 
 ### DIRECTORIES
@@ -65,7 +65,7 @@ set stop_units                  = nyears
 set stop_num                    = 5
 set restart_units               = $stop_units
 set restart_num                 = 1
-set num_resubmits               = 0
+set num_resubmits               = 3
 set do_short_term_archiving     = false
 
 ### SIMULATION OPTIONS
