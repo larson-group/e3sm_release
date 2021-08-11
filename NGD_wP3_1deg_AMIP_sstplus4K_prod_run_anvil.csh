@@ -49,7 +49,8 @@ set debug_queue      = False
 set processor_config = S
 
 ### STARTUP TYPE
-set model_start_type = initial
+#set model_start_type = initial
+set model_start_type = continue
 set restart_files_dir = none
 
 ### DIRECTORIES

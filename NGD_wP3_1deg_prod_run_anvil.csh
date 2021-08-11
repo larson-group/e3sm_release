@@ -49,7 +49,8 @@ set debug_queue      = False
 set processor_config = S
 
 ### STARTUP TYPE
-set model_start_type = initial
+#set model_start_type = initial
+set model_start_type = continue
 set restart_files_dir = none
 
 ### DIRECTORIES
@@ -61,7 +62,8 @@ set short_term_archive_root_dir = ${e3sm_simulations_dir}/${case_name}/archive
 
 ### LENGTH OF SIMULATION, RESTARTS, AND ARCHIVING
 set stop_units                  = nyears
-set stop_num                    = 5
+#set stop_num                    = 5
+set stop_num                    = 1
 set restart_units               = $stop_units
 set restart_num                 = 1
 set num_resubmits               = 0

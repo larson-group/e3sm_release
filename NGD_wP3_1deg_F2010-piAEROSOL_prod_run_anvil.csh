@@ -23,7 +23,7 @@ setenv nthrds 1
 
 setenv init_aero_type none # keep this as none for REPLAY option 
 
-set CTL_CASE_NAME = anvil.default.NGD_clubb_silhs_P3_1deg_F2010-CTL.ne30pg2_r05_oECv3
+set CTL_CASE_NAME = NGD_clubb_silhs_P3_1deg_F2010-CTL.ne30pg2_r05_oECv3
 set CTL_CASE_PATH = /lcrc/group/acme/$USER/E3SM_simulations/${CTL_CASE_NAME}
 
 ### SOURCE CODE OPTIONS
