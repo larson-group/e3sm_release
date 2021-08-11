@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = NGD_clubb_silhs_P3_1deg
+set job_name       = NGD_clubb_silhs_ucP3_1deg
 set compset        = F2010SC5-P3
 set resolution     = ne30pg2_r05_oECv3
 set machine        = anvil
@@ -49,8 +49,8 @@ set debug_queue      = False
 set processor_config = S
 
 ### STARTUP TYPE
-#set model_start_type = initial
-set model_start_type = continue
+set model_start_type = initial
+#set model_start_type = continue
 set restart_files_dir = none
 
 ### DIRECTORIES
@@ -61,12 +61,11 @@ set case_run_dir                = ${e3sm_simulations_dir}/${case_name}/run
 set short_term_archive_root_dir = ${e3sm_simulations_dir}/${case_name}/archive
 
 ### LENGTH OF SIMULATION, RESTARTS, AND ARCHIVING
-set stop_units                  = nyears
-#set stop_num                    = 5
-set stop_num                    = 1
-set restart_units               = $stop_units
+set stop_units                  = nmonths
+set stop_num                    = 66
+set restart_units               = nyears
 set restart_num                 = 1
-set num_resubmits               = 0
+set num_resubmits               = 1
 set do_short_term_archiving     = false
 
 ### SIMULATION OPTIONS
