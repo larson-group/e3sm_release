@@ -9,7 +9,7 @@
 
 
 ### BASIC INFO ABOUT RUN
-set job_name       = NGD_clubb_silhs_P3_1deg_F2010-piAEROSOL
+set job_name       = NGD_clubb_silhs_ucP3_1deg_F2010-piAEROSOL
 set compset        = F2010SC5-P3
 set resolution     = ne30pg2_r05_oECv3
 set machine        = anvil
