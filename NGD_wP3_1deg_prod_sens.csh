@@ -6,9 +6,9 @@
 ### THINGS USERS USUALLY CHANGE (SEE END OF SECTION FOR GUIDANCE)
 ###===================================================================
 
-set nmember = 5
-set npara = 4
-set parameter = ( 'clubb_c8' 'clubb_c_k10' 'clubb_c_invrs_tau_N2' 'clubb_c_invrs_tau_wpxp_n2_thresh ' )
+set nmember = 6
+set npara = 5
+set parameter = ( 'clubb_c8' 'clubb_c_k10' 'clubb_c_invrs_tau_N2' 'clubb_c_invrs_tau_wpxp_n2_thresh' 'micro_vqit' )
 
 ### 
 set clubb_vars_zt_list = "'thlm', 'thvm', 'rtm', 'rcm', 'rvm', 'um', 'vm', 'cloud_frac', 'cloud_cover', 'rcm_in_layer', 'rcm_in_cloud',  'exner', 'rho_ds_zt', 'thv_ds_zt', 'Lscale', 'wp3', 'wpthlp2', 'wp2thlp', 'wprtp2','wp2rtp', 'Lscale_up', 'Lscale_down', 'Kh_zt', 'wp2thvp', 'wp2rcp', 'wprtpthlp', 'sigma_sqd_w_zt', 'rho', 'Ncm', 'rel_humidity', 'rsat', 'rsati', 'rtm_bt', 'rtm_ma', 'rtm_ta', 'rtm_mfl', 'rtm_tacl', 'rtm_cl', 'rtm_forcing', 'rtm_sdmp','rtm_mc', 'rtm_pd', 'rvm_mc', 'rcm_mc', 'thlm_bt', 'thlm_ma', 'thlm_ta', 'thlm_mfl', 'thlm_tacl', 'thlm_cl', 'thlm_forcing', 'thlm_sdmp','thlm_mc', 'rtm_old', 'rtm_without_ta',  'um_bt', 'um_ma', 'um_gf', 'um_cf', 'um_ta', 'um_f', 'um_sdmp', 'um_ndg', 'vm_bt', 'vm_ma', 'vm_gf', 'vm_cf', 'vm_ta', 'vm_f', 'vm_sdmp', 'vm_ndg', 'wp3_bt', 'wp3_ma', 'wp3_ta', 'wp3_tp', 'wp3_ac', 'wp3_bp1', 'wp3_pr_turb', 'wp3_pr1', 'wp3_pr2', 'wp3_dp1', 'wp3_cl', 'mixt_frac', 'a3_coef_zt', 'wp3_on_wp2_zt', 'Ncnm', 'wp2_zt', 'thlp2_zt', 'wpthlp_zt', 'wprtp_zt', 'rtp2_zt', 'rtpthlp_zt', 'up2_zt', 'vp2_zt', 'upwp_zt', 'vpwp_zt', 'C11_Skw_fnc'"
