@@ -647,14 +647,16 @@ contains
                                          genrand_intg, genrand_init_api, &
 
                                          nparams, ic_K, &
-                                         read_parameters_api, &
                                          Cp, Lv
    
       use silhs_api_module, only :       generate_silhs_sample_api, & ! Ncn_to_Nc, &
                                          clip_transform_silhs_output_api, &
                                          est_kessler_microphys_api
 
-      use clubb_intr, only:              clubb_config_flags
+      use clubb_intr, only:              clubb_config_flags, gr, &
+                                         clubb_params, &
+                                         stats_zt, stats_zm, stats_sfc, &
+                                         stats_lh_zt, stats_lh_sfc
 #endif
 #endif
       
@@ -903,9 +905,6 @@ contains
       call pbuf_get_field(pbuf, tke_idx, tke_in)
       call pbuf_get_field(pbuf, kvh_idx, khzm_in)
 
-      ! Read the clubb parameters in order to extract c_K.
-      call read_parameters_api( -99, "", clubb_params )
-
       ! Pull c_K from clubb parameters.
       c_K = clubb_params(ic_K)
 
@@ -1139,11 +1138,12 @@ contains
          enddo
       end do
 
-      call setup_pdf_parameters_api( pverp-top_lev+1, ngrdcol, pdf_dim, ztodt, &        ! In
+      call setup_pdf_parameters_api( gr, pverp-top_lev+1, ngrdcol, pdf_dim, ztodt, &    ! In
                                      Nc_in_cloud, rcm_in, cld_frac_in, khzm, &          ! In
                                      ice_supersat_frac_in, hydromet, wphydrometp, &     ! In
                                      corr_array_n_cloud, corr_array_n_below, &          ! In
                                      pdf_params_chnk(lchnk), l_stats_samp, &            ! In
+                                     clubb_params, &                                    ! In
                                      clubb_config_flags%iiPDF_type, &                   ! In
                                      clubb_config_flags%l_use_precip_frac, &            ! In
                                      clubb_config_flags%l_predict_upwp_vpwp, &          ! In
@@ -1151,6 +1151,7 @@ contains
                                      clubb_config_flags%l_calc_w_corr, &                ! In
                                      clubb_config_flags%l_const_Nc_in_cloud, &          ! In
                                      clubb_config_flags%l_fix_w_chi_eta_correlations, & ! In
+                                     stats_zt, stats_zm, stats_sfc, &                   ! intent(inout)
                                      hydrometp2, &                                      ! Out
                                      mu_x_1, mu_x_2, &                                  ! Out
                                      sigma_x_1, sigma_x_2, &                            ! Out
@@ -1163,7 +1164,7 @@ contains
          ! allocate grid object
          call setup_grid_heights_api( l_implemented, grid_type, &
                                       zi_g(i,2), zi_g(i,1), zi_g(i,1:pverp-top_lev+1), &
-                                      zt_g(i,1:pverp-top_lev+1) )
+                                      gr, zt_g(i,1:pverp-top_lev+1) )
 
          ! In order for Lscale to be used properly, it needs to be passed out of
          ! advance_clubb_core, saved to the pbuf, and then pulled out of the
@@ -1190,7 +1191,7 @@ contains
          Lscale_zm(i,:) = khzm(i,:) / ( c_K * sqrt( max( tke(i,:), em_min ) ) )
 
          ! Interpolate Lscale_zm back to thermodynamic grid levels.
-         Lscale(i,:) = max( zm2zt_api( Lscale_zm(i,:) ), 0.01_r8 )
+         Lscale(i,:) = max( zm2zt_api( gr, Lscale_zm(i,:) ), 0.01_r8 )
 
      end do
 
@@ -1208,16 +1209,17 @@ contains
                    mu_x_1, mu_x_2, sigma_x_1, sigma_x_2, &               ! In 
                    corr_cholesky_mtx_1, corr_cholesky_mtx_2, &           ! In
                    precip_fracs(lchnk), silhs_config_flags, &            ! In
+                   clubb_params, &                                       ! In
                    clubb_config_flags%l_uv_nudge, &                      ! In
                    clubb_config_flags%l_tke_aniso, &                     ! In
                    clubb_config_flags%l_standard_term_ta, &              ! In
-                   clubb_config_flags%l_single_C2_Skw, &                 ! In
                    subcol_SILHS_vert_decorr_coef, &                      ! In
+                   stats_lh_zt, stats_lh_sfc, &                          ! In/Out
                    X_nl_all_levs, X_mixt_comp_all_levs, &                ! Out
                    lh_sample_point_weights)                              ! Out
 
       ! Extract clipped variables from subcolumns
-      call clip_transform_silhs_output_api( pverp-top_lev+1, ngrdcol, num_subcols, &   ! In
+      call clip_transform_silhs_output_api( gr, pverp-top_lev+1, ngrdcol, num_subcols, &   ! In
                                             pdf_dim, hydromet_dim, & ! In
                                             X_mixt_comp_all_levs, & ! In
                                             X_nl_all_levs, &        ! In
