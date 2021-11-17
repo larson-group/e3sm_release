@@ -1,0 +1,85 @@
+pipeline {
+  agent any
+  stages {
+    stage('Checkout Branch and Submodules') {
+      steps {
+        sh '''rm -f /home/jenkins/test_logs/e3sm_run_gfortran_test/*
+              git submodule init
+              git submodule update'''
+      }
+    }
+    stage('Modify Run Scripts') {
+      steps {
+        sh '''sed -i \'s/carson/nelson/g\' nightly_test/nightly_e3sm_scm_BOMEX.csh
+              sed -i \'s/carson/nelson/g\' nightly_test/nightly_e3sm_scm_DYCOMSrf01.csh
+              sed -i \'s/carson/nelson/g\' nightly_test/nightly_e3sm_scm_RICO.csh'''
+      }
+    }
+    stage('Run BOMEX') {
+      steps {
+        sh '''source /opt/intel/oneapi/setvars.sh --force
+              bash -c "export e3smSource=${WORKSPACE}; csh nightly_test/nightly_e3sm_scm_BOMEX.csh"'''
+      }
+    }
+    stage('Run DYCOMSrf01') {
+      steps {
+        sh '''source /opt/intel/oneapi/setvars.sh --force
+              bash -c "export e3smSource=${WORKSPACE}; csh nightly_test/nightly_e3sm_scm_DYCOMSrf01.csh"'''
+      }
+    }
+    stage('Run RICO') {
+      steps {
+        sh '''source /opt/intel/oneapi/setvars.sh --force
+              bash -c "export e3smSource=${WORKSPACE}; csh nightly_test/nightly_e3sm_scm_RICO.csh"'''
+      }
+    }
+    stage('Display BOMEX log files') {
+      steps {
+        sh '''gzip -d projects/scratch/SCM_runs/test_BOMEX/build/atm.bldlog.*.gz
+              cat projects/scratch/SCM_runs/test_BOMEX/build/atm.bldlog.*'''
+        sh '''gzip -d projects/scratch/SCM_runs/test_BOMEX/build/e3sm.bldlog.*.gz
+              cat projects/scratch/SCM_runs/test_BOMEX/build/e3sm.bldlog.*'''
+        sh '''cat projects/scratch/SCM_runs/test_BOMEX/run/atm.log.*'''
+        sh '''cat projects/scratch/SCM_runs/test_BOMEX/run/e3sm.log.*'''
+      }
+    }
+    stage('Display DYCOMSrf01 log files') {
+      steps {
+        sh '''gzip -d projects/scratch/SCM_runs/test_DYCOMSrf01/build/atm.bldlog.*.gz
+              cat projects/scratch/SCM_runs/test_DYCOMSrf01/build/atm.bldlog.*'''
+        sh '''gzip -d projects/scratch/SCM_runs/test_DYCOMSrf01/build/e3sm.bldlog.*.gz
+              cat projects/scratch/SCM_runs/test_DYCOMSrf01/build/e3sm.bldlog.*'''
+        sh '''cat projects/scratch/SCM_runs/test_DYCOMSrf01/run/atm.log.*'''
+        sh '''cat projects/scratch/SCM_runs/test_DYCOMSrf01/run/e3sm.log.*'''
+      }
+    }
+    stage('Display RICO log files') {
+      steps {
+        sh '''gzip -d projects/scratch/SCM_runs/test_RICO/build/atm.bldlog.*.gz
+              cat projects/scratch/SCM_runs/test_RICO/build/atm.bldlog.*'''
+        sh '''gzip -d projects/scratch/SCM_runs/test_RICO/build/e3sm.bldlog.*.gz
+              cat projects/scratch/SCM_runs/test_RICO/build/e3sm.bldlog.*'''
+        sh '''cat projects/scratch/SCM_runs/test_RICO/run/atm.log.*'''
+        sh '''cat projects/scratch/SCM_runs/test_RICO/run/e3sm.log.*'''
+      }
+    }
+  }
+  post {
+    always {
+      script {
+        if ( "${env.JOB_NAME}" == "e3sm_run_gfortran_test" ) {
+          sh "cp projects/scratch/SCM_runs/test_BOMEX/build/atm.bldlog.* projects/scratch/SCM_runs/test_BOMEX/build/e3sm.bldlog.* projects/scratch/SCM_runs/test_BOMEX/run/atm.log.* projects/scratch/SCM_runs/test_BOMEX/run/e3sm.log.* /home/jenkins/test_logs/${env.JOB_NAME}"
+          sh "cp projects/scratch/SCM_runs/test_DYCOMSrf01/build/atm.bldlog.* projects/scratch/SCM_runs/test_DYCOMSrf01/build/e3sm.bldlog.* projects/scratch/SCM_runs/test_DYCOMSrf01/run/atm.log.* projects/scratch/SCM_runs/test_DYCOMSrf01/run/e3sm.log.* /home/jenkins/test_logs/${env.JOB_NAME}"
+          sh "cp projects/scratch/SCM_runs/test_RICO/build/atm.bldlog.* projects/scratch/SCM_runs/test_RICO/build/e3sm.bldlog.* projects/scratch/SCM_runs/test_RICO/run/atm.log.* projects/scratch/SCM_runs/test_RICO/run/e3sm.log.* /home/jenkins/test_logs/${env.JOB_NAME}"
+	  cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenSuccess: true, cleanWhenUnstable: true)
+        }
+      }
+    }
+    failure {
+      script {
+        if ( "${env.JOB_NAME}" == "e3sm_run_gfortran_test" )
+	  emailext(to: 'messnermet@uwm.edu', subject: "${env.JOB_NAME} build ${env.BUILD_NUMBER} has Failed", attachLog: true, body: "${env.JOB_NAME} build ${env.BUILD_NUMBER} has failed. See the attached build log and the build results (${env.BUILD_URL}) for help troubleshooting.")
+      }
+    }
+  }
+}

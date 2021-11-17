@@ -1,0 +1,47 @@
+pipeline {
+  agent any
+  stages {
+    stage('Checkout Branch and Submodules') {
+      steps {
+        sh '''git submodule init
+              git submodule update'''
+      }
+    }
+    stage('Remove Old Output') {
+      steps {
+        sh '''rm -rf /home/jenkins/E3SM_simulations'''
+      }
+    }
+    stage('Run') {
+      steps {
+        sh '''csh nightly_test/nightly_e3sm_ne4_silhs.csh'''
+      }
+    }
+    stage('Display log files') {
+      steps { 
+        sh '''gzip -d /home/jenkins/E3SM_simulations/nelson.mg2_def.ne4_ne4/build/atm.bldlog.*.gz
+              cat /home/jenkins/E3SM_simulations/nelson.mg2_def.ne4_ne4/build/atm.bldlog.*'''
+        sh '''gzip -d /home/jenkins/E3SM_simulations/nelson.mg2_def.ne4_ne4/build/e3sm.bldlog.*.gz
+              cat /home/jenkins/E3SM_simulations/nelson.mg2_def.ne4_ne4/build/e3sm.bldlog.*'''
+        sh '''gzip -d /home/jenkins/E3SM_simulations/nelson.mg2_def.ne4_ne4/run/atm.log.*.gz
+              cat /home/jenkins/E3SM_simulations/nelson.mg2_def.ne4_ne4/run/atm.log.*'''
+        sh '''gzip -d /home/jenkins/E3SM_simulations/nelson.mg2_def.ne4_ne4/run/e3sm.log.*.gz
+              cat /home/jenkins/E3SM_simulations/nelson.mg2_def.ne4_ne4/run/e3sm.log.*'''
+      }
+    }
+  }
+  post {
+    always {
+      script {
+       if ( "${env.JOB_NAME}" == "e3sm_ne4_silhs_run_gfortran_test" )
+	cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenSuccess: true, cleanWhenUnstable: true)
+      }
+    }
+    failure {
+      script {
+       if ( "${env.JOB_NAME}" == "e3sm_ne4_silhs_run_gfortran_test" )
+	emailext(to: 'messnermet@uwm.edu', subject: "${env.JOB_NAME} build ${env.BUILD_NUMBER} has Failed", attachLog: true, body: "${env.JOB_NAME} build ${env.BUILD_NUMBER} has failed. See the attached build log and the build results (${env.BUILD_URL}) for help troubleshooting.")
+      }
+    }
+  }
+}
