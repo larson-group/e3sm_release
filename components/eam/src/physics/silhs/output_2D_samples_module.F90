@@ -114,10 +114,10 @@ module output_2D_samples_module
 !-------------------------------------------------------------------------------
   subroutine output_2D_lognormal_dist_file &
              ( nz, num_samples, pdf_dim, X_nl_all_levs, &
+               clubb_params, &
                l_uv_nudge, &
                l_tke_aniso, &
-               l_standard_term_ta, &
-               l_single_C2_Skw )
+               l_standard_term_ta )
 ! Description:
 !   Output a 2D snapshot of latin hypercube samples
 ! References:
@@ -127,7 +127,9 @@ module output_2D_samples_module
     use output_netcdf, only: write_netcdf ! Procedure(s)
 #endif
 
-    use clubb_precision, only: stat_rknd ! Constant(s)
+    use clubb_precision, only: stat_rknd, core_rknd ! Constant(s)
+
+    use parameter_indices, only: nparams ! Constant(s)
 
     use stats_variables, only: l_stats_last !Time-to-print flag
 
@@ -142,15 +144,17 @@ module output_2D_samples_module
     real(kind=stat_rknd), intent(in), dimension(num_samples,nz,pdf_dim) :: &
       X_nl_all_levs ! Sample that is transformed ultimately to normal-lognormal
 
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
+
     logical, intent(in) :: &
       l_uv_nudge,         & ! For wind speed nudging
       l_tke_aniso,        & ! For anisotropic turbulent kinetic energy, i.e. TKE = 1/2
                             ! (u'^2 + v'^2 + w'^2)
-      l_standard_term_ta, & ! Use the standard discretization for the turbulent advection terms.
+      l_standard_term_ta    ! Use the standard discretization for the turbulent advection terms.
                             ! Setting to .false. means that a_1 and a_3 are pulled outside of the
                             ! derivative in advance_wp2_wp3_module.F90 and in
                             ! advance_xp2_xpyp_module.F90.
-      l_single_C2_Skw       ! Use a single Skewness dependent C2 for rtp2, thlp2, and rtpthlp
 
     integer :: sample, j
 
@@ -169,10 +173,10 @@ module output_2D_samples_module
     end do
 
 #ifdef NETCDF
-    call write_netcdf( l_uv_nudge, &
+    call write_netcdf( clubb_params, &
+                       l_uv_nudge, &
                        l_tke_aniso, &
                        l_standard_term_ta, &
-                       l_single_C2_Skw, &
                        lognormal_sample_file )
 #else
     error stop "This version of CLUBB was not compiled for netCDF output"
@@ -189,10 +193,10 @@ module output_2D_samples_module
   subroutine output_2D_uniform_dist_file &
              ( nz, num_samples, dp2, X_u_all_levs, X_mixt_comp_all_levs, &
                lh_sample_point_weights, &
+               clubb_params, &
                l_uv_nudge, &
                l_tke_aniso, &
-               l_standard_term_ta, &
-               l_single_C2_Skw )
+               l_standard_term_ta )
 ! Description:
 !   Output a 2D snapshot of latin hypercube uniform distribution, i.e. (0,1)
 ! References:
@@ -205,6 +209,8 @@ module output_2D_samples_module
     use clubb_precision, only: &
       core_rknd, &          ! Precision(s)
       stat_rknd
+
+    use parameter_indices, only: nparams
 
     use stats_variables, only: l_stats_last !Time-to-print flag
 
@@ -225,15 +231,17 @@ module output_2D_samples_module
     real( kind = core_rknd ), dimension(num_samples,nz), intent(in) :: &
       lh_sample_point_weights ! Weight of each sample
 
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
+
     logical, intent(in) :: &
       l_uv_nudge,         & ! For wind speed nudging
       l_tke_aniso,        & ! For anisotropic turbulent kinetic energy, i.e. TKE = 1/2
                             ! (u'^2 + v'^2 + w'^2)
-      l_standard_term_ta, & ! Use the standard discretization for the turbulent advection terms.
+      l_standard_term_ta    ! Use the standard discretization for the turbulent advection terms.
                             ! Setting to .false. means that a_1 and a_3 are pulled outside of the
                             ! derivative in advance_wp2_wp3_module.F90 and in
                             ! advance_xp2_xpyp_module.F90.
-      l_single_C2_Skw       ! Use a single Skewness dependent C2 for rtp2, thlp2, and rtpthlp
 
     integer :: sample, j, k
 
@@ -259,10 +267,10 @@ module output_2D_samples_module
     end do
 
 #ifdef NETCDF
-    call write_netcdf( l_uv_nudge, &
+    call write_netcdf( clubb_params, &
+                       l_uv_nudge, &
                        l_tke_aniso, &
                        l_standard_term_ta, &
-                       l_single_C2_Skw, &
                        uniform_sample_file )
 #else
     error stop "This version of CLUBB was not compiled for netCDF output"

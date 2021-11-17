@@ -15,7 +15,9 @@ module stats_zt_module
   contains
 
   !=============================================================================
-  subroutine stats_init_zt( vars_zt, l_error )
+  subroutine stats_init_zt( vars_zt, & ! intent(in)
+                            l_error, & !intent(out)
+                            stats_zt ) ! intent(inout)
 
     ! Description:
     ! Initializes array indices for stats_zt
@@ -58,6 +60,8 @@ module stats_zt_module
 
     use stats_variables, only: &
         iwp3, & ! Variable(s)
+        iwpup2, &
+        iwpvp2, &
         ithlp3, &
         irtp3, &
         iwpthlp2, &
@@ -71,6 +75,7 @@ module stats_zt_module
         iKh_zt, &
         iwp2thvp, &
         iwp2rcp, &
+        iw_up_in_cloud, &
         iwprtpthlp, &
         irc_coef, &
         isigma_sqd_w_zt, &
@@ -212,6 +217,7 @@ module stats_zt_module
         iwp3_tp, &
         iwp3_ac, &
         iwp3_bp1, &
+        iwp3_pr_tp, &
         iwp3_pr_turb, &
         iwp3_pr_dfsn, &
         iwp3_pr1, &
@@ -416,7 +422,6 @@ module stats_zt_module
         ihmp2_zt
 
     use stats_variables, only: &
-        stats_zt, &
         isclrm, &
         isclrm_f, &
         iedsclrm, &
@@ -597,7 +602,12 @@ module stats_zt_module
         hydromet_list, &  ! Variable(s)
         l_mix_rat_hm
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zt
 
     ! External
     intrinsic :: trim
@@ -1284,6 +1294,22 @@ module stats_zt_module
              l_silhs=.false., grid_kind=stats_zt )
         k = k + 1
 
+      case ('wpup2')
+        iwpup2 = k
+        call stat_assign( var_index=iwpup2, var_name="wpup2", &
+             var_description="w'u'^2, Third-order moment from PDF", &
+             var_units="m^3/s^3", &
+             l_silhs=.false., grid_kind=stats_zt )
+        k = k + 1
+
+      case ('wpvp2')
+        iwpvp2 = k
+        call stat_assign( var_index=iwpvp2, var_name="wpvp2", &
+             var_description="w'v'^2, Third-order moment from PDF", &
+             var_units="m^3/s^3", &
+             l_silhs=.false., grid_kind=stats_zt )
+        k = k + 1
+
       case ('thlp3')
         ithlp3 = k
         call stat_assign( var_index=ithlp3, var_name="thlp3", &
@@ -1394,6 +1420,13 @@ module stats_zt_module
              var_description="w'^2rc'", var_units="(m^2 kg)/(s^2 kg)", &
              l_silhs=.false., grid_kind=stats_zt )
         k = k + 1
+        
+      case ('w_up_in_cloud')
+        iw_up_in_cloud = k
+        call stat_assign( var_index=iw_up_in_cloud, var_name="w_up_in_cloud", &
+             var_description="Mean W in saturated updrafts", &
+             var_units="m/s", l_silhs=.false., grid_kind=stats_zt )
+         k = k + 1
 
       case ('wprtpthlp')
         iwprtpthlp = k
@@ -1829,6 +1862,14 @@ module stats_zt_module
         iwp3_bp1 = k
         call stat_assign( var_index=iwp3_bp1, var_name="wp3_bp1", &
              var_description="wp3_bp1, wp3 budget: wp3 buoyancy production", &
+             var_units="m^{3} s^{-4}", l_silhs=.false., grid_kind=stats_zt )
+        k = k + 1
+
+      case ('wp3_pr_tp')
+        iwp3_pr_tp = k
+        call stat_assign( var_index=iwp3_pr_tp, var_name="wp3_pr_tp", &
+             var_description= &
+               "wp3_pr_tp, wp3 budget: wp3 pressure damping of turbulent production", &
              var_units="m^{3} s^{-4}", l_silhs=.false., grid_kind=stats_zt )
         k = k + 1
 

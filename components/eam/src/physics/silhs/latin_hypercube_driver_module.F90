@@ -34,11 +34,12 @@ module latin_hypercube_driver_module
                mu1, mu2, sigma1, sigma2, &                                 ! intent(in)
                corr_cholesky_mtx_1, corr_cholesky_mtx_2, &                 ! intent(in)
                precip_fracs, silhs_config_flags, &                         ! intent(in)
+               clubb_params, &                                             ! intent(in)
                l_uv_nudge, &                                               ! intent(in)
                l_tke_aniso, &                                              ! intent(in)
                l_standard_term_ta, &                                       ! intent(in)
-               l_single_C2_Skw, &                                          ! intent(in)
                vert_decorr_coef, &                                         ! intent(in)
+               stats_lh_zt, stats_lh_sfc, &                                ! intent(inout)
                X_nl_all_levs, X_mixt_comp_all_levs, &                      ! intent(out)
                lh_sample_point_weights )                                   ! intent(out)
 
@@ -79,6 +80,9 @@ module latin_hypercube_driver_module
     use parameters_silhs, only: &
       silhs_config_flags_type ! Type(s)
 
+    use parameter_indices, only: &
+      nparams    ! Constant(s)
+
     use error_code, only: &
       clubb_at_least_debug_level  ! Procedure
       
@@ -91,7 +95,13 @@ module latin_hypercube_driver_module
     use mt95, only: &
       genrand_intg  ! Type
 
+    use stats_type, only: stats ! Type 
+
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_lh_zt, &
+      stats_lh_sfc
 
     ! External
     intrinsic :: allocated, mod, maxloc, epsilon, transpose
@@ -150,15 +160,18 @@ module latin_hypercube_driver_module
     type(silhs_config_flags_type), intent(in) :: &
       silhs_config_flags ! Flags for the SILHS sampling code [-]
 
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
+
     logical, intent(in) :: &
       l_uv_nudge,         & ! For wind speed nudging.
       l_tke_aniso,        & ! For anisotropic turbulent kinetic energy, i.e.
                             ! TKE = 1/2 (u'^2 + v'^2 + w'^2)
-      l_standard_term_ta, & ! Use the standard discretization for the turbulent advection terms.
+      l_standard_term_ta    ! Use the standard discretization for the turbulent advection terms.
                             ! Setting to .false. means that a_1 and a_3 are pulled outside of the
                             ! derivative in advance_wp2_wp3_module.F90 and in
                             ! advance_xp2_xpyp_module.F90.
-      l_single_C2_Skw       ! Use a single Skewness dependent C2 for rtp2, thlp2, and rtpthlp
+
 
     real( kind = core_rknd ), intent(in) :: &
       vert_decorr_coef    ! Empirically defined de-correlation constant [-]
@@ -389,7 +402,8 @@ module latin_hypercube_driver_module
       call stats_accumulate_uniform_lh( nz, num_samples, ngrdcol, l_in_precip(:,:,:), &
                                         X_mixt_comp_all_levs(:,:,:), &
                                         X_u_all_levs(:,:,:,iiPDF_chi), pdf_params, &
-                                        lh_sample_point_weights(:,:,:), k_lh_start(:) )
+                                        lh_sample_point_weights(:,:,:), k_lh_start(:), &
+                                        stats_lh_zt, stats_lh_sfc )
     end if
 
     if ( l_output_2D_lognormal_dist ) then
@@ -401,10 +415,10 @@ module latin_hypercube_driver_module
       do i = 1, ngrdcol
         call output_2D_lognormal_dist_file( nz, num_samples, pdf_dim, &
                                             real(X_nl_all_levs(i,:,:,:), kind = stat_rknd), &
+                                            clubb_params, &
                                             l_uv_nudge, &
                                             l_tke_aniso, &
-                                            l_standard_term_ta, &
-                                            l_single_C2_Skw )
+                                            l_standard_term_ta )
       end do
     end if
     
@@ -416,10 +430,10 @@ module latin_hypercube_driver_module
                                           X_u_all_levs(i,:,:,:), &
                                           X_mixt_comp_all_levs(i,:,:), &
                                           lh_sample_point_weights(i,:,:), &
+                                          clubb_params, &
                                           l_uv_nudge, &
                                           l_tke_aniso, &
-                                          l_standard_term_ta, &
-                                          l_single_C2_Skw )
+                                          l_standard_term_ta )
       end do
     end if
 
@@ -465,29 +479,6 @@ module latin_hypercube_driver_module
     if ( l_error ) then
       error stop "Fatal error in generate_silhs_sample"
     end if
-
-
-!!!! Zhun
-    ! Clip subsaturated samples in order to boost sfc precip and latent heating
-    ! aloft
-!    do i = 1, ngrdcol
-!    do k=1, nz
-!       if ( pdf_params%ice_supersat_frac_1(i,k) >= 0.01_core_rknd .or.  &
-!          pdf_params%ice_supersat_frac_2(i,k) >= 0.01_core_rknd .or.  &
-!          pdf_params%cloud_frac_1(i,k) >= 0.01_core_rknd .or.   &
-!          pdf_params%cloud_frac_2(i,k) >= 0.01_core_rknd ) then ! we have cloud
-!             do sample=1, num_samples
-!                if ( X_nl_all_levs(i,k,sample,iiPDF_chi) .lt. 0.0_core_rknd ) then 
-!                   X_nl_all_levs(i,k,sample,iiPDF_chi) = &
-!                      X_nl_all_levs(i,k,sample,iiPDF_chi) * 0.0_core_rknd
-!                !write(fstderr,*) "SILHS sample has been clipped", "i= ", i, "k
-!                != ", k
-!                end if    
-!             end do
-!       end if
-!    end do
-!    end do
-!!!!
 
     return
   end subroutine generate_silhs_sample
@@ -1021,7 +1012,7 @@ module latin_hypercube_driver_module
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
-  subroutine clip_transform_silhs_output( nz, ngrdcol, num_samples,       & ! In
+  subroutine clip_transform_silhs_output( gr, nz, ngrdcol, num_samples,       & ! In
                                           pdf_dim, hydromet_dim,          & ! In
                                           X_mixt_comp_all_levs,           & ! In
                                           X_nl_all_levs,                  & ! Inout
@@ -1029,6 +1020,9 @@ module latin_hypercube_driver_module
                                           lh_rt_clipped, lh_thl_clipped,  & ! Out
                                           lh_rc_clipped, lh_rv_clipped,   & ! Out
                                           lh_Nc_clipped                   ) ! Out
+
+
+    use grid_class, only: grid ! Type
 
   ! Description:
   !   Derives from the SILHS sampling structure X_nl_all_levs the variables
@@ -1063,7 +1057,11 @@ module latin_hypercube_driver_module
     use transform_to_pdf_module, only: &
         chi_eta_2_rtthl ! Awesome procedure
 
+    use grid_class, only: grid
+
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! ------------------- Input Variables -------------------
     logical, intent(in) :: &
@@ -1215,7 +1213,7 @@ module latin_hypercube_driver_module
            ! maintaining the value of the hydrometeor mixing ratio sample points
            ! and satisfying the maximum allowable mean volume radius for that
            ! hydrometeor species.
-           call clip_hydromet_conc_mvr( hydromet_dim, hydromet_pts, & ! In
+           call clip_hydromet_conc_mvr( gr, hydromet_dim, hydromet_pts, & ! In
                                         hydromet_pts_clipped )        ! Out
 
            ! Unpack the clipped SILHS hydrometeor sample points, which are stored
@@ -1955,11 +1953,12 @@ module latin_hypercube_driver_module
 
 !-------------------------------------------------------------------------------
   subroutine stats_accumulate_lh &
-             ( nz, num_samples, pdf_dim, rho_ds_zt, &
+             ( gr, nz, num_samples, pdf_dim, rho_ds_zt, &
                lh_sample_point_weights, X_nl_all_levs, &
                lh_rt_clipped, lh_thl_clipped, & 
                lh_rc_clipped, lh_rv_clipped, & 
-               lh_Nc_clipped )
+               lh_Nc_clipped, &
+               stats_lh_zt, stats_lh_sfc )
 
 ! Description:
 !   Clip subcolumns from latin hypercube and create stats for diagnostic
@@ -1971,7 +1970,7 @@ module latin_hypercube_driver_module
 
     use parameters_model, only: hydromet_dim ! Variable
 
-    use grid_class, only: gr
+    use grid_class, only: grid
 
     use stats_variables, only: &
       l_stats_samp, & ! Variable(s)
@@ -2007,9 +2006,7 @@ module latin_hypercube_driver_module
       ilh_vwp, &
       ilh_lwp, &
       ilh_sample_weights_sum, &
-      ilh_sample_weights_avg, &
-      stats_lh_zt, &
-      stats_lh_sfc
+      ilh_sample_weights_avg
 
     use math_utilities, only: & ! Procedure(s)
       compute_sample_mean, & ! Procedure(s)
@@ -2043,7 +2040,15 @@ module latin_hypercube_driver_module
    use fill_holes, only: &
      vertical_integral ! Procedure(s)
 
+   use stats_type, only: stats ! Type
+
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_lh_zt, &
+      stats_lh_sfc
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables
     integer, intent(in) :: &
@@ -2452,7 +2457,8 @@ module latin_hypercube_driver_module
   !-----------------------------------------------------------------------
   subroutine stats_accumulate_uniform_lh( nz, num_samples, ngrdcol, l_in_precip_all_levs, &
                                           X_mixt_comp_all_levs, X_u_chi_all_levs, pdf_params, &
-                                          lh_sample_point_weights, k_lh_start )
+                                          lh_sample_point_weights, k_lh_start, &
+                                          stats_lh_zt, stats_lh_sfc )
 
   ! Description:
   !   Samples statistics that cannot be deduced from the normal-lognormal
@@ -2475,9 +2481,7 @@ module latin_hypercube_driver_module
       ilh_precip_frac_unweighted, &
       ilh_mixt_frac_unweighted, &
       ik_lh_start, &
-      ilh_samp_frac_category, &
-      stats_lh_zt, &
-      stats_lh_sfc
+      ilh_samp_frac_category
 
     use math_utilities, only: &
       compute_sample_mean ! Procedure
@@ -2494,7 +2498,13 @@ module latin_hypercube_driver_module
       num_importance_categories, & ! Constant
       define_importance_categories
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_lh_zt, &
+      stats_lh_sfc
 
     ! Input Variables
     integer, intent(in) :: &

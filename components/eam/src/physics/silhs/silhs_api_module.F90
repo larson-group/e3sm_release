@@ -138,11 +138,12 @@ contains
     mu1, mu2, sigma1, sigma2, & ! In
     corr_cholesky_mtx_1, corr_cholesky_mtx_2, & ! In
     precip_fracs, silhs_config_flags, & ! In
+    clubb_params, & ! In
     l_uv_nudge, & ! In
     l_tke_aniso, & ! In
     l_standard_term_ta, & ! In
-    l_single_C2_Skw, & ! In
     vert_decorr_coef, & ! In
+    stats_lh_zt, stats_lh_sfc, & ! intent(inout)
     X_nl_all_levs, X_mixt_comp_all_levs, & ! Out
     lh_sample_point_weights ) ! Out
 
@@ -157,13 +158,22 @@ contains
     use parameters_silhs, only: &
       silhs_config_flags_type ! Type
 
+    use parameter_indices, only: &
+      nparams
+
     use clubb_precision, only: &
       core_rknd
       
     use mt95, only: &
       genrand_intg
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_lh_zt, &
+      stats_lh_sfc
 
     ! Input Variables
     integer, intent(in) :: &
@@ -219,15 +229,18 @@ contains
     type(silhs_config_flags_type), intent(in) :: &
       silhs_config_flags
 
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
+
     logical, intent(in) :: &
       l_uv_nudge,         & ! For wind speed nudging.
       l_tke_aniso,        & ! For anisotropic turbulent kinetic energy, i.e.
                             ! TKE = 1/2 (u'^2 + v'^2 + w'^2)
-      l_standard_term_ta, & ! Use the standard discretization for the turbulent advection terms.
+      l_standard_term_ta    ! Use the standard discretization for the turbulent advection terms.
                             ! Setting to .false. means that a_1 and a_3 are pulled outside of the
                             ! derivative in advance_wp2_wp3_module.F90 and in
                             ! advance_xp2_xpyp_module.F90.
-      l_single_C2_Skw       ! Use a single Skewness dependent C2 for rtp2, thlp2, and rtpthlp
+
 
     real( kind = core_rknd ), intent(in) :: &
       vert_decorr_coef    ! Empirically defined de-correlation constant [-]
@@ -287,11 +300,12 @@ contains
       mu1_col, mu2_col, sigma1_col, sigma2_col, & ! In
       corr_cholesky_mtx_1_col, corr_cholesky_mtx_2_col, & ! In
       precip_fracs, silhs_config_flags, & ! In
+      clubb_params, & ! In
       l_uv_nudge, & ! In
       l_tke_aniso, & ! In
       l_standard_term_ta, & ! In
-      l_single_C2_Skw, & ! In
       vert_decorr_coef, & ! In
+      stats_lh_zt, stats_lh_sfc, & ! intent(inout)
       X_nl_all_levs_col, X_mixt_comp_all_levs_col, & ! Out
       lh_sample_point_weights_col ) ! Out
       
@@ -300,7 +314,7 @@ contains
     lh_sample_point_weights = lh_sample_point_weights_col(1,:,:)
 
   end subroutine generate_silhs_sample_api_single_col
-  
+!=================================================================================================!
   subroutine generate_silhs_sample_api_multi_col( &
     iter, pdf_dim, num_samples, sequence_length, nz, ngrdcol, & ! In
     l_calc_weights_all_levs_itime, &
@@ -310,11 +324,12 @@ contains
     mu1, mu2, sigma1, sigma2, & ! In
     corr_cholesky_mtx_1, corr_cholesky_mtx_2, & ! In
     precip_fracs, silhs_config_flags, & ! In
+    clubb_params, & ! In
     l_uv_nudge, & ! In
     l_tke_aniso, & ! In
     l_standard_term_ta, & ! In
-    l_single_C2_Skw, & ! In
     vert_decorr_coef, & ! In
+    stats_lh_zt, stats_lh_sfc, & ! intent(inout)
     X_nl_all_levs, X_mixt_comp_all_levs, & ! Out
     lh_sample_point_weights ) ! Out
 
@@ -329,13 +344,22 @@ contains
     use parameters_silhs, only: &
       silhs_config_flags_type ! Type
 
+    use parameter_indices, only: &
+      nparams
+
     use clubb_precision, only: &
       core_rknd
       
     use mt95, only: &
       genrand_intg
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_lh_zt, &
+      stats_lh_sfc
 
     ! Input Variables
     integer, intent(in) :: &
@@ -392,15 +416,17 @@ contains
     type(silhs_config_flags_type), intent(in) :: &
       silhs_config_flags
 
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
+
     logical, intent(in) :: &
       l_uv_nudge,         & ! For wind speed nudging.
       l_tke_aniso,        & ! For anisotropic turbulent kinetic energy, i.e.
                             ! TKE = 1/2 (u'^2 + v'^2 + w'^2)
-      l_standard_term_ta, & ! Use the standard discretization for the turbulent advection terms.
+      l_standard_term_ta    ! Use the standard discretization for the turbulent advection terms.
                             ! Setting to .false. means that a_1 and a_3 are pulled outside of the
                             ! derivative in advance_wp2_wp3_module.F90 and in
                             ! advance_xp2_xpyp_module.F90.
-      l_single_C2_Skw       ! Use a single Skewness dependent C2 for rtp2, thlp2, and rtpthlp
 
     real( kind = core_rknd ), intent(in) :: &
       vert_decorr_coef    ! Empirically defined de-correlation constant [-]
@@ -414,11 +440,12 @@ contains
       mu1, mu2, sigma1, sigma2, & ! In
       corr_cholesky_mtx_1, corr_cholesky_mtx_2, & ! In
       precip_fracs, silhs_config_flags, & ! In
+      clubb_params, & ! In
       l_uv_nudge, & ! In
       l_tke_aniso, & ! In
       l_standard_term_ta, & ! In
-      l_single_C2_Skw, & ! In
       vert_decorr_coef, & ! In
+      stats_lh_zt, stats_lh_sfc, & ! intent(inout)
       X_nl_all_levs, X_mixt_comp_all_levs, & ! Out
       lh_sample_point_weights ) ! Out
 
@@ -428,12 +455,17 @@ contains
   ! stats_accumulate_lh - Clips subcolumns from latin hypercube and creates stats.
   !================================================================================================
 
-  subroutine stats_accumulate_lh_api( &
+  subroutine stats_accumulate_lh_api( gr, &
     nz, num_samples, pdf_dim, rho_ds_zt, &
     lh_sample_point_weights, X_nl_all_levs, &
     lh_rt_clipped, lh_thl_clipped, & 
     lh_rc_clipped, lh_rv_clipped, & 
-    lh_Nc_clipped )
+    lh_Nc_clipped, &
+    stats_lh_zt, stats_lh_sfc )
+
+    use grid_class, only: grid
+
+    use stats_type, only: stats
 
     use latin_hypercube_driver_module, only : stats_accumulate_lh
 
@@ -441,6 +473,12 @@ contains
       core_rknd    ! Constant
 
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_lh_zt, &
+      stats_lh_sfc
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     integer, intent(in) :: &
@@ -464,12 +502,13 @@ contains
       lh_rv_clipped,  & ! rv generated from silhs sample points
       lh_Nc_clipped     ! Nc generated from silhs sample points
 
-    call stats_accumulate_lh( &
+    call stats_accumulate_lh( gr, &
       nz, num_samples, pdf_dim, rho_ds_zt, &
       lh_sample_point_weights, X_nl_all_levs, &
       lh_rt_clipped, lh_thl_clipped, & 
       lh_rc_clipped, lh_rv_clipped, & 
-      lh_Nc_clipped )
+      lh_Nc_clipped, &
+      stats_lh_zt, stats_lh_sfc )
 
   end subroutine stats_accumulate_lh_api
 
@@ -549,7 +588,7 @@ contains
   ! clip_transform_silhs_output - Computes extra SILHS sample variables, such as rt and thl.
   !================================================================================================
 
-  subroutine clip_transform_silhs_output_api_single_col( &
+  subroutine clip_transform_silhs_output_api_single_col( gr, &
                                               nz, num_samples,                & ! In
                                               pdf_dim, hydromet_dim,          & ! In
                                               X_mixt_comp_all_levs,           & ! In
@@ -558,6 +597,8 @@ contains
                                               lh_rt_clipped, lh_thl_clipped,  & ! Out
                                               lh_rc_clipped, lh_rv_clipped,   & ! Out
                                               lh_Nc_clipped                   ) ! Out
+
+    use grid_class, only: grid ! Type
 
     use latin_hypercube_driver_module, only : clip_transform_silhs_output
 
@@ -568,6 +609,8 @@ contains
       pdf_parameter
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     logical, intent(in) :: l_use_Ncn_to_Nc
@@ -617,7 +660,7 @@ contains
     X_nl_all_levs_col(1,:,:,:)      = X_nl_all_levs
 
 
-    call clip_transform_silhs_output( nz, 1, num_samples,                     & ! In
+    call clip_transform_silhs_output( gr, nz, 1, num_samples,                     & ! In
                                       pdf_dim, hydromet_dim,                  & ! In
                                       X_mixt_comp_all_levs_col,               & ! In
                                       X_nl_all_levs_col,                      & ! In
@@ -633,8 +676,8 @@ contains
     lh_Nc_clipped     = lh_Nc_clipped_col(1,:,:)
                                       
   end subroutine clip_transform_silhs_output_api_single_col
-  
-  subroutine clip_transform_silhs_output_api_multi_col( &
+!=======================================================================================!
+  subroutine clip_transform_silhs_output_api_multi_col( gr, &
                                               nz, ngrdcol, num_samples,       & ! In
                                               pdf_dim, hydromet_dim,          & ! In
                                               X_mixt_comp_all_levs,           & ! In
@@ -643,6 +686,8 @@ contains
                                               lh_rt_clipped, lh_thl_clipped,  & ! Out
                                               lh_rc_clipped, lh_rv_clipped,   & ! Out
                                               lh_Nc_clipped                   ) ! Out
+
+    use grid_class, only: grid ! Type
 
     use latin_hypercube_driver_module, only : clip_transform_silhs_output
 
@@ -653,6 +698,8 @@ contains
       pdf_parameter
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     logical, intent(in) :: l_use_Ncn_to_Nc
@@ -681,7 +728,7 @@ contains
       lh_rv_clipped,  & ! rv generated from silhs sample points
       lh_Nc_clipped     ! Nc generated from silhs sample points
 
-    call clip_transform_silhs_output( nz, ngrdcol, num_samples,       & ! In
+    call clip_transform_silhs_output( gr, nz, ngrdcol, num_samples,       & ! In
                                       pdf_dim, hydromet_dim,          & ! In
                                       X_mixt_comp_all_levs,           & ! In
                                       X_nl_all_levs,                  & ! In

@@ -26,11 +26,12 @@ module advance_xp3_module
   contains
 
   !=============================================================================
-  subroutine advance_xp3( dt, rtm, thlm, rtp2, thlp2, wprtp,         & ! Intent(in)
+  subroutine advance_xp3( gr, dt, rtm, thlm, rtp2, thlp2, wprtp,     & ! Intent(in)
                           wpthlp, wprtp2, wpthlp2, rho_ds_zm,        & ! Intent(in)
                           invrs_rho_ds_zt, invrs_tau_zt, tau_max_zt, & ! Intent(in)
                           sclrm, sclrp2, wpsclrp, wpsclrp2,          & ! Intent(in)
                           l_lmm_stepping,                            & ! Intent(in)
+                          stats_zt,                                  & ! intent(inout)
                           rtp3, thlp3, sclrp3 )                        ! Intent(inout)
 
     ! Description:
@@ -43,7 +44,7 @@ module advance_xp3_module
     !-----------------------------------------------------------------------
 
     use grid_class, only: &
-        gr    ! Variable Type
+        grid ! Type
 
     use constants_clubb, only: &
         rt_tol,  & ! Variable(s)
@@ -56,7 +57,14 @@ module advance_xp3_module
     use clubb_precision, only: &
         core_rknd    ! Variable(s)
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zt
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in) :: &
@@ -99,34 +107,37 @@ module advance_xp3_module
 
     ! Advance <rt'^3> one model timestep or calculate <rt'^3> using a
     ! steady-state approximation.
-    call advance_xp3_simplified( xp3_rtp3, dt, rtm,        & ! Intent(in)
+    call advance_xp3_simplified( gr, xp3_rtp3, dt, rtm,        & ! Intent(in)
                                  rtp2, wprtp,              & ! Intent(in)
                                  wprtp2, rho_ds_zm,        & ! Intent(in)
                                  invrs_rho_ds_zt,          & ! Intent(in)
                                  invrs_tau_zt, tau_max_zt, & ! Intent(in) 
                                  rt_tol, l_lmm_stepping,   & ! Intent(in)
+                                 stats_zt,                 & ! intent(inout)
                                  rtp3                      ) ! Intent(inout)
 
     ! Advance <thl'^3> one model timestep or calculate <thl'^3> using a
     ! steady-state approximation.
-    call advance_xp3_simplified( xp3_thlp3, dt, thlm,      & ! Intent(in)
+    call advance_xp3_simplified( gr, xp3_thlp3, dt, thlm,  & ! Intent(in)
                                  thlp2, wpthlp,            & ! Intent(in)
                                  wpthlp2, rho_ds_zm,       & ! Intent(in)
                                  invrs_rho_ds_zt,          & ! Intent(in)
                                  invrs_tau_zt, tau_max_zt, & ! Intent(in) 
                                  thl_tol, l_lmm_stepping,  & ! Intent(in)
+                                 stats_zt,                 & ! intent(inout)
                                  thlp3                     ) ! Intent(inout)
 
     ! Advance <sclr'^3> one model timestep or calculate <sclr'^3> using a
     ! steady-state approximation.
     do i = 1, sclr_dim, 1
 
-       call advance_xp3_simplified( xp3_sclrp3, dt, sclrm(:,i),  & ! In
+       call advance_xp3_simplified( gr, xp3_sclrp3, dt, sclrm(:,i),  & ! In
                                     sclrp2(:,i), wpsclrp(:,i),   & ! In
                                     wpsclrp2(:,i), rho_ds_zm,    & ! In
                                     invrs_rho_ds_zt,             & ! In
                                     invrs_tau_zt, tau_max_zt,    & ! In 
                                     sclr_tol(i), l_lmm_stepping, & ! In
+                                    stats_zt,                    & ! intent(inout)
                                     sclrp3(:,i)                  ) ! In/Out
 
     enddo ! i = 1, sclr_dim
@@ -137,13 +148,14 @@ module advance_xp3_module
   end subroutine advance_xp3
 
   !=============================================================================
-  subroutine advance_xp3_simplified( solve_type, dt, xm,       & ! Intent(in)
+  subroutine advance_xp3_simplified( gr, solve_type, dt, xm,   & ! Intent(in)
                                      xp2, wpxp,                & ! Intent(in)
                                      wpxp2, rho_ds_zm,         & ! Intent(in)
                                      invrs_rho_ds_zt,          & ! Intent(in)
                                      invrs_tau_zt, tau_max_zt, & ! Intent(in) 
                                      x_tol, l_lmm_stepping,    & ! Intent(in)
-                                     xp3                       ) ! Intent(inout)
+                                     stats_zt,                 & ! intent(inout)
+                                     xp3 )                       ! Intent(inout)
 
     ! Description:
     ! Predicts the value of <x'^3> using a simplified form of the <x'^3>
@@ -245,7 +257,7 @@ module advance_xp3_module
     !-----------------------------------------------------------------------
 
     use grid_class, only: &
-        gr,    & ! Variable Type
+        grid, & ! Type
         zm2zt, & ! Procedure(s)
         zt2zm
 
@@ -268,13 +280,19 @@ module advance_xp3_module
         ithlp3_tp,    &
         ithlp3_ac,    &
         ithlp3_dp,    &
-        stats_zt,     &
         l_stats_samp
 
     use clubb_precision, only: &
         core_rknd    ! Variable(s)
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zt
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables
     integer, intent(in) :: &
@@ -355,7 +373,7 @@ module advance_xp3_module
        end select ! solve_type
 
        if ( l_predict_xp3 ) then
-          call stat_begin_update( ixp3_bt, xp3 / dt, & ! Intent(in)
+          call stat_begin_update( gr, ixp3_bt, xp3 / dt, & ! Intent(in)
                                   stats_zt           ) ! Intent(inout)
        endif ! l_predict_xp3
 
@@ -366,10 +384,10 @@ module advance_xp3_module
     term_ac = zero
 
     ! Interpolate <x> to momentum levels.
-    xm_zm = zt2zm( xm )
+    xm_zm = zt2zm( gr, xm )
 
     ! Interpolate <x'^2> to thermodynamic levels.
-    xp2_zt = max( zm2zt( xp2 ), x_tol**2 )  ! Positive definite quantity
+    xp2_zt = max( zm2zt( gr, xp2 ), x_tol**2 )  ! Positive definite quantity
 
     do k = 2, gr%nz-1, 1
 
@@ -416,13 +434,15 @@ module advance_xp3_module
 
     if ( l_stats_samp ) then
 
-       call stat_update_var( ixp3_tp, term_tp, stats_zt )
-       call stat_update_var( ixp3_ac, term_ac, stats_zt )
-       call stat_update_var( ixp3_dp, -(C_xp3_dissipation * invrs_tau_zt)*xp3, &
-                             stats_zt )
+       call stat_update_var( ixp3_tp, term_tp, & ! intent(in)
+                             stats_zt )          ! intent(inout)
+       call stat_update_var( ixp3_ac, term_ac, & ! intent(in)
+                             stats_zt )          ! intent(inout)
+       call stat_update_var( ixp3_dp, -(C_xp3_dissipation * invrs_tau_zt)*xp3, & ! intent(in)
+                             stats_zt ) ! intent(inout)
 
        if ( l_predict_xp3 ) then
-          call stat_end_update( ixp3_bt, xp3 / dt, & ! Intent(in)
+          call stat_end_update( gr, ixp3_bt, xp3 / dt, & ! Intent(in)
                                 stats_zt           ) ! Intent(inout)
        endif ! l_predict_xp3
 

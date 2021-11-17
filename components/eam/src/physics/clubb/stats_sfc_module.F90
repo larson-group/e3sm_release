@@ -16,7 +16,8 @@ module stats_sfc_module
   contains
 
 !-----------------------------------------------------------------------
-  subroutine stats_init_sfc( vars_sfc, l_error )
+  subroutine stats_init_sfc( vars_sfc, l_error, & !intent(in)
+                             stats_sfc ) ! intent(inout)
 
 ! Description:
 !   Initializes array indices for stats_sfc
@@ -28,7 +29,6 @@ module stats_sfc_module
         fstderr ! Constant(s)
 
     use stats_variables, only: &
-        stats_sfc,  & ! Variables
         iustar, &
         isoil_heat_flux, &
         iveg_T_in_K, &
@@ -76,17 +76,22 @@ module stats_sfc_module
         iwindm_matrix_condt_num
 
     use stats_variables, only: &
-      imorr_snow_rate ! Variable(s)
+        imorr_snow_rate ! Variable(s)
 
     use stats_variables, only: &
-      irtm_spur_src,            &
-      ithlm_spur_src, &
-      irsm_sd_morr_int
+        irtm_spur_src,            &
+        ithlm_spur_src, &
+        irsm_sd_morr_int
 
     use stats_type_utilities, only: &
         stat_assign ! Procedure
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_sfc
 
     ! External
     intrinsic :: trim
@@ -230,7 +235,7 @@ module stats_sfc_module
       case ('rain_flux_sfc')         ! Brian
         irain_flux_sfc = k
 
-        call stat_assign( var_index=irain_flux_sfc, var_name="rain_flux_sfc, ", &
+        call stat_assign( var_index=irain_flux_sfc, var_name="rain_flux_sfc", &
              var_description="rain_flux_sfc, Surface rain flux", &
              var_units="W/m^2", l_silhs=.false., &
              grid_kind=stats_sfc )

@@ -17,6 +17,7 @@
 !
 module clubb_api_module
 
+
   use mt95, only : &
     assignment( = ), &
     genrand_state, & ! Internal representation of the RNG state.
@@ -116,9 +117,6 @@ module clubb_api_module
       clubb_no_error,              & ! Constants
       clubb_fatal_error
 
-  use grid_class, only : &
-    gr
-
   use hydromet_pdf_parameter_module, only : &
     hydromet_pdf_parameter, &
     precipitation_fractions
@@ -135,12 +133,12 @@ module clubb_api_module
     hydromet_dim    ! Number of hydrometeor species
 
   use parameters_tunable, only : &
-    mu, &
-    params_list
+    params_list,         & ! Variable(s)
+    nu_vertical_res_dep    ! Type(s)
 
   use parameter_indices, only:  &
     nparams, & ! Variable(s)
-    iC1, iC1b, iC1c, iC2, iC2b, iC2c,  &
+    iC1, iC1b, iC1c, &
     iC2rt, iC2thl, iC2rtthl, iC4, iC_uu_shr, iC_uu_buoy, &
     iC6rt, iC6rtb, iC6rtc, iC6thl, iC6thlb, iC6thlc, &
     iC7, iC7b, iC7c, iC8, iC8b, iC10, iC11, iC11b, iC11c, &
@@ -197,11 +195,6 @@ module clubb_api_module
     nvarmax_rad_zt  ! Maximum variables allowed
 
   use stats_variables, only : &
-    stats_zt, & ! zt grid
-    stats_zm, & ! zm grid
-    stats_rad_zt, & ! rad_zt grid
-    stats_rad_zm, & ! rad_zm grid
-    stats_sfc, &
     l_stats_last, & ! Last time step of output period
     stats_tsamp, & ! Sampling interval   [s]
     stats_tout, & ! Output interval     [s]
@@ -237,12 +230,17 @@ module clubb_api_module
   use stats_sfc_module, only : &
     nvarmax_sfc
 
+  use grid_class, only: grid ! Type
+
+  use stats_type, only: stats ! Type
+
   implicit none
 
   private
 
   public &
     ! To Implement CLUBB:
+    set_default_parameters_api, & ! Procedure(s)
     read_parameters_api, &
     setup_clubb_core_api, &
         ! CLUBB can be set more specifically using these flags:
@@ -252,7 +250,7 @@ module clubb_api_module
         ipdf_post_advance_fields, &
         l_use_boussinesq, &
         ! The parameters of CLUBB can be retrieved and tuned using these indices:
-        iC1, iC1b, iC1c, iC2, iC2b, iC2c,  &
+        iC1, iC1b, iC1c, &
         iC2rt, iC2thl, iC2rtthl, iC4, iC_uu_shr, iC_uu_buoy, &
         iC6rt, iC6rtb, iC6rtc, iC6thl, iC6thlb, iC6thlc, &
         iC7, iC7b, iC7c, iC8, iC8b, iC10, iC11, iC11b, iC11c, &
@@ -331,11 +329,12 @@ module clubb_api_module
     hmp2_ip_on_hmm2_ip, &
     Ncnp2_on_Ncnm2,     &
     hmp2_ip_on_hmm2_ip_slope_type,      & ! Types
-    hmp2_ip_on_hmm2_ip_intrcpt_type
+    hmp2_ip_on_hmm2_ip_intrcpt_type, &
+    grid, &
+    stats
 
   public &
     ! To Interact With CLUBB's Grid:
-    gr, &
     ! For Varying Grids
     setup_grid_heights_api    ! if heights vary with time
 
@@ -352,7 +351,7 @@ module clubb_api_module
     stats_tout
 
   public :: &
-    calculate_thlp2_rad_api, mu, params_list, &
+    calculate_thlp2_rad_api, params_list, &
     update_xp2_mc_api, sat_mixrat_liq_api
 
   public :: &
@@ -449,13 +448,11 @@ module clubb_api_module
     nvarmax_rad_zt, &
     nvarmax_sfc, &
     nvarmax_zm, &
-    nvarmax_zt, &
-    stats_rad_zm, &
-    stats_rad_zt
+    nvarmax_zt
     public &
     nparams, &
+    nu_vertical_res_dep, &
     setup_parameters_api, &
-    stats_sfc, &
     stat_nknd, &
     stat_rknd, &
     stats_accumulate_hydromet_api, &
@@ -464,14 +461,12 @@ module clubb_api_module
     stats_init_sfc_api, &
     stats_init_zm_api, &
     stats_init_zt_api, &
-    stats_zm, &
     zmscr01, zmscr02, zmscr03, &
     zmscr04, zmscr05, zmscr06, &
     zmscr07, zmscr08, zmscr09, &
     zmscr10, zmscr11, zmscr12, &
     zmscr13, zmscr14, zmscr15, &
     zmscr16, zmscr17, &
-    stats_zt, &
     ztscr01, ztscr02, ztscr03, &
     ztscr04, ztscr05, ztscr06, &
     ztscr07, ztscr08, ztscr09, &
@@ -526,7 +521,7 @@ contains
   ! advance_clubb_core - Advances the model one timestep.
   !================================================================================================
 
-  subroutine advance_clubb_core_api( &
+  subroutine advance_clubb_core_api( gr, &
     l_implemented, dt, fcor, sfc_elevation, hydromet_dim, & ! intent(in)
     thlm_forcing, rtm_forcing, um_forcing, vm_forcing, &    ! intent(in)
     sclrm_forcing, edsclrm_forcing, wprtp_forcing, &        ! intent(in)
@@ -544,7 +539,9 @@ contains
 #endif
     wphydrometp, wp2hmp, rtphmp, thlphmp, &                 ! intent(in)
     host_dx, host_dy, &                                     ! intent(in)
+    clubb_params, nu_vert_res_dep, lmin, &                  ! intent(in)
     clubb_config_flags, &                                   ! intent(in)
+    stats_zt, stats_zm, stats_sfc, &                        ! intent(inout)
     um, vm, upwp, vpwp, up2, vp2, up3, vp3, &               ! intent(inout)
     thlm, rtm, wprtp, wpthlp, &                             ! intent(inout)
     wp2, wp3, rtp2, rtp3, thlp2, thlp3, rtpthlp, &          ! intent(inout)
@@ -567,7 +564,7 @@ contains
 #ifdef CLUBB_CAM
     qclvar, &                                               ! intent(out)
 #endif
-    thlprcp, wprcp, ice_supersat_frac, &                    ! intent(out)
+    thlprcp, wprcp, w_up_in_cloud, ice_supersat_frac, &     ! intent(out)
     rcm_in_layer, cloud_cover, invrs_tau_zm )               ! intent(out)
 
     use advance_clubb_core_module, only : advance_clubb_core
@@ -576,13 +573,22 @@ contains
         implicit_coefs_terms    ! Variable Type(s)
 
     use parameters_model, only: &
-      sclr_dim, & ! Variable(s)
-      edsclr_dim
+        sclr_dim, & ! Variable(s)
+        edsclr_dim
 
     use model_flags, only: &
-      clubb_config_flags_type
+        clubb_config_flags_type
+
+    
 
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_zt, &
+      stats_zm, &
+      stats_sfc
+
+    type(grid), target, intent(in) :: gr
       !!! Input Variables
     logical, intent(in) ::  &
       l_implemented ! Is this part of a larger host model (T/F) ?
@@ -671,6 +677,15 @@ contains
       host_dx,  & ! East-West horizontal grid spacing     [m]
       host_dy     ! North-South horizontal grid spacing   [m]
 
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
+
+    type(nu_vertical_res_dep), intent(in) :: &
+      nu_vert_res_dep    ! Vertical resolution dependent nu values
+
+    real( kind = core_rknd ), intent(in) :: &
+      lmin    ! Min. value for the length scale    [m]
+
     type( clubb_config_flags_type ), intent(in) :: &
       clubb_config_flags ! Derived type holding all configurable CLUBB flags
 
@@ -743,9 +758,10 @@ contains
 
     ! Variables that need to be output for use in host models
     real( kind = core_rknd ), intent(out), dimension(gr%nz) ::  &
-      wprcp,             & ! w'r_c' (momentum levels)                  [(kg/kg) m/s]
-      ice_supersat_frac, & ! ice cloud fraction (thermodynamic levels) [-]
-      invrs_tau_zm         ! One divided by tau on zm levels           [1/s]
+      wprcp,             & ! w'r_c' (momentum levels)              [(kg/kg) m/s]
+      w_up_in_cloud,     & ! Average upward velocity within liquid cloud   [m/s]
+      ice_supersat_frac, & ! ice cloud fraction (thermodynamic levels)     [-]
+      invrs_tau_zm         ! One divided by tau on zm levels               [1/s]
 
     real( kind = core_rknd ), dimension(gr%nz), intent(out) :: &
       Kh_zt, & ! Eddy diffusivity coefficient on thermodynamic levels   [m^2/s]
@@ -768,7 +784,7 @@ contains
       RH_crit  ! critical relative humidity for droplet and ice nucleation
     logical, intent(in)                 ::  do_liquid_only_in_clubb
 #endif
-    call advance_clubb_core( &
+    call advance_clubb_core( gr, &
       l_implemented, dt, fcor, sfc_elevation, hydromet_dim, & ! intent(in)
       thlm_forcing, rtm_forcing, um_forcing, vm_forcing, &    ! intent(in)
       sclrm_forcing, edsclrm_forcing, wprtp_forcing, &        ! intent(in)
@@ -786,7 +802,9 @@ contains
 #endif
       wphydrometp, wp2hmp, rtphmp, thlphmp, &                 ! intent(in)
       host_dx, host_dy, &                                     ! intent(in)
+      clubb_params, nu_vert_res_dep, lmin, &                  ! intent(in)
       clubb_config_flags, &                                   ! intent(in)
+      stats_zt, stats_zm, stats_sfc, &                        ! intent(inout)
       um, vm, upwp, vpwp, up2, vp2, up3, vp3, &               ! intent(inout)
       thlm, rtm, wprtp, wpthlp, &                             ! intent(inout)
       wp2, wp3, rtp2, rtp3, thlp2, thlp3, rtpthlp, &          ! intent(inout)
@@ -809,7 +827,7 @@ contains
 #ifdef CLUBB_CAM
                qclvar, &                                      ! intent(out)
 #endif
-      thlprcp, wprcp, ice_supersat_frac, &                    ! intent(out)
+      thlprcp, wprcp, w_up_in_cloud, ice_supersat_frac, &     ! intent(out)
       rcm_in_layer, cloud_cover, invrs_tau_zm, &              ! intent(out)
       err_code_api )                                          ! intent(out)
 
@@ -841,12 +859,12 @@ contains
 #ifdef GFDL
     cloud_frac_min ,                                    & ! intent(in)  h1g, 2010-06-16
 #endif
-    err_code_api )                                        ! intent(out) 
+    gr, lmin, nu_vert_res_dep, err_code_api )             ! intent(out) 
 
     use advance_clubb_core_module, only : setup_clubb_core
 
     use parameter_indices, only:  &
-      nparams ! Variable(s)
+        nparams ! Variable(s)
       
     use model_flags, only: &
         clubb_config_flags_type  ! Type
@@ -857,6 +875,8 @@ contains
 !     setup_model_flags    ! Subroutine
 
       implicit none
+
+      type(grid), target, intent(inout) :: gr
 
     ! Input Variables
 
@@ -953,8 +973,14 @@ contains
 #endif
 
     ! Output variables 
+    real( kind = core_rknd ), intent(out) :: &
+      lmin    ! Min. value for the length scale    [m]
+
+    type(nu_vertical_res_dep), intent(out) :: &
+      nu_vert_res_dep    ! Vertical resolution dependent nu values
+
     integer, intent(out) :: & 
-    err_code_api   ! Diagnostic for a problem with the setup 
+      err_code_api   ! Diagnostic for a problem with the setup 
 
     call setup_clubb_core &
       ( nzmax, T0_in, ts_nudge_in,                          & ! intent(in)
@@ -978,7 +1004,7 @@ contains
 #ifdef GFDL
       , cloud_frac_min                                      & ! intent(in)  h1g, 2010-06-16
 #endif
-      err_code_api )                                          ! intent(out)
+      gr, lmin, nu_vert_res_dep, err_code_api )               ! intent(out)
 
   end subroutine setup_clubb_core_api
 
@@ -986,13 +1012,16 @@ contains
   ! cleanup_clubb_core_api - Frees memory used by the model.
   !================================================================================================
 
-  subroutine cleanup_clubb_core_api( )
+  subroutine cleanup_clubb_core_api( gr )
 
     use advance_clubb_core_module, only : cleanup_clubb_core
 
+    
+
     implicit none
 
-    call cleanup_clubb_core( )
+    type(grid), target, intent(inout) :: gr
+    call cleanup_clubb_core( gr ) ! intent(inout)
 
   end subroutine cleanup_clubb_core_api
 
@@ -1054,12 +1083,12 @@ contains
       seconds_since_current_date
 
     call compute_current_date( &
-      previous_day, previous_month, &
-      previous_year,  &
-      seconds_since_previous_date, &
-      current_day, current_month, &
-      current_year, &
-      seconds_since_current_date )
+      previous_day, previous_month, & ! intent(in)
+      previous_year,  & ! intent(in)
+      seconds_since_previous_date, & ! intent(in)
+      current_day, current_month, & ! intent(out)
+      current_year, & ! intent(out)
+      seconds_since_current_date ) ! intent(out)
   end subroutine compute_current_date_api
 
   !================================================================================================
@@ -1110,8 +1139,8 @@ contains
       l_fix_w_chi_eta_correlations ! Use a fixed correlation for s and t Mellor(chi/eta)
 
     call setup_corr_varnce_array( &
-      input_file_cloud, input_file_below, iunit, &
-      l_fix_w_chi_eta_correlations )
+      input_file_cloud, input_file_below, iunit, & ! intent(in)
+      l_fix_w_chi_eta_correlations ) ! intent(in)
 
   end subroutine setup_corr_varnce_array_api
 
@@ -1131,7 +1160,7 @@ contains
     integer, intent(in) :: level ! The debug level being checked against the current setting
 
     call set_clubb_debug_level( &
-      level )
+      level ) ! intent(in)
   end subroutine set_clubb_debug_level_api
 
   !================================================================================================
@@ -1157,15 +1186,23 @@ contains
   ! fill_holes_driver - Fills holes between same-phase hydrometeors(i.e. for frozen hydrometeors).
   !================================================================================================
 
-  subroutine fill_holes_driver_api( &
+  subroutine fill_holes_driver_api( gr, &
     nz, dt, hydromet_dim,        & ! Intent(in)
     l_fill_holes_hm,             & ! Intent(in)
     rho_ds_zm, rho_ds_zt, exner, & ! Intent(in)
+    stats_zt, &                    ! intent(inout)
     thlm_mc, rvm_mc, hydromet )    ! Intent(inout)
 
     use fill_holes, only : fill_holes_driver
 
+    
+
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_zt
+
+    type(grid), target, intent(in) :: gr
 
     intrinsic :: trim
 
@@ -1192,10 +1229,11 @@ contains
       rvm_mc,  & ! Microphysics contributions to vapor water            [kg/kg/s]
       thlm_mc    ! Microphysics contributions to liquid potential temp. [K/s]
 
-    call fill_holes_driver( &
+    call fill_holes_driver( gr,    & ! intent(in)
       nz, dt, hydromet_dim,        & ! Intent(in)
       l_fill_holes_hm,             & ! Intent(in)
       rho_ds_zm, rho_ds_zt, exner, & ! Intent(in)
+      stats_zt,                    & ! intent(inout)
       thlm_mc, rvm_mc, hydromet )    ! Intent(inout)
   end subroutine fill_holes_driver_api
 
@@ -1203,14 +1241,18 @@ contains
   ! fill_holes_vertical - clips values of 'field' that are below 'threshold' as much as possible.
   !================================================================================================
 
-  subroutine fill_holes_vertical_api( &
+  subroutine fill_holes_vertical_api( gr, &
     num_pts, threshold, field_grid, &
     rho_ds, rho_ds_zm, &
     field )
 
     use fill_holes, only : fill_holes_vertical
 
+     ! Type
+
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input variables
     integer, intent(in) :: &
@@ -1232,10 +1274,10 @@ contains
     real( kind = core_rknd ), dimension(gr%nz), intent(inout) :: &
       field  ! The field (e.g. wp2) that contains holes [Units same as threshold]
 
-    call fill_holes_vertical( &
-      num_pts, threshold, field_grid, &
-      rho_ds, rho_ds_zm, &
-      field )
+    call fill_holes_vertical( gr, & ! intent(in)
+      num_pts, threshold, field_grid, & ! intent(in)
+      rho_ds, rho_ds_zm, & ! intent(in)
+      field ) ! intent(inout)
   end subroutine fill_holes_vertical_api
 
   !=============================================================================
@@ -1308,14 +1350,18 @@ contains
   subroutine setup_grid_heights_api( &
     l_implemented, grid_type,  &
     deltaz, zm_init, momentum_heights,  &
-    thermodynamic_heights )
+    gr, thermodynamic_heights )
 
-    use grid_class, only : setup_grid_heights
+    use grid_class, only: & 
+        grid, & ! Type
+        setup_grid_heights
     
     use error_code, only : &
         clubb_fatal_error       ! Constant
 
     implicit none
+   
+    type(grid), target, intent(inout) :: gr
 
     ! Input Variables
 
@@ -1354,9 +1400,10 @@ contains
       thermodynamic_heights ! Thermodynamic level altitudes (input) [m]
 
     call setup_grid_heights( &
-      l_implemented, grid_type,  &
-      deltaz, zm_init, momentum_heights,  &
-      thermodynamic_heights )
+      l_implemented, grid_type,  & ! intent(in)
+      deltaz, zm_init, momentum_heights,  & ! intent(in)
+      thermodynamic_heights, & ! intent(in)
+      gr ) ! intent(inout)
 
     if ( err_code == clubb_fatal_error ) error stop
 
@@ -1417,7 +1464,8 @@ contains
       tvalue  ! t-value solved by interpolation
 
     call lin_interpolate_on_grid( &
-      nparam, xlist, tlist, xvalue, tvalue )
+      nparam, xlist, tlist, xvalue, & ! intent(in)
+      tvalue ) ! intent(inout)
 
   end subroutine lin_interpolate_on_grid_api
 
@@ -1425,13 +1473,36 @@ contains
   ! read_parameters - Read a namelist containing the model parameters.
   !================================================================================================
 
-  subroutine read_parameters_api( &
-    iunit, filename, params )
+  subroutine read_parameters_api( iunit, filename, &
+                                  C1, C1b, C1c, C2rt, C2thl, C2rtthl, &
+                                  C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, &
+                                  C6thl, C6thlb, C6thlc, C7, C7b, C7c, C8, C8b, C10, &
+                                  C11, C11b, C11c, C12, C13, C14, C_wp2_pr_dfsn, C_wp3_pr_tp, &
+                                  C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
+                                  C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
+                                  c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8, &
+                                  c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
+                                  slope_coef_spread_DG_means_w, pdf_component_stdev_factor_w, &
+                                  coef_spread_DG_means_rt, coef_spread_DG_means_thl, &
+                                  gamma_coef, gamma_coefb, gamma_coefc, mu, beta, lmin_coef, &
+                                  omicron, zeta_vrnce_rat, upsilon_precip_frac_rat, &
+                                  lambda0_stability_coef, mult_coef, taumin, taumax, &
+                                  Lscale_mu_coef, Lscale_pert_coef, alpha_corr, &
+                                  Skw_denom_coef, c_K10, c_K10h, thlp2_rad_coef, &
+                                  thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
+                                  Skw_max_mag, xp3_coef_base, xp3_coef_slope, &
+                                  altitude_threshold, rtp2_clip_coef, C_invrs_tau_bkgnd, &
+                                  C_invrs_tau_sfc, C_invrs_tau_shear, C_invrs_tau_N2, & 
+                                  C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, &
+                                  C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, &
+                                  C_invrs_tau_wpxp_Ri, C_invrs_tau_wpxp_N2_thresh, &
+                                  Cx_min, Cx_max, Richardson_num_min, Richardson_num_max, &
+                                  params )
 
     use parameters_tunable, only : read_parameters
 
     use parameter_indices, only:  &
-      nparams ! Variable(s)
+        nparams ! Variable(s)
 
     implicit none
 
@@ -1440,11 +1511,58 @@ contains
 
     character(len=*), intent(in) :: filename
 
+    ! Input/Output variables
+    real( kind = core_rknd ), intent(inout) :: & 
+      C1, C1b, C1c, C2rt, C2thl, C2rtthl, & 
+      C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, & 
+      C7, C7b, C7c, C8, C8b, C10, & 
+      C11, C11b, C11c, C12, C13, C14, C_wp2_pr_dfsn, C_wp3_pr_tp, &
+      C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, & 
+      C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
+      c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8,  & 
+      c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
+      slope_coef_spread_DG_means_w, pdf_component_stdev_factor_w, &
+      coef_spread_DG_means_rt, coef_spread_DG_means_thl, &
+      gamma_coef, gamma_coefb, gamma_coefc, mu, beta, lmin_coef, &
+      omicron, zeta_vrnce_rat, upsilon_precip_frac_rat, &
+      lambda0_stability_coef, mult_coef, taumin, taumax, Lscale_mu_coef, &
+      Lscale_pert_coef, alpha_corr, Skw_denom_coef, c_K10, c_K10h, &
+      thlp2_rad_coef, thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
+      Skw_max_mag, xp3_coef_base, xp3_coef_slope, altitude_threshold, &
+      rtp2_clip_coef, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
+      C_invrs_tau_shear, C_invrs_tau_N2, C_invrs_tau_N2_wp2, &
+      C_invrs_tau_N2_xp2, C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, &
+      C_invrs_tau_wpxp_Ri, C_invrs_tau_wpxp_N2_thresh, &
+      Cx_min, Cx_max, Richardson_num_min, Richardson_num_max
+
     ! Output variables
     real( kind = core_rknd ), intent(out), dimension(nparams) :: params
 
-    call read_parameters( &
-      iunit, filename, params )
+    call read_parameters( iunit, filename, & ! intent(in)
+                          C1, C1b, C1c, C2rt, C2thl, C2rtthl, &
+                          C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, &
+                          C6thl, C6thlb, C6thlc, C7, C7b, C7c, C8, C8b, C10, &
+                          C11, C11b, C11c, C12, C13, C14, C_wp2_pr_dfsn, C_wp3_pr_tp, &
+                          C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
+                          C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
+                          c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8, &
+                          c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
+                          slope_coef_spread_DG_means_w, pdf_component_stdev_factor_w, &
+                          coef_spread_DG_means_rt, coef_spread_DG_means_thl, &
+                          gamma_coef, gamma_coefb, gamma_coefc, mu, beta, lmin_coef, &
+                          omicron, zeta_vrnce_rat, upsilon_precip_frac_rat, &
+                          lambda0_stability_coef, mult_coef, taumin, taumax, &
+                          Lscale_mu_coef, Lscale_pert_coef, alpha_corr, &
+                          Skw_denom_coef, c_K10, c_K10h, thlp2_rad_coef, &
+                          thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
+                          Skw_max_mag, xp3_coef_base, xp3_coef_slope, &
+                          altitude_threshold, rtp2_clip_coef, C_invrs_tau_bkgnd, &
+                          C_invrs_tau_sfc, C_invrs_tau_shear, C_invrs_tau_N2, & 
+                          C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, &
+                          C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, &
+                          C_invrs_tau_wpxp_Ri, C_invrs_tau_wpxp_N2_thresh, &
+                          Cx_min, Cx_max, Richardson_num_min, Richardson_num_max, &
+                          params ) ! intent(out)
 
   end subroutine read_parameters_api
 
@@ -1452,17 +1570,17 @@ contains
   ! setup_parameters - Sets up model parameters.
   !================================================================================================
 
-  subroutine setup_parameters_api( &
-    deltaz, params, nzmax, &
-    grid_type, momentum_heights, thermodynamic_heights, &
-    l_prescribed_avg_deltaz, &
-    err_code_api )
+  subroutine setup_parameters_api &
+           ( deltaz, params, nzmax, &
+             grid_type, momentum_heights, thermodynamic_heights, &
+             l_prescribed_avg_deltaz, &
+             lmin, nu_vert_res_dep, err_code_api )
 
     use parameters_tunable, only: &
-      setup_parameters
+        setup_parameters
 
     use parameter_indices, only:  &
-      nparams ! Variable(s)
+        nparams ! Variable(s)
 
     implicit none
 
@@ -1504,14 +1622,20 @@ contains
       l_prescribed_avg_deltaz ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
 
     ! Output Variables 
+    real( kind = core_rknd ), intent(out) :: &
+      lmin    ! Min. value for the length scale    [m]
+
+    type(nu_vertical_res_dep), intent(out) :: &
+      nu_vert_res_dep    ! Vertical resolution dependent nu values
+
     integer, intent(out) ::  & 	 	      
       err_code_api ! Error condition 
 
-    call setup_parameters( &
-      deltaz, params, nzmax, &
-      grid_type, momentum_heights, thermodynamic_heights, &
-      l_prescribed_avg_deltaz, &
-      err_code_api )
+    call setup_parameters & 
+            ( deltaz, params, nzmax, &
+              grid_type, momentum_heights, thermodynamic_heights, &
+              l_prescribed_avg_deltaz, &
+              lmin, nu_vert_res_dep, err_code_api )
 
   end subroutine setup_parameters_api
 
@@ -1519,10 +1643,11 @@ contains
   ! adj_low_res_nu - Adjusts values of background eddy diffusivity based on vertical grid spacing.
   !================================================================================================
 
-  subroutine adj_low_res_nu_api( &
-    nzmax, grid_type, deltaz, & ! Intent(in)
-    momentum_heights, thermodynamic_heights, & ! Intent(in)
-    l_prescribed_avg_deltaz )  ! Intent(in)
+  subroutine adj_low_res_nu_api( nzmax, grid_type, deltaz,  & ! Intent(in)
+                                 momentum_heights, thermodynamic_heights, & ! Intent(in)
+                                 l_prescribed_avg_deltaz, mult_coef, &  ! Intent(in)
+                                 nu1, nu2, nu6, nu8, nu9, nu10, nu_hm, &  ! Intent(in)
+                                 nu_vert_res_dep )  ! Intent(out)
 
     use parameters_tunable, only : adj_low_res_nu
 
@@ -1563,10 +1688,26 @@ contains
     logical, intent(in) :: &
       l_prescribed_avg_deltaz ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
 
-    call adj_low_res_nu( &
-      nzmax, grid_type, deltaz, & ! Intent(in)
-      momentum_heights, thermodynamic_heights, & ! Intent(in)
-      l_prescribed_avg_deltaz )  ! Intent(in)
+    real( kind = core_rknd ), intent(in) :: &
+      mult_coef, & ! CLUBB tunable parameter mult_coef
+      nu1,       & ! CLUBB tunable parameter nu1
+      nu2,       & ! CLUBB tunable parameter nu2
+      nu6,       & ! CLUBB tunable parameter nu6
+      nu8,       & ! CLUBB tunable parameter nu8
+      nu9,       & ! CLUBB tunable parameter nu9
+      nu10,      & ! CLUBB tunable parameter nu10
+      nu_hm        ! CLUBB tunable parameter nu_hm
+
+    ! Output Variables
+    type(nu_vertical_res_dep), intent(out) :: &
+      nu_vert_res_dep    ! Vertical resolution dependent nu values
+
+    call adj_low_res_nu( nzmax, grid_type, deltaz,  & ! Intent(in)
+                         momentum_heights, thermodynamic_heights, & ! Intent(in)
+                         l_prescribed_avg_deltaz, mult_coef, &  ! Intent(in)
+                         nu1, nu2, nu6, nu8, nu9, nu10, nu_hm, &  ! Intent(in)
+                         nu_vert_res_dep )  ! Intent(out)
+
   end subroutine adj_low_res_nu_api
 
 ! The CLUBB_CAM preprocessor directives are being commented out because this
@@ -1597,10 +1738,12 @@ contains
     integer, optional, intent(in) :: k_start, k_end
       
     if( present( k_start ) .and. present( k_end ) ) then
-        call pack_pdf_params( pdf_params, nz, r_param_array, &
-                              k_start, k_end )
+        call pack_pdf_params( pdf_params, nz, & ! intent(in)
+                              r_param_array, & ! intent(out)
+                              k_start, k_end ) ! intent(in/optional)
     else 
-        call pack_pdf_params( pdf_params, nz, r_param_array )
+        call pack_pdf_params( pdf_params, nz, & ! intent(in)
+                              r_param_array ) ! intent(out)
     end if
 
   end subroutine pack_pdf_params_api
@@ -1628,10 +1771,12 @@ contains
     integer, optional, intent(in) :: k_start, k_end
 
     if( present( k_start ) .and. present( k_end ) ) then
-        call unpack_pdf_params( r_param_array, nz, pdf_params, &
-                                k_start, k_end )
-    else 
-        call unpack_pdf_params( r_param_array, nz, pdf_params )
+        call unpack_pdf_params( r_param_array, nz, & ! intent(in)
+                                pdf_params, & ! intent(inout)
+                                k_start, k_end ) ! intent(in/optional)
+    else  
+        call unpack_pdf_params( r_param_array, nz, & ! intent(in)
+                                pdf_params ) ! intent(inout)
     end if
     
     
@@ -1656,7 +1801,8 @@ contains
     type(pdf_parameter), intent(out) :: &
       pdf_params    ! PDF parameters            [units vary]
     
-    call init_pdf_params( nz, ngrdcol, pdf_params )
+    call init_pdf_params( nz, ngrdcol, & ! intent(in)
+                          pdf_params ) ! intent(out)
     
   end subroutine init_pdf_params_api
   
@@ -1832,8 +1978,8 @@ contains
     type(precipitation_fractions), intent(out) :: &
       precip_fracs    ! Hydrometeor PDF parameters      [units vary]
 
-    call init_precip_fracs( nz, ngrdcol, &
-                            precip_fracs )
+    call init_precip_fracs( nz, ngrdcol, & ! intent(in)
+                            precip_fracs ) ! intent(out)
 
     return
 
@@ -1860,8 +2006,8 @@ contains
     type(implicit_coefs_terms), intent(out) :: &
       pdf_implicit_coefs_terms    ! Implicit coefs / explicit terms [units vary]
 
-    call init_pdf_implicit_coefs_terms( nz, sclr_dim, &
-                                        pdf_implicit_coefs_terms )
+    call init_pdf_implicit_coefs_terms( nz, sclr_dim, & ! intent(in)
+                                        pdf_implicit_coefs_terms ) ! intent(out)
 
   end subroutine init_pdf_implicit_coefs_terms_api
 
@@ -1869,12 +2015,13 @@ contains
   ! setup_pdf_parameters
   !================================================================================================
 
-  subroutine setup_pdf_parameters_api_single_col( &
+  subroutine setup_pdf_parameters_api_single_col( gr, & ! intent(in)
     nz, pdf_dim, dt, &                      ! Intent(in)
     Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
     ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
     corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
     pdf_params, l_stats_samp, &                 ! Intent(in)
+    clubb_params, &                             ! Intent(in)
     iiPDF_type, &                               ! Intent(in)
     l_use_precip_frac, &                        ! Intent(in)
     l_predict_upwp_vpwp, &                      ! Intent(in)
@@ -1882,6 +2029,7 @@ contains
     l_calc_w_corr, &                            ! Intent(in)
     l_const_Nc_in_cloud, &                      ! Intent(in)
     l_fix_w_chi_eta_correlations, &             ! Intent(in)
+    stats_zt, stats_zm, stats_sfc, &            ! intent(inout)
     hydrometp2, &                               ! Intent(inout)
     mu_x_1_n, mu_x_2_n, &                       ! Intent(out)
     sigma_x_1_n, sigma_x_2_n, &                 ! Intent(out)
@@ -1893,13 +2041,25 @@ contains
     use setup_clubb_pdf_params, only : setup_pdf_parameters
 
     use advance_windm_edsclrm_module, only: &
-      xpwp_fnc
+        xpwp_fnc
+
+    use parameter_indices, only: &
+        nparams    ! Variable(s)
 
     use error_code, only : &
         err_code, &         ! Error Indicator
         clubb_fatal_error   ! Constant
 
+    
+
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_zt, &
+      stats_zm, &
+      stats_sfc
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     integer, intent(in) :: &
@@ -1930,6 +2090,9 @@ contains
 
     logical, intent(in) :: &
       l_stats_samp    ! Flag to sample statistics
+
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
 
     integer, intent(in) :: &
       iiPDF_type    ! Selected option for the two-component normal (double
@@ -2025,12 +2188,13 @@ contains
     hydromet_col(1,:,:) = hydromet
     wphydrometp_col(1,:,:) = wphydrometp
 
-    call setup_pdf_parameters( &
+    call setup_pdf_parameters( gr, &                          ! intent(in)
       nz, 1, pdf_dim, dt, &                                   ! Intent(in)
       Nc_in_cloud_col, rcm_col, cloud_frac_col, Kh_zm_col, &  ! Intent(in)
       ice_supersat_frac_col, hydromet_col, wphydrometp_col, & ! Intent(in)
       corr_array_n_cloud, corr_array_n_below, &               ! Intent(in)
       pdf_params, l_stats_samp, &                             ! Intent(in)
+      clubb_params, &                                         ! Intent(in)
       iiPDF_type, &                                           ! Intent(in)
       l_use_precip_frac, &                                    ! Intent(in)
       l_predict_upwp_vpwp, &                                  ! Intent(in)
@@ -2038,6 +2202,7 @@ contains
       l_calc_w_corr, &                                        ! Intent(in)
       l_const_Nc_in_cloud, &                                  ! Intent(in)
       l_fix_w_chi_eta_correlations, &                         ! Intent(in)
+      stats_zt, stats_zm, stats_sfc, &                        ! intent(inout)
       hydrometp2_col, &                                       ! Intent(inout)
       mu_x_1_n_col, mu_x_2_n_col, &                           ! Intent(out)
       sigma_x_1_n_col, sigma_x_2_n_col, &                     ! Intent(out)
@@ -2062,13 +2227,14 @@ contains
     end if
 
   end subroutine setup_pdf_parameters_api_single_col
-  
-  subroutine setup_pdf_parameters_api_multi_col( &
+!===========================================================================! 
+  subroutine setup_pdf_parameters_api_multi_col( gr, &
     nz, ngrdcol, pdf_dim, dt, &                 ! Intent(in)
     Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
     ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
     corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
     pdf_params, l_stats_samp, &                 ! Intent(in)
+    clubb_params, &                             ! Intent(in)
     iiPDF_type, &                               ! Intent(in)
     l_use_precip_frac, &                        ! Intent(in)
     l_predict_upwp_vpwp, &                      ! Intent(in)
@@ -2076,6 +2242,7 @@ contains
     l_calc_w_corr, &                            ! Intent(in)
     l_const_Nc_in_cloud, &                      ! Intent(in)
     l_fix_w_chi_eta_correlations, &             ! Intent(in)
+    stats_zt, stats_zm, stats_sfc, &            ! intent(inout)
     hydrometp2, &                               ! Intent(inout)
     mu_x_1_n, mu_x_2_n, &                       ! Intent(out)
     sigma_x_1_n, sigma_x_2_n, &                 ! Intent(out)
@@ -2086,14 +2253,26 @@ contains
 
     use setup_clubb_pdf_params, only : setup_pdf_parameters
 
+    
+
     use advance_windm_edsclrm_module, only: &
-      xpwp_fnc
+        xpwp_fnc
+
+    use parameter_indices, only: &
+        nparams    ! Variable(s)
 
     use error_code, only : &
         err_code, &         ! Error Indicator
         clubb_fatal_error   ! Constant
 
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_zt, &
+      stats_zm, &
+      stats_sfc
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     integer, intent(in) :: &
@@ -2125,6 +2304,9 @@ contains
 
     logical, intent(in) :: &
       l_stats_samp    ! Flag to sample statistics
+
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
 
     integer, intent(in) :: &
       iiPDF_type    ! Selected option for the two-component normal (double
@@ -2175,12 +2357,13 @@ contains
     type(precipitation_fractions), intent(inout) :: &
       precip_fracs           ! Precipitation fractions      [-]
 
-    call setup_pdf_parameters( &
+    call setup_pdf_parameters( gr, &              ! intent(in)
       nz, ngrdcol, pdf_dim, dt, &                 ! Intent(in)
       Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
       ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
       corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
       pdf_params, l_stats_samp, &                 ! Intent(in)
+      clubb_params, &                             ! Intent(in)
       iiPDF_type, &                               ! Intent(in)
       l_use_precip_frac, &                        ! Intent(in)
       l_predict_upwp_vpwp, &                      ! Intent(in)
@@ -2188,6 +2371,7 @@ contains
       l_calc_w_corr, &                            ! Intent(in)
       l_const_Nc_in_cloud, &                      ! Intent(in)
       l_fix_w_chi_eta_correlations, &             ! Intent(in)
+      stats_zt, stats_zm, stats_sfc, &            ! intent(inout)
       hydrometp2, &                               ! Intent(inout)
       mu_x_1_n, mu_x_2_n, &                       ! Intent(out)
       sigma_x_1_n, sigma_x_2_n, &                 ! Intent(out)
@@ -2209,11 +2393,23 @@ contains
     stats_fmt_in, stats_tsamp_in, stats_tout_in, fnamelist, &
     nzmax, nlon, nlat, gzt, gzm, nnrad_zt, &
     grad_zt, nnrad_zm, grad_zm, day, month, year, &
-    lon_vals, lat_vals, time_current, delt, l_silhs_out_in )
+    lon_vals, lat_vals, time_current, delt, l_silhs_out_in, &
+    stats_zt, stats_zm, stats_sfc, &
+    stats_lh_zt, stats_lh_sfc, &
+    stats_rad_zt, stats_rad_zm )
 
     use stats_clubb_utilities, only : stats_init
 
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_zt, &
+      stats_zm, &
+      stats_sfc, &
+      stats_lh_zt, &
+      stats_lh_sfc, &
+      stats_rad_zt, &
+      stats_rad_zm
 
     ! Input Variables
     integer, intent(in) :: iunit  ! File unit for fnamelist
@@ -2269,11 +2465,14 @@ contains
       l_silhs_out_in  ! Whether to output SILHS files (stats_lh_zt,stats_lh_sfc) [dimensionless]
 
     call stats_init( &
-      iunit, fname_prefix, fdir, l_stats_in, &
-      stats_fmt_in, stats_tsamp_in, stats_tout_in, fnamelist, &
-      nzmax, nlon, nlat, gzt, gzm, nnrad_zt, &
-      grad_zt, nnrad_zm, grad_zm, day, month, year, &
-      lon_vals, lat_vals, time_current, delt, l_silhs_out_in )
+      iunit, fname_prefix, fdir, l_stats_in, & ! intent(in)
+      stats_fmt_in, stats_tsamp_in, stats_tout_in, fnamelist, & ! intent(in)
+      nzmax, nlon, nlat, gzt, gzm, nnrad_zt, & ! intent(in)
+      grad_zt, nnrad_zm, grad_zm, day, month, year, & ! intent(in)
+      lon_vals, lat_vals, time_current, delt, l_silhs_out_in, & ! intent(in)
+      stats_zt, stats_zm, stats_sfc, & ! intent(inout)
+      stats_lh_zt, stats_lh_sfc, & ! intent(inout)
+      stats_rad_zt, stats_rad_zm ) ! intent(inout)
 
     if ( err_code == clubb_fatal_error ) error stop
     
@@ -2301,45 +2500,63 @@ contains
       stats_nout      ! Stats output interval    [timestep]
 
     call stats_begin_timestep( &
-      itime, stats_nsamp, stats_nout )
+      itime, stats_nsamp, stats_nout ) ! intent(in)
   end subroutine stats_begin_timestep_api
 
   !================================================================================================
   ! stats_end_timestep - Calls statistics to be written to the output format.
   !================================================================================================
 
-  subroutine stats_end_timestep_api( &
+  subroutine stats_end_timestep_api( clubb_params, &
+                                     stats_zt, stats_zm, stats_sfc, &
+                                     stats_lh_zt, stats_lh_sfc, &
+                                     stats_rad_zt, stats_rad_zm &
 #ifdef NETCDF
-                                     l_uv_nudge, &
+                                     , l_uv_nudge, &
                                      l_tke_aniso, &
-                                     l_standard_term_ta, &
-                                     l_single_C2_Skw &
+                                     l_standard_term_ta &
 #endif
                                       )
 
     use stats_clubb_utilities, only : stats_end_timestep
 
+    use parameter_indices, only: nparams
+
+
     implicit none
 
-#ifdef NETCDF
     ! Input Variables
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
+
+    type(stats), target, intent(inout) :: &
+      stats_zt, &
+      stats_zm, &
+      stats_sfc, &
+      stats_lh_zt, &
+      stats_lh_sfc, &
+      stats_rad_zt, &
+      stats_rad_zm
+
+#ifdef NETCDF
     logical, intent(in) :: &
       l_uv_nudge,         & ! For wind speed nudging.
       l_tke_aniso,        & ! For anisotropic turbulent kinetic energy, i.e.
                             ! TKE = 1/2 (u'^2 + v'^2 + w'^2)
-      l_standard_term_ta, & ! Use the standard discretization for the turbulent advection terms.
+      l_standard_term_ta    ! Use the standard discretization for the turbulent advection terms.
                             ! Setting to .false. means that a_1 and a_3 are pulled outside of the
                             ! derivative in advance_wp2_wp3_module.F90 and in
                             ! advance_xp2_xpyp_module.F90.
-      l_single_C2_Skw       ! Use a single Skewness dependent C2 for rtp2, thlp2, and rtpthlp
 #endif
 
-    call stats_end_timestep( &
+    call stats_end_timestep( clubb_params, &              ! intent(in)
+                             stats_zt, stats_zm, stats_sfc, & ! intent(inout)
+                             stats_lh_zt, stats_lh_sfc, & ! intent(inout)
+                             stats_rad_zt, stats_rad_zm & ! intent(inout)
 #ifdef NETCDF
-                             l_uv_nudge, & ! Intent(in)
+                             , l_uv_nudge, & ! Intent(in)
                              l_tke_aniso, & ! Intent(in)
-                             l_standard_term_ta, & ! Intent(in)
-                             l_single_C2_Skw & ! Intent(in)
+                             l_standard_term_ta & ! Intent(in)
 #endif
                               )
 
@@ -2351,12 +2568,21 @@ contains
   ! stats_accumulate_hydromet - Computes stats related the hydrometeors.
   !================================================================================================
 
-  subroutine stats_accumulate_hydromet_api( &
-    hydromet, rho_ds_zt )
+  subroutine stats_accumulate_hydromet_api( gr, &
+                                            hydromet, rho_ds_zt, &
+                                            stats_zt, stats_sfc )
 
     use stats_clubb_utilities, only : stats_accumulate_hydromet
 
+    
+
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_zt, &
+      stats_sfc
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), dimension(gr%nz,hydromet_dim), intent(in) :: &
@@ -2365,21 +2591,35 @@ contains
     real( kind = core_rknd ), dimension(gr%nz), intent(in) :: &
       rho_ds_zt ! Dry, static density (thermo. levs.)      [kg/m^3]
 
-    call stats_accumulate_hydromet( &
-      hydromet, rho_ds_zt )
+    call stats_accumulate_hydromet( gr, & ! intent(in)
+      hydromet, rho_ds_zt, & ! intent(in)
+      stats_zt, stats_sfc ) ! intent(inout)
   end subroutine stats_accumulate_hydromet_api
 
   !================================================================================================
   ! stats_finalize - Close NetCDF files and deallocate scratch space and stats file structures.
   !================================================================================================
 
-  subroutine stats_finalize_api
+  subroutine stats_finalize_api ( stats_zt, stats_zm, stats_sfc, &
+                                  stats_lh_zt, stats_lh_sfc, &
+                                  stats_rad_zt, stats_rad_zm )
 
     use stats_clubb_utilities, only : stats_finalize
 
     implicit none
 
-    call stats_finalize
+    type(stats), target, intent(inout) :: &
+      stats_zt, &
+      stats_zm, &
+      stats_sfc, &
+      stats_lh_zt, &
+      stats_lh_sfc, &
+      stats_rad_zt, &
+      stats_rad_zm
+
+    call stats_finalize ( stats_zt, stats_zm, stats_sfc, & ! intent(inout)
+                          stats_lh_zt, stats_lh_sfc, & ! intent(inout)
+                          stats_rad_zt, stats_rad_zm ) ! intent(inout)
 
   end subroutine stats_finalize_api
 
@@ -2388,11 +2628,15 @@ contains
   !================================================================================================
 
   subroutine stats_init_rad_zm_api( &
-    vars_rad_zm, l_error )
+                                    vars_rad_zm, l_error, &
+                                    stats_rad_zm )
 
     use stats_rad_zm_module, only : stats_init_rad_zm, nvarmax_rad_zm
 
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_rad_zm
 
     ! Input Variable
     character(len= * ), dimension(nvarmax_rad_zm), intent(in) :: vars_rad_zm
@@ -2401,7 +2645,9 @@ contains
     logical, intent(inout) :: l_error
 
     call stats_init_rad_zm( &
-      vars_rad_zm, l_error )
+      vars_rad_zm, & ! intent(in)
+      l_error, & ! intent(inout)
+      stats_rad_zm ) ! intent(inout)
   end subroutine stats_init_rad_zm_api
 
   !================================================================================================
@@ -2409,11 +2655,15 @@ contains
   !================================================================================================
 
   subroutine stats_init_rad_zt_api( &
-    vars_rad_zt, l_error )
+                                    vars_rad_zt, l_error, &
+                                    stats_rad_zt )
 
     use stats_rad_zt_module, only : stats_init_rad_zt, nvarmax_rad_zt
 
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_rad_zt
 
     ! Input Variable
     character(len= * ), dimension(nvarmax_rad_zt), intent(in) :: vars_rad_zt
@@ -2422,7 +2672,10 @@ contains
     logical, intent(inout) :: l_error
 
     call stats_init_rad_zt( &
-      vars_rad_zt, l_error )
+      vars_rad_zt, & ! intent(in)
+      l_error, & ! intent(inout)
+      stats_rad_zt ) ! intent(inout)
+
   end subroutine stats_init_rad_zt_api
 
   !================================================================================================
@@ -2430,11 +2683,15 @@ contains
   !================================================================================================
 
   subroutine stats_init_zm_api( &
-    vars_zm, l_error )
+                                vars_zm, l_error, &
+                                stats_zm )
 
     use stats_zm_module, only : stats_init_zm, nvarmax_zm
 
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_zm
 
     ! Input Variable
     character(len= * ), dimension(nvarmax_zm), intent(in) :: vars_zm ! zm variable names
@@ -2443,7 +2700,9 @@ contains
     logical, intent(inout) :: l_error
 
     call stats_init_zm( &
-      vars_zm, l_error )
+      vars_zm, & ! intent(in)
+      l_error, & ! intent(inout)
+      stats_zm ) ! intent(inout)
 
   end subroutine stats_init_zm_api
 
@@ -2452,11 +2711,15 @@ contains
   !================================================================================================
 
   subroutine stats_init_zt_api( &
-    vars_zt, l_error )
+                                vars_zt, l_error, &
+                                stats_zt )
 
     use stats_zt_module, only : stats_init_zt, nvarmax_zt
 
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_zt
 
     ! Input Variable
     character(len= * ), dimension(nvarmax_zt), intent(in) :: vars_zt
@@ -2465,7 +2728,9 @@ contains
     logical, intent(inout) :: l_error
 
     call stats_init_zt( &
-      vars_zt, l_error )
+      vars_zt, & ! intent(in)
+      l_error, & ! intent(inout)
+      stats_zt ) ! intent(inout)
 
   end subroutine stats_init_zt_api
 
@@ -2474,11 +2739,15 @@ contains
   !================================================================================================
 
   subroutine stats_init_sfc_api( &
-    vars_sfc, l_error )
+                                 vars_sfc, l_error, &
+                                 stats_sfc )
 
     use stats_sfc_module, only : stats_init_sfc, nvarmax_sfc
 
     implicit none
+
+    type(stats), target, intent(inout) :: &
+      stats_sfc
 
     ! Input Variable
     character(len= * ), dimension(nvarmax_sfc), intent(in) :: vars_sfc
@@ -2487,7 +2756,9 @@ contains
     logical, intent(inout) :: l_error
 
     call stats_init_sfc( &
-      vars_sfc, l_error )
+      vars_sfc, & ! intent(in)
+      l_error, & ! intent(inout)
+      stats_sfc ) ! intent(inout)
 
   end subroutine stats_init_sfc_api
 
@@ -2577,11 +2848,15 @@ contains
   !================================================================================================
   ! zm2zt_scalar - Interpolates a variable from zm to zt grid at one height level
   !================================================================================================
-  function zm2zt_scalar_api( azm, k )
+  function zm2zt_scalar_api( gr, azm, k )
 
-    use grid_class, only: zm2zt
+    use grid_class, only: & 
+        grid, & ! Type
+        zm2zt
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -2594,18 +2869,22 @@ contains
     real( kind = core_rknd ) :: &
       zm2zt_scalar_api   ! Variable when interp. to thermo. levels
 
-    zm2zt_scalar_api = zm2zt( azm, k )
+    zm2zt_scalar_api = zm2zt( gr, azm, k )
 
   end function zm2zt_scalar_api
 
   !================================================================================================
   ! zt2zm_scalar - Interpolates a variable from zt to zm grid at one height level
   !================================================================================================
-  function zt2zm_scalar_api( azt, k )
+  function zt2zm_scalar_api( gr, azt, k )
 
-    use grid_class, only: zt2zm
+    use grid_class, only: &
+        grid, & ! Type
+        zt2zm
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -2618,18 +2897,22 @@ contains
     real( kind = core_rknd ) :: &
       zt2zm_scalar_api   ! Variable when interp. to momentum levels
 
-    zt2zm_scalar_api = zt2zm( azt, k )
+    zt2zm_scalar_api = zt2zm( gr, azt, k )
 
   end function zt2zm_scalar_api
 
   !================================================================================================
   ! zt2zm_prof - Interpolates a variable (profile) from zt to zm grid
   !================================================================================================
-  function zt2zm_prof_api( azt )
+  function zt2zm_prof_api( gr, azt )
 
-    use grid_class, only: zt2zm
+    use grid_class, only: &
+        grid, & ! Type
+        zt2zm
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -2639,18 +2922,22 @@ contains
     real( kind = core_rknd ), dimension(gr%nz) :: &
       zt2zm_prof_api   ! Variable when interp. to momentum levels
 
-    zt2zm_prof_api = zt2zm( azt )
+    zt2zm_prof_api = zt2zm( gr, azt )
 
   end function zt2zm_prof_api
 
   !================================================================================================
   ! zm2zt_prof - Interpolates a variable (profile) from zm to zt grid
   !================================================================================================
-  function zm2zt_prof_api( azm )
+  function zm2zt_prof_api( gr, azm )
 
-    use grid_class, only: zm2zt
+    use grid_class, only: &
+        grid, & ! Type
+        zm2zt
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -2660,7 +2947,7 @@ contains
     real( kind = core_rknd ), dimension(gr%nz) :: &
       zm2zt_prof_api   ! Variable when interp. to thermo. levels
 
-    zm2zt_prof_api = zm2zt( azm )
+    zm2zt_prof_api = zm2zt( gr, azm )
 
   end function zm2zt_prof_api
 
@@ -2668,33 +2955,41 @@ contains
   ! calculate_thlp2_rad - Computes the contribution of radiative cooling to thlp2
   !================================================================================================
   pure subroutine calculate_thlp2_rad_api &
-                  ( nz, rcm_zm, thlprcp, radht_zm, &      ! Intent(in)
-                    thlp2_forcing )                       ! Intent(inout)
+                  ( nz, rcm_zm, thlprcp, radht_zm, & ! Intent(in)
+                    clubb_params,                  & ! Intent(in)
+                    thlp2_forcing )                  ! Intent(inout)
 
-  use clubb_precision, only: &
-    core_rknd                     ! Constant(s)
+    use clubb_precision, only: &
+        core_rknd                     ! Constant(s)
 
-  use advance_clubb_core_module, only: &
-    calculate_thlp2_rad
+    use advance_clubb_core_module, only: &
+        calculate_thlp2_rad
 
-  implicit none
+    use parameter_indices, only: &
+        nparams
+
+    implicit none
 
   ! Input Variables
-  integer, intent(in) :: &
-    nz                    ! Number of vertical levels                      [-]
+    integer, intent(in) :: &
+      nz                    ! Number of vertical levels                      [-]
 
-  real( kind = core_rknd ), dimension(nz), intent(in) :: &
-    rcm_zm, &             ! Cloud water mixing ratio on momentum grid      [kg/kg]
-    thlprcp, &            ! thl'rc'                                        [K kg/kg]
-    radht_zm              ! SW + LW heating rate (on momentum grid)        [K/s]
+    real( kind = core_rknd ), dimension(nz), intent(in) :: &
+      rcm_zm, &             ! Cloud water mixing ratio on momentum grid      [kg/kg]
+      thlprcp, &            ! thl'rc'                                        [K kg/kg]
+      radht_zm              ! SW + LW heating rate (on momentum grid)        [K/s]
+
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
 
   ! Input/Output Variables
-  real( kind = core_rknd ), dimension(nz), intent(inout) :: &
-    thlp2_forcing         ! <th_l'^2> forcing (momentum levels)            [K^2/s]
+    real( kind = core_rknd ), dimension(nz), intent(inout) :: &
+      thlp2_forcing         ! <th_l'^2> forcing (momentum levels)            [K^2/s]
   !----------------------------------------------------------------------
 
-    call calculate_thlp2_rad( nz, rcm_zm, thlprcp, radht_zm, &
-                    thlp2_forcing )
+    call calculate_thlp2_rad( nz, rcm_zm, thlprcp, radht_zm, & ! intent(in)
+                              clubb_params,                  & ! intent(in)
+                              thlp2_forcing )                  ! intent(inout)
 
     return
   end subroutine calculate_thlp2_rad_api
@@ -2702,15 +2997,19 @@ contains
   !================================================================================================
   ! update_xp2_mc - Calculates the effects of rain evaporation on rtp2 and thlp2
   !================================================================================================
-  subroutine update_xp2_mc_api( nz, dt, cloud_frac, rcm, rvm, thlm,        &
+  subroutine update_xp2_mc_api( gr, nz, dt, cloud_frac, rcm, rvm, thlm,        &
                             wm, exner, rrm_evap, pdf_params,        &
                             rtp2_mc, thlp2_mc, wprtp_mc, wpthlp_mc,    &
                             rtpthlp_mc )
 
     use advance_xp2_xpyp_module, only: &
-      update_xp2_mc
+        update_xp2_mc
+
+     ! Type
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     !input parameters
     integer, intent(in) :: nz ! Points in the Vertical        [-]
@@ -2739,10 +3038,10 @@ contains
       wpthlp_mc, &  !Tendency of <w'thl'> due to evaporation  [m*K/s^2] 
       rtpthlp_mc    !Tendency of <rt'thl'> due to evaporation [K*(kg/kg)/s]
 
-    call update_xp2_mc( nz, dt, cloud_frac, rcm, rvm, thlm,        &
-                        wm, exner, rrm_evap, pdf_params,        &
-                        rtp2_mc, thlp2_mc, wprtp_mc, wpthlp_mc,    &
-                        rtpthlp_mc )
+    call update_xp2_mc( gr, nz, dt, cloud_frac, rcm, rvm, thlm,        & ! intent(in)
+                        wm, exner, rrm_evap, pdf_params,        & ! intent(in)
+                        rtp2_mc, thlp2_mc, wprtp_mc, wpthlp_mc,    & ! intent(inout)
+                        rtpthlp_mc ) ! intent(inout)
     return
   end subroutine update_xp2_mc_api
 
@@ -2959,6 +3258,92 @@ contains
   end subroutine init_pdf_hydromet_arrays_api
 
   !================================================================================================
+  ! set_default_parameters: Sets all CLUBB tunable parameters to a default setting
+  !================================================================================================
+  subroutine set_default_parameters_api( &
+               C1, C1b, C1c, C2rt, C2thl, C2rtthl, &
+               C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, &
+               C6thl, C6thlb, C6thlc, C7, C7b, C7c, C8, C8b, C10, &
+               C11, C11b, C11c, C12, C13, C14, C_wp2_pr_dfsn, C_wp3_pr_tp, &
+               C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
+               C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
+               c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8, &
+               c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
+               slope_coef_spread_DG_means_w, pdf_component_stdev_factor_w, &
+               coef_spread_DG_means_rt, coef_spread_DG_means_thl, &
+               gamma_coef, gamma_coefb, gamma_coefc, mu, beta, lmin_coef, &
+               omicron, zeta_vrnce_rat, upsilon_precip_frac_rat, &
+               lambda0_stability_coef, mult_coef, taumin, taumax, &
+               Lscale_mu_coef, Lscale_pert_coef, alpha_corr, &
+               Skw_denom_coef, c_K10, c_K10h, thlp2_rad_coef, &
+               thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
+               Skw_max_mag, xp3_coef_base, xp3_coef_slope, &
+               altitude_threshold, rtp2_clip_coef, C_invrs_tau_bkgnd, &
+               C_invrs_tau_sfc, C_invrs_tau_shear, C_invrs_tau_N2, &
+               C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, &
+               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, &
+               C_invrs_tau_wpxp_Ri, C_invrs_tau_wpxp_N2_thresh, &
+               Cx_min, Cx_max, Richardson_num_min, Richardson_num_max )
+
+    use parameters_tunable, only: &
+        set_default_parameters    ! Procedure(s)
+
+    implicit none
+
+    ! Output variables
+    real( kind = core_rknd ), intent(out) :: &
+      C1, C1b, C1c, C2rt, C2thl, C2rtthl, &
+      C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, &
+      C7, C7b, C7c, C8, C8b, C10, &
+      C11, C11b, C11c, C12, C13, C14, C_wp2_pr_dfsn, C_wp3_pr_tp, &
+      C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
+      C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
+      c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8,  &
+      c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
+      slope_coef_spread_DG_means_w, pdf_component_stdev_factor_w, &
+      coef_spread_DG_means_rt, coef_spread_DG_means_thl, &
+      gamma_coef, gamma_coefb, gamma_coefc, mu, beta, lmin_coef, &
+      omicron, zeta_vrnce_rat, upsilon_precip_frac_rat, &
+      lambda0_stability_coef, mult_coef, taumin, taumax, Lscale_mu_coef, &
+      Lscale_pert_coef, alpha_corr, Skw_denom_coef, c_K10, c_K10h, &
+      thlp2_rad_coef, thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
+      Skw_max_mag, xp3_coef_base, xp3_coef_slope, altitude_threshold, &
+      rtp2_clip_coef, C_invrs_tau_bkgnd, C_invrs_tau_sfc, &
+      C_invrs_tau_shear, C_invrs_tau_N2, C_invrs_tau_N2_wp2, &
+      C_invrs_tau_N2_xp2, C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, &
+      C_invrs_tau_wpxp_Ri, C_invrs_tau_wpxp_N2_thresh, &
+      Cx_min, Cx_max, Richardson_num_min, Richardson_num_max
+
+    call set_default_parameters( &
+               C1, C1b, C1c, C2rt, C2thl, C2rtthl, &
+               C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, &
+               C6thl, C6thlb, C6thlc, C7, C7b, C7c, C8, C8b, C10, &
+               C11, C11b, C11c, C12, C13, C14, C_wp2_pr_dfsn, C_wp3_pr_tp, &
+               C_wp3_pr_turb, C_wp3_pr_dfsn, C_wp2_splat, &
+               C6rt_Lscale0, C6thl_Lscale0, C7_Lscale0, wpxp_L_thresh, &
+               c_K, c_K1, nu1, c_K2, nu2, c_K6, nu6, c_K8, nu8, &
+               c_K9, nu9, nu10, c_K_hm, c_K_hmb, K_hm_min_coef, nu_hm, &
+               slope_coef_spread_DG_means_w, pdf_component_stdev_factor_w, &
+               coef_spread_DG_means_rt, coef_spread_DG_means_thl, &
+               gamma_coef, gamma_coefb, gamma_coefc, mu, beta, lmin_coef, &
+               omicron, zeta_vrnce_rat, upsilon_precip_frac_rat, &
+               lambda0_stability_coef, mult_coef, taumin, taumax, &
+               Lscale_mu_coef, Lscale_pert_coef, alpha_corr, &
+               Skw_denom_coef, c_K10, c_K10h, thlp2_rad_coef, &
+               thlp2_rad_cloud_frac_thresh, up2_sfc_coef, &
+               Skw_max_mag, xp3_coef_base, xp3_coef_slope, &
+               altitude_threshold, rtp2_clip_coef, C_invrs_tau_bkgnd, &
+               C_invrs_tau_sfc, C_invrs_tau_shear, C_invrs_tau_N2, &
+               C_invrs_tau_N2_wp2, C_invrs_tau_N2_xp2, &
+               C_invrs_tau_N2_wpxp, C_invrs_tau_N2_clear_wp3, &
+               C_invrs_tau_wpxp_Ri, C_invrs_tau_wpxp_N2_thresh, &
+               Cx_min, Cx_max, Richardson_num_min, Richardson_num_max )
+
+    return
+
+  end subroutine set_default_parameters_api
+
+  !================================================================================================
   ! set_default_clubb_config_flags: Sets all CLUBB flags to a default setting
   !================================================================================================
   subroutine set_default_clubb_config_flags_api( iiPDF_type, & ! Out
@@ -2971,7 +3356,6 @@ contains
                                                  l_diffuse_rtm_and_thlm, & ! Out
                                                  l_stability_correct_Kh_N2_zm, & ! Out
                                                  l_calc_thlp2_rad, & ! Out
-                                                 l_upwind_wpxp_ta, & ! Out
                                                  l_upwind_xpyp_ta, & ! Out
                                                  l_upwind_xm_ma, & ! Out
                                                  l_uv_nudge, & ! Out
@@ -3001,16 +3385,16 @@ contains
                                                  l_brunt_vaisala_freq_moist, & ! Out
                                                  l_use_thvm_in_bv_freq, & ! Out
                                                  l_rcm_supersat_adj, & ! Out
-                                                 l_single_C2_Skw, & ! Out
                                                  l_damp_wp3_Skw_squared, & ! Out
                                                  l_prescribed_avg_deltaz, & ! Out
-                                                 l_update_pressure, & ! Out
                                                  l_lmm_stepping, & ! Out
                                                  l_e3sm_config, & ! Out
-                                                 l_use_tke_in_wp3_pr_turb_term ) ! Out
+                                                 l_vary_convect_depth, & ! Out
+                                                 l_use_tke_in_wp3_pr_turb_term, & ! Out
+                                                 l_use_tke_in_wp2_wp3_K_dfsn ) ! Out
 
     use model_flags, only: &
-      set_default_clubb_config_flags  ! Procedure
+        set_default_clubb_config_flags  ! Procedure
 
     implicit none
 
@@ -3046,10 +3430,6 @@ contains
       l_diffuse_rtm_and_thlm,       & ! Diffuses rtm and thlm
       l_stability_correct_Kh_N2_zm, & ! Divides Kh_N2_zm by a stability factor
       l_calc_thlp2_rad,             & ! Include the contribution of radiation to thlp2
-      l_upwind_wpxp_ta,             & ! This flag determines whether we want to use an upwind
-                                      ! differencing approximation rather than a centered
-                                      ! differencing for turbulent or mean advection terms. It
-                                      ! affects wprtp, wpthlp, & wpsclrp.
       l_upwind_xpyp_ta,             & ! This flag determines whether we want to use an upwind
                                       ! differencing approximation rather than a centered
                                       ! differencing for turbulent or mean advection terms. It
@@ -3118,14 +3498,17 @@ contains
                                       ! saturated atmospheres (from Durran and Klemp, 1982)
       l_use_thvm_in_bv_freq,        & ! Use thvm in the calculation of Brunt-Vaisala frequency
       l_rcm_supersat_adj,           & ! Add excess supersaturated vapor to cloud water
-      l_single_C2_Skw,              & ! Use a single Skewness dependent C2 for rtp2, thlp2, and
-                                      ! rtpthlp
       l_damp_wp3_Skw_squared,       & ! Set damping on wp3 to use Skw^2 rather than Skw^4
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
-      l_update_pressure,            & ! Flag for having CLUBB update pressure and exner
       l_lmm_stepping,               & ! Apply Linear Multistep Method (LMM) Stepping
       l_e3sm_config,                & ! Run model with E3SM settings
-      l_use_tke_in_wp3_pr_turb_term   ! Use TKE formulation for wp3 pr_turb term
+      l_vary_convect_depth,         & ! Flag used to calculate convective velocity using
+                                      ! a variable estimate of layer depth based on the depth
+                                      ! over which wpthlp is positive near the ground when true
+                                      ! More information can be found by
+                                      ! Looking at issue #905 on the clubb repo
+      l_use_tke_in_wp3_pr_turb_term,& ! Use TKE formulation for wp3 pr_turb term
+      l_use_tke_in_wp2_wp3_K_dfsn     ! Use TKE in eddy diffusion for wp2 and wp3
 
     call set_default_clubb_config_flags( iiPDF_type, & ! Out
                                          ipdf_call_placement, & ! Out
@@ -3137,7 +3520,6 @@ contains
                                          l_diffuse_rtm_and_thlm, & ! Out
                                          l_stability_correct_Kh_N2_zm, & ! Out
                                          l_calc_thlp2_rad, & ! Out
-                                         l_upwind_wpxp_ta, & ! Out
                                          l_upwind_xpyp_ta, & ! Out
                                          l_upwind_xm_ma, & ! Out
                                          l_uv_nudge, & ! Out
@@ -3167,13 +3549,13 @@ contains
                                          l_brunt_vaisala_freq_moist, & ! Out
                                          l_use_thvm_in_bv_freq, & ! Out
                                          l_rcm_supersat_adj, & ! Out
-                                         l_single_C2_Skw, & ! Out
                                          l_damp_wp3_Skw_squared, & ! Out
                                          l_prescribed_avg_deltaz, & ! Out
-                                         l_update_pressure, & ! Out
                                          l_lmm_stepping, & ! Out
                                          l_e3sm_config, & ! Out
-                                         l_use_tke_in_wp3_pr_turb_term ) ! Out
+                                         l_vary_convect_depth, & ! Out
+                                         l_use_tke_in_wp3_pr_turb_term, & ! Out
+                                         l_use_tke_in_wp2_wp3_K_dfsn ) ! Out
 
   end subroutine set_default_clubb_config_flags_api
 
@@ -3190,7 +3572,6 @@ contains
                                                      l_diffuse_rtm_and_thlm, & ! In
                                                      l_stability_correct_Kh_N2_zm, & ! In
                                                      l_calc_thlp2_rad, & ! In
-                                                     l_upwind_wpxp_ta, & ! In
                                                      l_upwind_xpyp_ta, & ! In
                                                      l_upwind_xm_ma, & ! In
                                                      l_uv_nudge, & ! In
@@ -3220,18 +3601,18 @@ contains
                                                      l_brunt_vaisala_freq_moist, & ! In
                                                      l_use_thvm_in_bv_freq, & ! In
                                                      l_rcm_supersat_adj, & ! In
-                                                     l_single_C2_Skw, & ! In
                                                      l_damp_wp3_Skw_squared, & ! In
                                                      l_prescribed_avg_deltaz, & ! In
-                                                     l_update_pressure, & ! In
                                                      l_lmm_stepping, & ! In
                                                      l_e3sm_config, & ! In
+                                                     l_vary_convect_depth, & ! In
                                                      l_use_tke_in_wp3_pr_turb_term, & ! In
+                                                     l_use_tke_in_wp2_wp3_K_dfsn, & ! In
                                                      clubb_config_flags ) ! Out
 
     use model_flags, only: &
-      clubb_config_flags_type, &          ! Type
-      initialize_clubb_config_flags_type  ! Procedure
+        clubb_config_flags_type, &          ! Type
+        initialize_clubb_config_flags_type  ! Procedure
 
     implicit none
 
@@ -3267,10 +3648,6 @@ contains
       l_diffuse_rtm_and_thlm,       & ! Diffuses rtm and thlm
       l_stability_correct_Kh_N2_zm, & ! Divides Kh_N2_zm by a stability factor
       l_calc_thlp2_rad,             & ! Include the contribution of radiation to thlp2
-      l_upwind_wpxp_ta,             & ! This flag determines whether we want to use an upwind
-                                      ! differencing approximation rather than a centered
-                                      ! differencing for turbulent or mean advection terms. It
-                                      ! affects wprtp, wpthlp, & wpsclrp.
       l_upwind_xpyp_ta,             & ! This flag determines whether we want to use an upwind
                                       ! differencing approximation rather than a centered
                                       ! differencing for turbulent or mean advection terms. It
@@ -3339,14 +3716,17 @@ contains
                                       ! saturated atmospheres (from Durran and Klemp, 1982)
       l_use_thvm_in_bv_freq,        & ! Use thvm in the calculation of Brunt-Vaisala frequency
       l_rcm_supersat_adj,           & ! Add excess supersaturated vapor to cloud water
-      l_single_C2_Skw,              & ! Use a single Skewness dependent C2 for rtp2, thlp2, and
-                                      ! rtpthlp
       l_damp_wp3_Skw_squared,       & ! Set damping on wp3 to use Skw^2 rather than Skw^4
       l_prescribed_avg_deltaz,      & ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
-      l_update_pressure,            & ! Flag for having CLUBB update pressure and exner
       l_lmm_stepping,               & ! Apply Linear Multistep Method (LMM) Stepping
       l_e3sm_config,                & ! Run model with E3SM settings
-      l_use_tke_in_wp3_pr_turb_term   ! Use TKE formulation for wp3 pr_turb term
+      l_vary_convect_depth,         & ! Flag used to calculate convective velocity using
+                                      ! a variable estimate of layer depth based on the depth
+                                      ! over which wpthlp is positive near the ground when true
+                                      ! More information can be found by
+                                      ! Looking at issue #905 on the clubb repo
+      l_use_tke_in_wp3_pr_turb_term,& ! Use TKE formulation for wp3 pr_turb term
+      l_use_tke_in_wp2_wp3_K_dfsn     ! Use TKE in eddy diffusion for wp2 and wp3
 
     ! Output variables
     type(clubb_config_flags_type), intent(out) :: &
@@ -3362,7 +3742,6 @@ contains
                                              l_diffuse_rtm_and_thlm, & ! In
                                              l_stability_correct_Kh_N2_zm, & ! In
                                              l_calc_thlp2_rad, & ! In
-                                             l_upwind_wpxp_ta, & ! In
                                              l_upwind_xpyp_ta, & ! In
                                              l_upwind_xm_ma, & ! In
                                              l_uv_nudge, & ! In
@@ -3392,13 +3771,13 @@ contains
                                              l_brunt_vaisala_freq_moist, & ! In
                                              l_use_thvm_in_bv_freq, & ! In
                                              l_rcm_supersat_adj, & ! In
-                                             l_single_C2_Skw, & ! In
                                              l_damp_wp3_Skw_squared, & ! In
                                              l_prescribed_avg_deltaz, & ! In
-                                             l_update_pressure, & ! In
                                              l_lmm_stepping, & ! In
                                              l_e3sm_config, & ! In
+                                             l_vary_convect_depth, & ! In
                                              l_use_tke_in_wp3_pr_turb_term, & ! In
+                                             l_use_tke_in_wp2_wp3_K_dfsn, & ! In
                                              clubb_config_flags ) ! Out
 
   end subroutine initialize_clubb_config_flags_type_api
@@ -3409,8 +3788,8 @@ contains
   subroutine print_clubb_config_flags_api( iunit, clubb_config_flags ) ! In
 
     use model_flags, only: &
-      clubb_config_flags_type, &          ! Type
-      print_clubb_config_flags            ! Procedure
+        clubb_config_flags_type, &          ! Type
+        print_clubb_config_flags            ! Procedure
 
     implicit none
 
@@ -3428,14 +3807,18 @@ contains
   !================================================================================================
   ! initialize_tau_sponge_damp
   !================================================================================================
-  subroutine initialize_tau_sponge_damp_api( dt, z, settings, damping_profile )
+  subroutine initialize_tau_sponge_damp_api( gr, dt, z, settings, damping_profile )
 
     use sponge_layer_damping, only: &
         sponge_damp_settings,       & ! Variable(s)
         sponge_damp_profile,        &
         initialize_tau_sponge_damp    ! Procedure(s)
 
+    
+
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variable(s)
     real( kind = core_rknd ), intent(in) :: &
@@ -3451,7 +3834,8 @@ contains
     type(sponge_damp_profile), intent(out) :: &
       damping_profile
 
-    call initialize_tau_sponge_damp( dt, z, settings, damping_profile )
+    call initialize_tau_sponge_damp( gr, dt, z, settings, & ! intent(in)
+                                     damping_profile ) ! intent(inout)
 
   end subroutine initialize_tau_sponge_damp_api
 
@@ -3470,7 +3854,7 @@ contains
     type(sponge_damp_profile), intent(inout) :: &
       damping_profile ! Information for damping the profile
 
-    call finalize_tau_sponge_damp( damping_profile )
+    call finalize_tau_sponge_damp( damping_profile ) ! intent(inout)
 
   end subroutine finalize_tau_sponge_damp_api
     

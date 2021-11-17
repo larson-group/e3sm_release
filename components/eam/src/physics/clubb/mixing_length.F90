@@ -14,10 +14,11 @@ module mixing_length
   contains
 
   !=============================================================================
-  subroutine compute_mixing_length( thvm, thlm, &
+  subroutine compute_mixing_length( gr, thvm, thlm, &
                              rtm, em, Lscale_max, p_in_Pa, &
-                             exner, thv_ds, mu, l_implemented, &
+                             exner, thv_ds, mu, lmin, l_implemented, &
                              Lscale, Lscale_up, Lscale_down )
+
     ! Description:
     !   Larson's 5th moist, nonlocal length scale
     !
@@ -115,11 +116,8 @@ module mixing_length
         zero_threshold, &
         eps
 
-    use parameters_tunable, only:  &  ! Variable(s)
-        lmin    ! Minimum value for Lscale                         [m]
-
     use grid_class, only:  &
-        gr,  & ! Variable(s)
+        grid, & ! Type
         zm2zt ! Procedure(s)
 
     use numerical_check, only:  &
@@ -134,6 +132,8 @@ module mixing_length
         clubb_fatal_error              ! Constant
 
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! External
     intrinsic :: min, max, sqrt
@@ -158,7 +158,8 @@ module mixing_length
       Lscale_max ! Maximum allowable value for Lscale             [m]
 
     real( kind = core_rknd ), intent(in) :: &
-      mu  ! mu Fractional extrainment rate per unit altitude      [1/m]
+      mu,   & ! mu Fractional extrainment rate per unit altitude  [1/m]
+      lmin    ! CLUBB tunable parameter lmin
 
     logical, intent(in) :: &
       l_implemented ! Flag for CLUBB being implemented in a larger model
@@ -251,7 +252,7 @@ module mixing_length
 
 
     ! Calculate initial turbulent kinetic energy for each grid level
-    tke_i = zm2zt( em )
+    tke_i = zm2zt( gr, em )
 
 
     ! ---------------- Upwards Length Scale Calculation ----------------
@@ -752,7 +753,7 @@ module mixing_length
     ! Ensure that no Lscale values are NaN
     if ( clubb_at_least_debug_level( 1 ) ) then
 
-        call length_check( Lscale, Lscale_up, Lscale_down )
+        call length_check( gr, Lscale, Lscale_up, Lscale_down ) ! intent(in)
 
         if ( err_code == clubb_fatal_error ) then
 
@@ -794,32 +795,20 @@ module mixing_length
   !-----------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Precision
+        core_rknd ! Precision
 
     use model_flags, only: &
-      l_sat_mixrat_lookup ! Variable(s)
+        l_sat_mixrat_lookup ! Variable(s)
 
     use saturation, only:  &
-      sat_mixrat_liq, & ! Procedure(s)
-      sat_mixrat_liq_lookup, &
-      sat_mixrat_ice
-
-    use constants_clubb, only: &
-      zero, &
-      one, &
-      T_freeze_K
+        sat_mixrat_liq, & ! Procedure(s)
+        sat_mixrat_liq_lookup, &
+        sat_mixrat_ice
 
     use error_code, only: &
-      clubb_at_least_debug_level
+        clubb_at_least_debug_level
 
     implicit none
-
-    ! Parameters
-    logical, parameter :: &
-      l_include_ice = .false. ! Include ice in calculation of rsat_par
-
-    real( kind = core_rknd ), parameter :: &
-      T_all_ice = 233.15_core_rknd ! Temperature at which only ice is included in calculation [K]
 
     ! Input Variables
     real( kind = core_rknd ), intent(in) :: &
@@ -831,56 +820,31 @@ module mixing_length
       rsatl_par
 
     real( kind = core_rknd ) :: &
-      sat_ice_ratio, &    ! Ratio of interpolation between sat_mixrat_liq and sat_mixrat_ice.
-                          ! sat_ice_ratio=1 ---> rsatl_par = sat_mixrat_ice
-      sat_mixrat_liq_res, &
-      sat_mixrat_ice_res
+      sat_mixrat_liq_res
 
   !-----------------------------------------------------------------------
     !----- Begin Code -----
 
-    if ( l_include_ice ) then
-      if ( tl_par >= T_freeze_K ) then
-        sat_ice_ratio = zero
-      else if ( tl_par <= T_all_ice ) then
-        sat_ice_ratio = one
-      else
-        ! Linear interpolation
-        sat_ice_ratio = ( T_freeze_K - tl_par ) / ( T_freeze_K - T_all_ice )
-      end if
+    ! Include liquid.
+    if ( l_sat_mixrat_lookup ) then
+      sat_mixrat_liq_res = sat_mixrat_liq_lookup( p_in_Pa, tl_par )
     else
-      sat_ice_ratio = zero
-    end if ! l_include_ice
-
-    if ( sat_ice_ratio < one ) then
-      ! Include liquid.
-      if ( l_sat_mixrat_lookup ) then
-        sat_mixrat_liq_res = sat_mixrat_liq_lookup( p_in_Pa, tl_par )
-      else
-        sat_mixrat_liq_res = sat_mixrat_liq( p_in_Pa, tl_par )
-      end if
-    else
-      sat_mixrat_liq_res = zero
+      sat_mixrat_liq_res = sat_mixrat_liq( p_in_Pa, tl_par )
     end if
-
-    if ( sat_ice_ratio > zero ) then
-      ! Include ice.
-      sat_mixrat_ice_res = sat_mixrat_ice( p_in_Pa, tl_par )
-    else
-      sat_mixrat_ice_res = zero
-    end if
-
-    rsatl_par = sat_mixrat_liq_res + ( sat_mixrat_ice_res - sat_mixrat_liq_res ) * sat_ice_ratio
+    
+    rsatl_par = sat_mixrat_liq_res 
 
     return
   end function compute_rsat_parcel
 
 
 !===============================================================================
-  subroutine calc_Lscale_directly ( l_implemented, p_in_Pa, exner, rtm,        &
+  subroutine calc_Lscale_directly ( gr, l_implemented, p_in_Pa, exner, rtm,    &
                   thlm, thvm, newmu, rtp2, thlp2, rtpthlp,                     &
-                  pdf_params, em, thv_ds_zt, Lscale_max,                       &
+                  pdf_params, em, thv_ds_zt, Lscale_max, lmin,                 &
+                  clubb_params,                                                &
                   l_Lscale_plume_centered,                                     &
+                  stats_zt, & 
                   Lscale, Lscale_up, Lscale_down)
 
     use constants_clubb, only: &
@@ -889,19 +853,19 @@ module mixing_length
         one, &
         unused_var
 
-    use parameters_tunable, only: &
-        Lscale_mu_coef, &
-        Lscale_pert_coef
+    use parameter_indices, only: &
+        nparams, &
+        iLscale_mu_coef, &
+        iLscale_pert_coef
 
     use grid_class, only: &
-        gr   ! Variable(s)
+        grid ! Type
 
     use clubb_precision, only: &
         core_rknd
 
     use stats_variables, only: &
-        l_stats_samp,  &
-        stats_zt
+        l_stats_samp
 
     use pdf_parameter_module, only: &
         pdf_parameter
@@ -921,7 +885,14 @@ module mixing_length
     use constants_clubb, only:  &
         fstderr  ! Variable(s)
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zt
+
+    type (grid), target, intent(in) :: gr
 
     intrinsic :: sqrt, min, max, exp, real
 
@@ -943,11 +914,15 @@ module mixing_length
       thv_ds_zt
 
     real( kind = core_rknd ), intent(in) ::  &
-     newmu, &
-     Lscale_max
+      newmu, &
+      Lscale_max, &
+      lmin
 
     type (pdf_parameter), intent(in) :: &
-        pdf_params    ! PDF Parameters  [units vary]
+      pdf_params    ! PDF Parameters  [units vary]
+
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
 
     logical, intent(in) :: &
       l_Lscale_plume_centered    ! Alternate that uses the PDF to compute the perturbed values
@@ -978,12 +953,16 @@ module mixing_length
 
      real( kind = core_rknd ) :: &
          mu_pert_1, mu_pert_2, &
-         mu_pert_pos_rt, mu_pert_neg_rt ! For l_Lscale_plume_centered
+         mu_pert_pos_rt, mu_pert_neg_rt, & ! For l_Lscale_plume_centered
+         Lscale_mu_coef, Lscale_pert_coef
 
     !Lscale_weight Uncomment this if you need to use this vairable at some
     !point.
 
  ! ---- Begin Code ----
+
+      Lscale_mu_coef = clubb_params(iLscale_mu_coef)
+      Lscale_pert_coef = clubb_params(iLscale_pert_coef)
 
       if ( clubb_at_least_debug_level( 0 ) ) then
 
@@ -1020,15 +999,15 @@ module mixing_length
          mu_pert_2   = newmu * Lscale_mu_coef
 
 
-         call compute_mixing_length( thvm, thlm_pert_1,                   &!intent(in)
-                              rtm_pert_1, em, Lscale_max, p_in_Pa,        & !intent(in)
-                              exner, thv_ds_zt, mu_pert_1, l_implemented, & !intent(in)
-                              Lscale_pert_1, Lscale_up, Lscale_down ) !intent(out)
+         call compute_mixing_length( gr, thvm, thlm_pert_1,              & ! In
+                       rtm_pert_1, em, Lscale_max, p_in_Pa,              & ! In
+                       exner, thv_ds_zt, mu_pert_1, lmin, l_implemented, & ! In
+                       Lscale_pert_1, Lscale_up, Lscale_down             ) ! Out
 
-         call compute_mixing_length( thvm, thlm_pert_2,                   & !intent(in)
-                              rtm_pert_2, em, Lscale_max, p_in_Pa,        & !intent(in)
-                              exner, thv_ds_zt, mu_pert_2, l_implemented, & !intent(in)
-                              Lscale_pert_2, Lscale_up, Lscale_down ) !intent(out)
+         call compute_mixing_length( gr, thvm, thlm_pert_2,              & ! In
+                       rtm_pert_2, em, Lscale_max, p_in_Pa,              & ! In
+                       exner, thv_ds_zt, mu_pert_2, lmin, l_implemented, & ! In
+                       Lscale_pert_2, Lscale_up, Lscale_down             ) ! Out
 
       else if ( l_avg_Lscale .and. l_Lscale_plume_centered ) then
         ! Take the values of thl and rt based one 1st or 2nd plume
@@ -1063,15 +1042,15 @@ module mixing_length
         mu_pert_neg_rt  = newmu * Lscale_mu_coef
 
         ! Call length with perturbed values of thl and rt
-        call compute_mixing_length( thvm, thlm_pert_pos_rt,                    & !intent(in)
-                           rtm_pert_pos_rt, em, Lscale_max, p_in_Pa,           & !intent(in)
-                           exner, thv_ds_zt, mu_pert_pos_rt, l_implemented,    & !intent(in)
-                           Lscale_pert_1, Lscale_up, Lscale_down ) !intent(out)
+        call compute_mixing_length( gr, thvm, thlm_pert_pos_rt,          & ! In
+                  rtm_pert_pos_rt, em, Lscale_max, p_in_Pa,              & ! In
+                  exner, thv_ds_zt, mu_pert_pos_rt, lmin, l_implemented, & ! In
+                  Lscale_pert_1, Lscale_up, Lscale_down                  ) ! Out
 
-        call compute_mixing_length( thvm, thlm_pert_neg_rt,                    & !intent(in)
-                           rtm_pert_neg_rt, em, Lscale_max, p_in_Pa,           & !intent(in)
-                           exner, thv_ds_zt, mu_pert_neg_rt, l_implemented,    & !intent(in)
-                           Lscale_pert_2, Lscale_up, Lscale_down ) !intent(out)
+        call compute_mixing_length( gr, thvm, thlm_pert_neg_rt,          & ! In
+                  rtm_pert_neg_rt, em, Lscale_max, p_in_Pa,              & ! In
+                  exner, thv_ds_zt, mu_pert_neg_rt, lmin, l_implemented, & ! In
+                  Lscale_pert_2, Lscale_up, Lscale_down                  ) ! Out
       else
         Lscale_pert_1 = unused_var ! Undefined
         Lscale_pert_2 = unused_var ! Undefined
@@ -1094,10 +1073,10 @@ module mixing_length
       ! rather than the mean length scale.
 
       ! Diagnose CLUBB's turbulent mixing length scale.
-      call compute_mixing_length( thvm, thlm,                         & !intent(in)
-                           rtm, em, Lscale_max, p_in_Pa,              & !intent(in)
-                           exner, thv_ds_zt, newmu, l_implemented,    & !intent(in)
-                           Lscale, Lscale_up, Lscale_down ) !intent(out)
+      call compute_mixing_length( gr, thvm, thlm,                        & ! In
+                           rtm, em, Lscale_max, p_in_Pa,                 & ! In
+                           exner, thv_ds_zt, newmu, lmin, l_implemented, & ! In
+                           Lscale, Lscale_up, Lscale_down                ) ! Out
 
       if ( l_avg_Lscale ) then
         if ( l_Lscale_plume_centered ) then
@@ -1123,7 +1102,7 @@ module mixing_length
 
 !===============================================================================
 
- subroutine diagnose_Lscale_from_tau( &
+ subroutine diagnose_Lscale_from_tau( gr, &
                         upwp_sfc, vpwp_sfc, um, vm, & !intent in
                         exner, p_in_Pa, & !intent in
                         rtm, thlm, thvm, & !intent in
@@ -1131,6 +1110,7 @@ module mixing_length
                         em, sqrt_em_zt, & ! intent in
                         ufmin, z_displace, tau_const, & ! intent in
                         sfc_elevation, Lscale_max, & ! intent in
+                        clubb_params, & ! intent in
                         l_e3sm_config, & ! intent in
                         l_brunt_vaisala_freq_moist, & !intent in
                         l_use_thvm_in_bv_freq, &! intent in
@@ -1140,7 +1120,8 @@ module mixing_length
                         sqrt_Ri_zm, & ! intent out
                         invrs_tau_zt, invrs_tau_zm, & ! intent out
                         invrs_tau_sfc, invrs_tau_no_N2_zm, invrs_tau_bkgnd, & ! intent out
-                        invrs_tau_shear, invrs_tau_wp2_zm, invrs_tau_xp2_zm, & ! intent out
+                        invrs_tau_shear, invrs_tau_N2_iso, & ! intent out
+                        invrs_tau_wp2_zm, invrs_tau_xp2_zm, & ! intent out
                         invrs_tau_wp3_zm, invrs_tau_wp3_zt, invrs_tau_wpxp_zm, & ! intent out
                         tau_max_zm, tau_max_zt, tau_zm, tau_zt, & !intent out
                         Lscale, Lscale_up, Lscale_down)! intent out
@@ -1150,122 +1131,160 @@ module mixing_length
 !     Guo et al.(2021, JAMES)
 !--------------------------------------------------------------------------------------------------
 
-  use advance_helper_module, only: &
-    calc_brunt_vaisala_freq_sqd
+    use advance_helper_module, only: &
+        calc_brunt_vaisala_freq_sqd
 
-  use constants_clubb, only: &
-    one_fourth,     &
-    vonk,           &
-    zero,           &
-    one,            & 
-    em_min,         &
-    zero_threshold, &
-    eps
+    use constants_clubb, only: &
+        one_fourth,     &
+        vonk,           &
+        zero,           &
+        one,            & 
+        em_min,         &
+        zero_threshold, &
+        eps,            &
+        pi
 
+    use grid_class, only: &
+        grid, & ! Type
+        zt2zm, &
+        zm2zt, &
+        ddzt
 
-  use grid_class, only: &
-    gr,    &
-    zt2zm, &
-    zm2zt, &
-    ddzt
+    use clubb_precision, only: &
+        core_rknd
 
+    use parameter_indices, only: &
+        nparams,                    & ! Variable(s)
+        iC_invrs_tau_bkgnd,          &
+        iC_invrs_tau_shear,          &
+        iC_invrs_tau_sfc,            &
+        iC_invrs_tau_N2,             &
+        iC_invrs_tau_N2_wp2 ,        &
+        iC_invrs_tau_N2_wpxp,        &
+        iC_invrs_tau_N2_xp2,         &
+        iC_invrs_tau_wpxp_N2_thresh, &
+        iC_invrs_tau_N2_clear_wp3,   &
+        iC_invrs_tau_wpxp_Ri,        &
+        ialtitude_threshold
 
-  use clubb_precision, only: &
-    core_rknd
+    implicit none
 
-  use parameters_tunable, only: &
-    C_invrs_tau_bkgnd,          &
-    C_invrs_tau_shear,          &
-    C_invrs_tau_sfc,            &
-    C_invrs_tau_N2,             &
-    C_invrs_tau_N2_wp2 ,        &
-    C_invrs_tau_N2_wpxp,        &
-    C_invrs_tau_N2_xp2,         &
-    C_invrs_tau_wpxp_N2_thresh, &
-    C_invrs_tau_N2_clear_wp3,   &
-    C_invrs_tau_wpxp_Ri,        &
-    altitude_threshold
+    type (grid), target, intent(in) :: gr
 
-  implicit none
-
-  real( kind = core_rknd ), intent(in) :: &
-    upwp_sfc,      &
-    vpwp_sfc
+    real( kind = core_rknd ), intent(in) :: &
+      upwp_sfc,      &
+      vpwp_sfc
     
+    real( kind = core_rknd ), dimension(gr%nz), intent(in) :: &
+      um,                &
+      vm,                &
+      exner,             &
+      p_in_Pa,           &
+      rtm,               &
+      thlm,              &
+      thvm,              &
+      rcm,               &
+      ice_supersat_frac, &
+      em,                &
+      sqrt_em_zt
 
-  real( kind = core_rknd ), dimension(gr%nz), intent(in) :: &
-    um,                &
-    vm,                &
-    exner,             &
-    p_in_Pa,           &
-    rtm,               &
-    thlm,              &
-    thvm,              &
-    rcm,               &
-    ice_supersat_frac, &
-    em,                &
-    sqrt_em_zt
+    real(kind = core_rknd), intent(in) :: &
+      ufmin,         &
+      z_displace,    &
+      tau_const,     &
+      sfc_elevation, &
+      Lscale_max
 
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
 
-  real(kind = core_rknd), intent(in) :: &
-    ufmin,         &
-    z_displace,    &
-    tau_const,     &
-    sfc_elevation, &
-    Lscale_max
-
-  logical, intent(in) :: &
-    l_e3sm_config,              &
-    l_brunt_vaisala_freq_moist, & ! Use a different formula for the Brunt-Vaisala frequency in
+    logical, intent(in) :: &
+      l_e3sm_config,              &
+      l_brunt_vaisala_freq_moist, & ! Use a different formula for the Brunt-Vaisala frequency in
                                   ! saturated atmospheres (from Durran and Klemp, 1982)
-    l_use_thvm_in_bv_freq         ! Use thvm in the calculation of Brunt-Vaisala frequency
+      l_use_thvm_in_bv_freq         ! Use thvm in the calculation of Brunt-Vaisala frequency
 
-  real( kind = core_rknd ), dimension(gr%nz), intent(out) :: &
-    brunt_vaisala_freq_sqd,       &
-    brunt_vaisala_freq_sqd_mixed, &
-    brunt_vaisala_freq_sqd_dry,   &
-    brunt_vaisala_freq_sqd_moist, &
-    brunt_vaisala_freq_sqd_plus,  &
-    sqrt_Ri_zm,                   &
-    invrs_tau_zt,                 &
-    invrs_tau_zm,                 &
-    invrs_tau_sfc,                &
-    invrs_tau_no_N2_zm,           &
-    invrs_tau_bkgnd,              &
-    invrs_tau_shear,              &
-    invrs_tau_wp2_zm,             &
-    invrs_tau_xp2_zm,             &
-    invrs_tau_wp3_zm,             &
-    invrs_tau_wp3_zt,             &
-    invrs_tau_wpxp_zm,            &
-    tau_max_zm,                   &
-    tau_max_zt,                   &
-    tau_zm,                       &
-    tau_zt,                       &
-    Lscale,                       &
-    Lscale_up,                    &
-    Lscale_down
+    real( kind = core_rknd ), dimension(gr%nz), intent(out) :: &
+      brunt_vaisala_freq_sqd,       &
+      brunt_vaisala_freq_sqd_mixed, &
+      brunt_vaisala_freq_sqd_dry,   &
+      brunt_vaisala_freq_sqd_moist, &
+      brunt_vaisala_freq_sqd_plus,  &
+      sqrt_Ri_zm,                   &
+      invrs_tau_zt,                 &
+      invrs_tau_zm,                 &
+      invrs_tau_sfc,                &
+      invrs_tau_no_N2_zm,           &
+      invrs_tau_bkgnd,              &
+      invrs_tau_shear,              &
+      invrs_tau_N2_iso,             &
+      invrs_tau_wp2_zm,             &
+      invrs_tau_xp2_zm,             &
+      invrs_tau_wp3_zm,             &
+      invrs_tau_wp3_zt,             &
+      invrs_tau_wpxp_zm,            &
+      tau_max_zm,                   &
+      tau_max_zt,                   &
+      tau_zm,                       &
+      tau_zt,                       &
+      Lscale,                       &
+      Lscale_up,                    &
+      Lscale_down
 
-  real( kind = core_rknd ), dimension(gr%nz) :: &
-    brunt_freq_pos,               &
-    brunt_vaisala_freq_sqd_smth,  & ! smoothed Buoyancy frequency squared, N^2     [s^-2]
-    brunt_freq_out_cloud
+    real( kind = core_rknd ), dimension(gr%nz) :: &
+      brunt_freq_pos,               &
+      brunt_vaisala_freq_sqd_smth,  & ! smoothed Buoyancy frequency squared, N^2     [s^-2]
+      brunt_freq_out_cloud
 
- real( kind = core_rknd ) :: &
-    ustar
+   real( kind = core_rknd ) :: &
+      ustar,                      &
+      C_invrs_tau_bkgnd,          &
+      C_invrs_tau_shear,          &
+      C_invrs_tau_sfc,            &
+      C_invrs_tau_N2,             &
+      C_invrs_tau_N2_wp2 ,        &
+      C_invrs_tau_N2_wpxp,        &
+      C_invrs_tau_N2_xp2,         &
+      C_invrs_tau_wpxp_N2_thresh, &
+      C_invrs_tau_N2_clear_wp3,   &
+      C_invrs_tau_wpxp_Ri,        &
+      altitude_threshold
 
+   ! Local Variables
+
+   logical, parameter :: l_smooth_Heaviside_tau_wpxp = .false.
+
+   integer :: k    ! Vertical level index
+
+   real( kind = core_rknd ), dimension(gr%nz) :: &
+     bvf_thresh,                  & ! temporatory array  
+     H_invrs_tau_wpxp_N2            ! Heaviside function for clippings of invrs_tau_wpxp_N2
 
 !-----------------------------------Begin Code---------------------------------------------------!
-  call calc_brunt_vaisala_freq_sqd( zm2zt( zt2zm( thlm )), exner, rtm, rcm, p_in_Pa, thvm, &
-                                          ice_supersat_frac, &
-                                          l_brunt_vaisala_freq_moist, &
-                                          l_use_thvm_in_bv_freq, &
-                                          brunt_vaisala_freq_sqd, &
-                                          brunt_vaisala_freq_sqd_mixed,&
-                                          brunt_vaisala_freq_sqd_dry, &
-                                          brunt_vaisala_freq_sqd_moist, &
-                                          brunt_vaisala_freq_sqd_plus )
 
+  call calc_brunt_vaisala_freq_sqd( gr, zm2zt( gr, zt2zm( gr, thlm )), & ! intent(in)
+                                        exner, rtm, rcm, p_in_Pa, thvm, & ! intent(in)
+                                        ice_supersat_frac, & ! intent(in)
+                                        l_brunt_vaisala_freq_moist, & ! intent(in)
+                                        l_use_thvm_in_bv_freq, & ! intent(in)
+                                        brunt_vaisala_freq_sqd, & ! intent(out)
+                                        brunt_vaisala_freq_sqd_mixed,& ! intent(out)
+                                        brunt_vaisala_freq_sqd_dry, & ! intent(out)
+                                        brunt_vaisala_freq_sqd_moist, & ! intent(out)
+                                        brunt_vaisala_freq_sqd_plus ) ! intent(out)
+
+        ! Unpack tunable parameters
+        C_invrs_tau_bkgnd = clubb_params(iC_invrs_tau_bkgnd)
+        C_invrs_tau_shear = clubb_params(iC_invrs_tau_shear)
+        C_invrs_tau_sfc = clubb_params(iC_invrs_tau_sfc)
+        C_invrs_tau_N2 = clubb_params(iC_invrs_tau_N2)
+        C_invrs_tau_N2_wp2 = clubb_params(iC_invrs_tau_N2_wp2)
+        C_invrs_tau_N2_wpxp = clubb_params(iC_invrs_tau_N2_wpxp)
+        C_invrs_tau_N2_xp2 = clubb_params(iC_invrs_tau_N2_xp2)
+        C_invrs_tau_wpxp_N2_thresh = clubb_params(iC_invrs_tau_wpxp_N2_thresh)
+        C_invrs_tau_N2_clear_wp3 = clubb_params(iC_invrs_tau_N2_clear_wp3)
+        C_invrs_tau_wpxp_Ri = clubb_params(iC_invrs_tau_wpxp_Ri)
+        altitude_threshold = clubb_params(ialtitude_threshold)
 
         ustar = max( ( upwp_sfc**2 + vpwp_sfc**2 )**(one_fourth), ufmin )
 
@@ -1273,7 +1292,7 @@ module mixing_length
 
         invrs_tau_shear &
         = C_invrs_tau_shear &
-          * zt2zm( zm2zt( sqrt( (ddzt( um ))**2 + (ddzt( vm ))**2 ) ) )
+          * zt2zm( gr, zm2zt( gr, sqrt( (ddzt( gr, um ))**2 + (ddzt( gr, vm ))**2 ) ) )
 
         invrs_tau_sfc &
         = C_invrs_tau_sfc * ( ustar / vonk ) / ( gr%zm - sfc_elevation + z_displace )
@@ -1286,22 +1305,27 @@ module mixing_length
         !  and thereby allows tau to remain large in Sc layers in which thlm may
         !  be slightly stably stratified.
 
-        brunt_vaisala_freq_sqd_smth = zt2zm( zm2zt( &
+        brunt_vaisala_freq_sqd_smth = zt2zm( gr, zm2zt( gr, &
               min( brunt_vaisala_freq_sqd, 1.e8_core_rknd * abs(brunt_vaisala_freq_sqd)**3 ) ) )
 
         sqrt_Ri_zm &
         = sqrt( max( 1.0e-7_core_rknd, brunt_vaisala_freq_sqd_smth ) &
-                / max( ( ddzt(um)**2 + ddzt(vm)**2 ), 1.0e-7_core_rknd ) )
+                / max( ( ddzt( gr, um)**2 + ddzt(gr, vm)**2 ), 1.0e-7_core_rknd ) )
 
         brunt_freq_pos = sqrt( max( zero_threshold, brunt_vaisala_freq_sqd_smth ) )
 
         brunt_freq_out_cloud =  brunt_freq_pos &
               * min(one, max(zero_threshold,&
-              one - ( (zt2zm(ice_supersat_frac) / 0.007_core_rknd) )))
+              one - ( (zt2zm(gr, ice_supersat_frac) / 0.007_core_rknd) )))
 
         where ( gr%zt < altitude_threshold )
            brunt_freq_out_cloud = 0.0_core_rknd
         end where
+
+        ! This time scale is used optionally for the return-to-isotropy term. It
+        ! omits invrs_tau_sfc based on the rationale that the isotropization
+        ! rate shouldn't be enhanced near the ground.
+        invrs_tau_N2_iso = invrs_tau_bkgnd + invrs_tau_shear + C_invrs_tau_N2_wp2 * brunt_freq_pos
 
         invrs_tau_wp2_zm = invrs_tau_no_N2_zm + C_invrs_tau_N2_wp2 * brunt_freq_pos
 
@@ -1317,7 +1341,7 @@ module mixing_length
                             + C_invrs_tau_sfc * 2.0_core_rknd &
                             * sqrt(em) / ( gr%zm - sfc_elevation + z_displace )  ! small
 
-          invrs_tau_xp2_zm = min( max( sqrt( ( ddzt(um)**2 + ddzt(vm)**2 ) &
+          invrs_tau_xp2_zm = min( max( sqrt( ( ddzt( gr, um)**2 + ddzt(gr, vm)**2 ) &
                             / max( 1.0e-7_core_rknd, brunt_vaisala_freq_sqd_smth ) ), &
                             0.3_core_rknd ), 1.0_core_rknd ) * invrs_tau_xp2_zm
 
@@ -1330,20 +1354,53 @@ module mixing_length
                 + invrs_tau_shear + C_invrs_tau_N2_xp2 * brunt_freq_pos
 
           invrs_tau_xp2_zm = merge(0.003_core_rknd, invrs_tau_xp2_zm, &
-                zt2zm(ice_supersat_frac) <= 0.01_core_rknd &
+                zt2zm(gr, ice_supersat_frac) <= 0.01_core_rknd &
                 .and. invrs_tau_xp2_zm  >= 0.003_core_rknd)
 
           invrs_tau_wpxp_zm = invrs_tau_zm + C_invrs_tau_N2_wpxp * brunt_freq_out_cloud
 
         end if ! l_e3sm_config
 
+        if (l_smooth_Heaviside_tau_wpxp)  then
 
-        where( gr%zt > altitude_threshold &
-               .and. brunt_vaisala_freq_sqd_smth > C_invrs_tau_wpxp_N2_thresh )
+          bvf_thresh(1:gr%nz) = brunt_vaisala_freq_sqd_smth(1:gr%nz)/C_invrs_tau_wpxp_N2_thresh
+          bvf_thresh(1:gr%nz) = bvf_thresh(1:gr%nz) - 1.0_core_rknd 
+
+          do k = 1, gr%nz
+
+            if ( bvf_thresh(k) < -1.0_core_rknd ) then
+
+              H_invrs_tau_wpxp_N2(k) = 0.0_core_rknd
+
+            else if ( bvf_thresh(k) > 1.0_core_rknd ) then 
+
+              H_invrs_tau_wpxp_N2(k) = 1.0_core_rknd
+
+            else
+
+              H_invrs_tau_wpxp_N2(k) = 0.5_core_rknd * & 
+                                       ( 1.0_core_rknd +  bvf_thresh(k) &
+                                        + (1.0_core_rknd / pi) * sin ( pi * bvf_thresh(k) ) )
+
+            end if 
+
+          end do 
+
+        else ! l_smooth_Heaviside_tau_wpxp = .false.
+
+          H_invrs_tau_wpxp_N2 = 0.0_core_rknd  
+          where ( brunt_vaisala_freq_sqd_smth > C_invrs_tau_wpxp_N2_thresh)
+            H_invrs_tau_wpxp_N2 = 1.0_core_rknd 
+          end where 
+
+        end if ! l_smooth_Heaviside_tau_wpxp
+
+        where( gr%zt > altitude_threshold )
            invrs_tau_wpxp_zm &
            = invrs_tau_wpxp_zm &
-             * ( 1.0_core_rknd &
-                 + C_invrs_tau_wpxp_Ri * min( max( sqrt_Ri_zm, 0.0_core_rknd ), &
+             * ( 1.0_core_rknd  & 
+                 + H_invrs_tau_wpxp_N2 & 
+                   * C_invrs_tau_wpxp_Ri * min( max( sqrt_Ri_zm, 0.0_core_rknd), &
                                       12.0_core_rknd ) )
         end where
 
@@ -1359,9 +1416,9 @@ module mixing_length
         tau_max_zm = Lscale_max / sqrt( max( em, em_min ) )
 
         tau_zm           = min( one / invrs_tau_zm, tau_max_zm )
-        tau_zt           = min( zm2zt( tau_zm ), tau_max_zt )
-        invrs_tau_zt     = zm2zt( invrs_tau_zm )
-        invrs_tau_wp3_zt = zm2zt( invrs_tau_wp3_zm )
+        tau_zt           = min( zm2zt( gr, tau_zm ), tau_max_zt )
+        invrs_tau_zt     = zm2zt( gr, invrs_tau_zm )
+        invrs_tau_wp3_zt = zm2zt( gr, invrs_tau_wp3_zm )
 
         Lscale = tau_zt * sqrt_em_zt
 

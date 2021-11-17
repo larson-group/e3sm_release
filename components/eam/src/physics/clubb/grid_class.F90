@@ -148,7 +148,7 @@ module grid_class
 
   implicit none
 
-  public :: gr, grid, zt2zm, interp_weights_zt2zm_imp, zm2zt, & 
+  public :: grid, zt2zm, interp_weights_zt2zm_imp, zm2zt, & 
             interp_weights_zm2zt_imp, ddzm, ddzt, & 
             setup_grid, cleanup_grid, setup_grid_heights, &
             read_grid_heights, flip
@@ -168,7 +168,7 @@ module grid_class
     t_below = 2, & ! Lower thermodynamic level index (gr%weights_zt2zm).
     m_above = 1, & ! Upper momentum level index (gr%weights_zm2zt).
     m_below = 2    ! Lower momentum level index (gr%weights_zm2zt).
-
+  
   type grid
 
     integer :: nz ! Number of points in the grid
@@ -204,10 +204,9 @@ module grid_class
   !   The grid is defined here so that it is common throughout the module.
   !   The implication is that only one grid can be defined !
 
-  type (grid), target :: gr
 
 !   Modification for using CLUBB in a host model (i.e. one grid per column)
-!$omp threadprivate(gr)
+
 
   ! Interfaces provided for function overloading
 
@@ -263,7 +262,7 @@ module grid_class
   subroutine setup_grid( nzmax, sfc_elevation, l_implemented,      &
                          grid_type, deltaz, zm_init, zm_top,      &
                          momentum_heights, thermodynamic_heights, &
-                         begin_height, end_height                 )
+                         gr, begin_height, end_height                 )
 
     ! Description:
     !   Grid Constructor
@@ -287,6 +286,8 @@ module grid_class
         core_rknd ! Variable(s)
 
     implicit none
+
+    type(grid), target, intent(inout) :: gr
 
     ! Constant parameters
     integer, parameter :: & 
@@ -487,10 +488,11 @@ module grid_class
     ! Set the values for the derived types used for heights, derivatives, and
     ! interpolation from the momentum/thermodynamic grid
     call setup_grid_heights &
-               ( l_implemented, grid_type,  & 
-                 deltaz, zm_init,  &
-                 momentum_heights(begin_height:end_height),  & 
-                 thermodynamic_heights(begin_height:end_height) )
+               ( l_implemented, grid_type,  & ! intent(in)
+                 deltaz, zm_init,  & ! intent(in)
+                 momentum_heights(begin_height:end_height),  & ! intent(in) 
+                 thermodynamic_heights(begin_height:end_height), & ! intent(in)
+                 gr ) ! intent(inout)
 
     if ( sfc_elevation > gr%zm(1) ) then
       write(fstderr,*) "The altitude of the lowest momentum level, "        &
@@ -508,7 +510,7 @@ module grid_class
   end subroutine setup_grid
 
   !=============================================================================
-  subroutine cleanup_grid
+  subroutine cleanup_grid( gr )
 
     ! Description:
     !   De-allocates the memory for the grid
@@ -520,6 +522,8 @@ module grid_class
         fstderr  ! Constant(s)
 
     implicit none
+  
+    type(grid), target, intent(inout) :: gr
 
     ! Local Variable(s)
     integer :: ierr
@@ -546,7 +550,8 @@ module grid_class
   subroutine setup_grid_heights &
              ( l_implemented, grid_type,  & 
                deltaz, zm_init, momentum_heights,  & 
-               thermodynamic_heights )
+               thermodynamic_heights, &
+               gr )
 
     ! Description:
     !   Sets the heights and interpolation weights of the column.
@@ -568,6 +573,8 @@ module grid_class
         err_header                      ! String
 
     implicit none
+
+    type(grid), target, intent(inout) :: gr
 
     ! Input Variables
 
@@ -761,7 +768,7 @@ module grid_class
     ! For more information, see the comments in function interpolated_aztk_imp.
     do k = 1, gr%nz, 1
       gr%weights_zm2zt(m_above:m_below,k)  & 
-             = interp_weights_zm2zt_imp( k )
+             = interp_weights_zm2zt_imp( gr, k )
     enddo
 
 
@@ -780,7 +787,7 @@ module grid_class
 
     do k = 1, gr%nz, 1
       gr%weights_zt2zm(t_above:t_below,k)  & 
-             = interp_weights_zt2zm_imp( k )
+             = interp_weights_zt2zm_imp( gr, k )
     enddo
 
     return
@@ -969,8 +976,8 @@ module grid_class
       endif
 
       ! Read the thermodynamic level altitudes from zt_grid_fname.
-      call file_read_1d( file_unit, zt_grid_fname, nzmax, 1,  & 
-                         thermodynamic_heights )
+      call file_read_1d( file_unit, zt_grid_fname, nzmax, 1,  & ! intent(in)
+                         thermodynamic_heights ) ! intent(out)
 
       ! Check that each thermodynamic level altitude increases
       ! in height as the thermodynamic level grid index increases.
@@ -1056,8 +1063,8 @@ module grid_class
       endif
 
       ! Read the momentum level altitudes from zm_grid_fname.
-      call file_read_1d( file_unit, zm_grid_fname, nzmax, 1, & 
-                         momentum_heights )
+      call file_read_1d( file_unit, zm_grid_fname, nzmax, 1, & ! intent(in) 
+                         momentum_heights ) ! intent(out)
 
       ! Check that each momentum level altitude increases in height as the
       ! momentum level grid index increases.
@@ -1096,7 +1103,7 @@ module grid_class
   end subroutine read_grid_heights
 
   !=============================================================================
-  function redirect_interpolated_azmk( azt, k )
+  function redirect_interpolated_azmk( gr, azt, k )
 
     ! Description:
     ! Calls the appropriate corresponding function based on l_cubic_temp
@@ -1106,13 +1113,15 @@ module grid_class
         core_rknd  ! Variable(s)
 
     use model_flags, only: &
-      l_cubic_interp, & ! Variable(s)
-      l_quintic_poly_interp
+        l_cubic_interp, & ! Variable(s)
+        l_quintic_poly_interp
 
     use constants_clubb, only: &
-      fstdout ! Variable
+        fstdout ! Variable
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -1138,16 +1147,16 @@ module grid_class
 
     ! Redirect
     if (l_cubic_interp) then
-      redirect_interpolated_azmk = cubic_interpolated_azmk( azt, k )
+      redirect_interpolated_azmk = cubic_interpolated_azmk( gr, azt, k )
     else
-      redirect_interpolated_azmk = linear_interpolated_azmk( azt, k )
+      redirect_interpolated_azmk = linear_interpolated_azmk( gr, azt, k )
     end if
 
     return
   end function redirect_interpolated_azmk
 
   !=============================================================================
-  function redirect_interpolated_azm( azt )
+  function redirect_interpolated_azm( gr, azt )
 
     ! Description:
     ! Calls the appropriate corresponding function based on l_cubic_temp
@@ -1157,13 +1166,15 @@ module grid_class
         core_rknd  ! Variable(s)
 
     use model_flags, only: &
-      l_cubic_interp, & ! Variable(s)
-      l_quintic_poly_interp
+        l_cubic_interp, & ! Variable(s)
+        l_quintic_poly_interp
 
     use constants_clubb, only: &
-      fstdout ! Variable
+        fstdout ! Variable
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -1186,16 +1197,16 @@ module grid_class
 
     ! Redirect
     if (l_cubic_interp) then
-      redirect_interpolated_azm = cubic_interpolated_azm( azt )
+      redirect_interpolated_azm = cubic_interpolated_azm( gr, azt )
     else
-      redirect_interpolated_azm = linear_interpolated_azm( azt )
+      redirect_interpolated_azm = linear_interpolated_azm( gr, azt )
     end if
 
     return
   end function redirect_interpolated_azm
 
   !=============================================================================
-  function redirect_interpolated_aztk( azt, k )
+  function redirect_interpolated_aztk( gr, azt, k )
 
     ! Description:
     ! Calls the appropriate corresponding function based on l_cubic_temp
@@ -1205,13 +1216,15 @@ module grid_class
         core_rknd  ! Variable(s)
 
     use model_flags, only: &
-      l_cubic_interp, & ! Variable(s)
-      l_quintic_poly_interp
+        l_cubic_interp, & ! Variable(s)
+        l_quintic_poly_interp
 
     use constants_clubb, only: &
-      fstdout ! Variable
+        fstdout ! Variable
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -1237,16 +1250,16 @@ module grid_class
 
     ! Redirect
     if (l_cubic_interp) then
-      redirect_interpolated_aztk = cubic_interpolated_aztk( azt, k )
+      redirect_interpolated_aztk = cubic_interpolated_aztk( gr, azt, k )
     else
-      redirect_interpolated_aztk = linear_interpolated_aztk( azt, k )
+      redirect_interpolated_aztk = linear_interpolated_aztk( gr, azt, k )
     end if
 
     return
   end function redirect_interpolated_aztk
 
   !=============================================================================
-  function redirect_interpolated_azt( azt )
+  function redirect_interpolated_azt( gr, azt )
 
     ! Description:
     ! Calls the appropriate corresponding function based on l_cubic_temp
@@ -1256,13 +1269,15 @@ module grid_class
         core_rknd  ! Variable(s)
 
     use model_flags, only: &
-      l_cubic_interp, & ! Variable(s)
-      l_quintic_poly_interp
+        l_cubic_interp, & ! Variable(s)
+        l_quintic_poly_interp
 
     use constants_clubb, only: &
-      fstdout ! Variable
+        fstdout ! Variable
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -1285,9 +1300,9 @@ module grid_class
 
     ! Redirect
     if (l_cubic_interp) then
-      redirect_interpolated_azt = cubic_interpolated_azt( azt )
+      redirect_interpolated_azt = cubic_interpolated_azt( gr, azt )
     else
-      redirect_interpolated_azt = linear_interpolated_azt( azt )
+      redirect_interpolated_azt = linear_interpolated_azt( gr, azt )
     end if
 
     return
@@ -1296,7 +1311,7 @@ module grid_class
   !=============================================================================
 
 
-  pure function linear_interpolated_azm( azt )
+  pure function linear_interpolated_azm( gr, azt )
 
     ! Description:
     ! Function to interpolate a variable located on the thermodynamic grid
@@ -1312,6 +1327,8 @@ module grid_class
         linear_interp_factor  ! Procedure(s)
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variable
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -1351,7 +1368,7 @@ module grid_class
   end function linear_interpolated_azm
 
   !=============================================================================
-  pure function linear_interpolated_azmk( azt, k )
+  pure function linear_interpolated_azmk( gr, azt, k )
 
     ! Description:
     ! Function to interpolate a variable located on the thermodynamic grid
@@ -1368,6 +1385,8 @@ module grid_class
         linear_interp_factor  ! Procedure(s)
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -1409,7 +1428,7 @@ module grid_class
   end function linear_interpolated_azmk
 
   !=============================================================================
-  function cubic_interpolated_azm( azt )
+  function cubic_interpolated_azm( gr, azt )
 
     ! Description:
     ! Function to interpolate a variable located on the thermodynamic grid
@@ -1422,6 +1441,8 @@ module grid_class
         core_rknd ! Variable(s)
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -1440,7 +1461,7 @@ module grid_class
     ! ---- Begin Code ----
 
     do k = 1, gr%nz 
-      tmp(k) = cubic_interpolated_azmk( azt, k )
+      tmp(k) = cubic_interpolated_azmk( gr, azt, k )
     end do
 
     cubic_interpolated_azm = tmp
@@ -1450,7 +1471,7 @@ module grid_class
   end function cubic_interpolated_azm
 
   !=============================================================================
-  function cubic_interpolated_azmk( azt, k )
+  function cubic_interpolated_azmk( gr, azt, k )
 
     ! Description:
     ! Function to interpolate a variable located on the thermodynamic grid
@@ -1467,6 +1488,8 @@ module grid_class
 
     implicit none
 
+    type(grid), target, intent(in) :: gr
+
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: azt
 
@@ -1482,7 +1505,7 @@ module grid_class
 
     ! Special case for a very small domain
     if ( gr%nz < 3 ) then
-      cubic_interpolated_azmk = linear_interpolated_azmk( azt, k )
+      cubic_interpolated_azmk = linear_interpolated_azmk( gr, azt, k )
       return
     end if
 
@@ -1521,7 +1544,7 @@ module grid_class
   end function cubic_interpolated_azmk
 
   !=============================================================================
-  pure function interpolated_azmk_imp( m_lev ) & 
+  pure function interpolated_azmk_imp( gr, m_lev ) & 
     result( azt_weight )
 
     ! Description:
@@ -1683,6 +1706,8 @@ module grid_class
 
     implicit none
 
+    type(grid), target, intent(in) :: gr
+
     ! Constant parameters
     integer, parameter :: & 
       t_above = 1,  & ! Upper thermodynamic level.
@@ -1728,7 +1753,7 @@ module grid_class
   end function interpolated_azmk_imp
 
   !=============================================================================
-  pure function linear_interpolated_azt( azm )
+  pure function linear_interpolated_azt( gr, azm )
 
     ! Description:
     ! Function to interpolate a variable located on the momentum grid levels
@@ -1744,6 +1769,8 @@ module grid_class
         linear_interp_factor  ! Procedure(s)
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variable
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -1783,7 +1810,7 @@ module grid_class
   end function linear_interpolated_azt
 
   !=============================================================================
-  pure function linear_interpolated_aztk( azm, k )
+  pure function linear_interpolated_aztk( gr, azm, k )
 
     ! Description:
     ! Function to interpolate a variable located on the momentum grid levels
@@ -1800,6 +1827,8 @@ module grid_class
         linear_interp_factor  ! Procedure(s)
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -1840,7 +1869,7 @@ module grid_class
   end function linear_interpolated_aztk
 
   !=============================================================================
-  function cubic_interpolated_azt( azm )
+  function cubic_interpolated_azt( gr, azm )
 
     ! Description:
     !   Function to interpolate a variable located on the momentum grid
@@ -1856,6 +1885,8 @@ module grid_class
         core_rknd ! Variable(s)
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -1874,7 +1905,7 @@ module grid_class
     ! ---- Begin Code ----
 
     do k = 1, gr%nz 
-      tmp(k) = cubic_interpolated_aztk( azm, k )
+      tmp(k) = cubic_interpolated_aztk( gr, azm, k )
     end do
 
     cubic_interpolated_azt = tmp
@@ -1885,7 +1916,7 @@ module grid_class
 
 
   !=============================================================================
-  function cubic_interpolated_aztk( azm, k )
+  function cubic_interpolated_aztk( gr, azm, k )
 
     ! Description:
     !   Function to interpolate a variable located on the momentum grid
@@ -1905,6 +1936,8 @@ module grid_class
 
     implicit none
 
+    type(grid), target, intent(in) :: gr
+
     ! Input Variables
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: azm
 
@@ -1920,7 +1953,7 @@ module grid_class
 
     ! Special case for a very small domain
     if ( gr%nz < 3 ) then
-      cubic_interpolated_aztk = linear_interpolated_aztk( azm, k )
+      cubic_interpolated_aztk = linear_interpolated_aztk( gr, azm, k )
       return
     end if
 
@@ -1958,7 +1991,7 @@ module grid_class
   end function cubic_interpolated_aztk
 
   !=============================================================================
-  pure function interpolated_aztk_imp( t_lev ) & 
+  pure function interpolated_aztk_imp( gr, t_lev ) & 
     result( azm_weight )
 
     ! Description:
@@ -2124,6 +2157,8 @@ module grid_class
 
     implicit none
 
+    type(grid), target, intent(in) :: gr
+
     ! Constant parameters
     integer, parameter :: & 
       m_above = 1,  & ! Upper momentum level.
@@ -2168,7 +2203,7 @@ module grid_class
   end function interpolated_aztk_imp
 
   !=============================================================================
-  pure function gradzm( azm )
+  pure function gradzm( gr, azm )
 
     ! Description:
     ! Function to compute the vertical derivative of a variable (azm) located on
@@ -2183,6 +2218,8 @@ module grid_class
         core_rknd ! Variable(s)
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variable
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
@@ -2228,7 +2265,7 @@ module grid_class
   end function gradzm
 
   !=============================================================================
-  pure function gradzt( azt )
+  pure function gradzt( gr, azt )
 
     ! Description:
     ! Function to compute the vertical derivative of a variable (azt) located on
@@ -2243,6 +2280,8 @@ module grid_class
         core_rknd ! Variable(s)
 
     implicit none
+
+    type(grid), target, intent(in) :: gr
 
     ! Input Variable
     real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &

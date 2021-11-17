@@ -27,7 +27,7 @@ module mean_adv
   contains
 
   !=============================================================================
-  pure subroutine term_ma_zt_lhs( wm_zt, invrs_dzt, invrs_dzm, & ! Intent(in)
+  pure subroutine term_ma_zt_lhs( gr, wm_zt, invrs_dzt, invrs_dzm, & ! Intent(in)
                                   l_upwind_xm_ma,              & ! Intent(in)
                                   lhs_ma                       ) ! Intent(out)
 
@@ -173,7 +173,7 @@ module mean_adv
     !-----------------------------------------------------------------------
 
     use grid_class, only: & 
-        gr ! Variable(s)
+        grid ! Type
 
     use constants_clubb, only: &
         one,  & ! Constant(s)
@@ -183,6 +183,8 @@ module mean_adv
         core_rknd ! Variable(s)
 
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! Constant parameters
     integer, parameter :: & 
@@ -211,11 +213,8 @@ module mean_adv
       lhs_ma    ! Mean advection contributions to lhs    [1/s]
 
     ! Local Variables
-    logical, parameter ::  &
-      l_ub_const_deriv = .true.  ! Flag to use the "one-sided" upper boundary.
 
     integer :: k    ! Vertical level index
-
 
     ! Set lower boundary array to 0
     lhs_ma(:,1) = 0.0_core_rknd
@@ -242,49 +241,23 @@ module mean_adv
        enddo ! k = 2, gr%nz, 1
 
        ! Upper Boundary
-       if ( l_ub_const_deriv ) then
 
-          ! Special discretization for constant derivative method (or
-          ! "one-sided" derivative method).
+        ! Special discretization for zero derivative method, where the
+        ! derivative d(var_zt)/dz over the model top is set to 0, in order
+        ! to stay consistent with the zero-flux boundary condition option
+        ! in the eddy diffusion code.
+        ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
+        lhs_ma(kp1_tdiag,gr%nz) & 
+        = zero
+        ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
+        lhs_ma(k_tdiag,gr%nz) & 
+        = + wm_zt(gr%nz) &
+            * invrs_dzt(gr%nz) * ( one - gr%weights_zt2zm(t_above,gr%nz-1) )
 
-          ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
-          lhs_ma(kp1_tdiag,gr%nz) & 
-          = zero
-
-          ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
-          lhs_ma(k_tdiag,gr%nz) & 
-          = + wm_zt(gr%nz) &
-              * invrs_dzt(gr%nz) * ( gr%weights_zt2zm(t_above,gr%nz) &
-                                     - gr%weights_zt2zm(t_above,gr%nz-1) )
-
-          ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
-          lhs_ma(km1_tdiag,gr%nz) & 
-          = + wm_zt(gr%nz) &
-              * invrs_dzt(gr%nz) * ( gr%weights_zt2zm(t_below,gr%nz) &
-                                     - gr%weights_zt2zm(t_below,gr%nz-1) )
-
-       else
-
-          ! Special discretization for zero derivative method, where the
-          ! derivative d(var_zt)/dz over the model top is set to 0, in order
-          ! to stay consistent with the zero-flux boundary condition option
-          ! in the eddy diffusion code.
-
-          ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
-          lhs_ma(kp1_tdiag,gr%nz) & 
-          = zero
-
-          ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
-          lhs_ma(k_tdiag,gr%nz) & 
-          = + wm_zt(gr%nz) &
-              * invrs_dzt(gr%nz) * ( one - gr%weights_zt2zm(t_above,gr%nz-1) )
-
-          ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
-          lhs_ma(km1_tdiag,gr%nz) & 
-          = - wm_zt(gr%nz) &
-              * invrs_dzt(gr%nz) * gr%weights_zt2zm(t_below,gr%nz-1)
-
-       endif ! l_ub_const_deriv
+        ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
+        lhs_ma(km1_tdiag,gr%nz) & 
+        = - wm_zt(gr%nz) &
+            * invrs_dzt(gr%nz) * gr%weights_zt2zm(t_below,gr%nz-1)
 
 
     else ! l_upwind_xm_ma == .true.; use "upwind" differencing
@@ -363,7 +336,7 @@ module mean_adv
   end subroutine term_ma_zt_lhs
 
   !=============================================================================
-  pure subroutine term_ma_zm_lhs( wm_zm, invrs_dzm, & 
+  pure subroutine term_ma_zm_lhs( gr, wm_zm, invrs_dzm, & 
                                   lhs_ma )
 
     ! Description:
@@ -418,7 +391,7 @@ module mean_adv
     !-----------------------------------------------------------------------
 
     use grid_class, only: & 
-        gr ! Variable(s)
+        grid ! Type
 
     use constants_clubb, only: &
         zero ! Constant(s)
@@ -427,6 +400,8 @@ module mean_adv
         core_rknd ! Variable(s)
 
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! Constant parameters
     integer, parameter :: & 

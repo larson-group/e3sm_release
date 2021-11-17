@@ -14,7 +14,7 @@ module Skx_module
   contains
 
   !-----------------------------------------------------------------------------
-  function Skx_func( xp2, xp3, x_tol )  &
+  function Skx_func( gr, xp2, xp3, x_tol, Skw_denom_coef, Skw_max_mag ) &
   result( Skx )
 
     ! Description:
@@ -24,15 +24,11 @@ module Skx_module
     ! None
     !-----------------------------------------------------------------------
 
-    use parameters_tunable, only: &
-        Skw_denom_coef, & ! Variable(s)
-        Skw_max_mag       ! Max magnitude of skewness
-
     use clubb_precision, only: &
         core_rknd         ! Variable(s)
 
     use grid_class, only: &
-        gr                ! Variable Type
+        grid ! Type
 
     implicit none
 
@@ -45,12 +41,16 @@ module Skx_module
       l_clipping_kluge = .false.
 
     ! Input Variables
-    real( kind = core_rknd ), intent(in) :: &
-      x_tol    ! x tolerance value    [(x units)]
+    type (grid), target, intent(in) :: gr
 
     real( kind = core_rknd ), dimension(gr%nz), intent(in) :: &
       xp2,   & ! <x'^2>               [(x units)^2]
       xp3      ! <x'^3>               [(x units)^3]
+
+    real( kind = core_rknd ), intent(in) :: &
+      x_tol,          & ! x tolerance value                       [(x units)]
+      Skw_denom_coef, & ! CLUBB tunable parameter Skw_denom_coef  [-]
+      Skw_max_mag       ! Max magnitude of skewness               [-]
 
     ! Output Variable
     real( kind = core_rknd ), dimension(gr%nz) :: &
@@ -147,8 +147,9 @@ module Skx_module
   end function LG_2005_ansatz
 
   !-----------------------------------------------------------------------------
-  function xp3_LG_2005_ansatz( Skw_zt, wpxp_zt, wp2_zt, &
-                               xp2_zt, sigma_sqd_w_zt, x_tol ) &
+  function xp3_LG_2005_ansatz( gr, Skw_zt, wpxp_zt, wp2_zt, &
+                               xp2_zt, sigma_sqd_w_zt, &
+                               beta, Skw_denom_coef, x_tol ) &
   result( xp3 )
 
     ! Description:
@@ -159,16 +160,14 @@ module Skx_module
     !-----------------------------------------------------------------------
 
     use grid_class, only: &
-        gr    ! Variable Type
-
-    use parameters_tunable, only: &
-        beta,           & ! Variable(s)
-        Skw_denom_coef
+        grid ! Type
 
     use clubb_precision, only: &
         core_rknd ! Variable(s)
 
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! External
     intrinsic :: sqrt
@@ -182,7 +181,9 @@ module Skx_module
       sigma_sqd_w_zt    ! Normalized variance of w (interp. to t-levs.)   [-]
 
     real( kind = core_rknd ), intent(in) :: &
-      x_tol    ! Minimum tolerance of x         [(x units)]
+      beta,           & ! CLUBB tunable parameter beta            [-]
+      Skw_denom_coef, & ! CLUBB tunable parameter Skw_denom_coef  [-]
+      x_tol             ! Minimum tolerance of x                  [(x units)]
 
     ! Return Variable
     real( kind = core_rknd ), dimension(gr%nz) :: &

@@ -110,6 +110,7 @@ module stats_variables
      iKh_zt = 0, & 
      iwp2thvp = 0, & 
      iwp2rcp = 0, & 
+     iw_up_in_cloud = 0, &
      iwprtpthlp = 0, &
      irc_coef = 0, &
      isigma_sqd_w_zt = 0, & 
@@ -409,7 +410,8 @@ module stats_variables
      iwp3_ta  = 0, & 
      iwp3_tp  = 0, & 
      iwp3_ac  = 0, & 
-     iwp3_bp1 = 0, & 
+     iwp3_bp1 = 0, &
+     iwp3_pr_tp = 0, & 
      iwp3_pr_turb = 0, &
      iwp3_pr_dfsn = 0, & 
      iwp3_pr1 = 0, & 
@@ -420,7 +422,7 @@ module stats_variables
      iwp3_cl  = 0, &
      iwp3_splat = 0
 
-!$omp   threadprivate(iwp3_bt, iwp3_ma, iwp3_ta, iwp3_tp, iwp3_ac, iwp3_bp1)
+!$omp   threadprivate(iwp3_bt, iwp3_ma, iwp3_ta, iwp3_tp, iwp3_ac, iwp3_bp1, iwp3_pr_tp)
 !$omp   threadprivate(iwp3_pr_turb, iwp3_pr_dfsn, iwp3_pr1, iwp3_pr2, iwp3_pr3, iwp3_dp1)
 !$omp   threadprivate(iwp3_sdmp, iwp3_cl, iwp3_splat)
 
@@ -1002,6 +1004,8 @@ module stats_variables
      irtpthlp = 0, & 
      iwprtp = 0, & 
      iwpthlp = 0, &
+     iwpup2 = 0, &
+     iwpvp2 = 0, &
      iwp2up2 = 0, &
      iwp2vp2 = 0, & 
      iwp4 = 0, & 
@@ -1054,7 +1058,8 @@ module stats_variables
 
 !$omp   threadprivate(istability_correction)
 !$omp   threadprivate(iwp2, irtp2, ithlp2, irtpthlp, iwprtp, iwpthlp)
-!$omp   threadprivate(iwp2up2, iwp2vp2, iwp4, iwpthvp, irtpthvp, ithlpthvp, itau_zm, iKh_zm)
+!$omp   threadprivate(iwpup2, iwpvp2, iwp2up2, iwp2vp2, iwp4)
+!$omp   threadprivate(iwpthvp, irtpthvp, ithlpthvp, itau_zm, iKh_zm)
 !$omp   threadprivate(iwprcp, irc_coef_zm, ithlprcp, irtprcp, ircp2)
 !$omp   threadprivate(iupwp, ivpwp)
 !$omp   threadprivate(iupthlp, iuprtp, ivpthlp, ivprtp)
@@ -1128,7 +1133,8 @@ module stats_variables
      iwp2_bp = 0, & 
      iwp2_pr1 = 0, & 
      iwp2_pr2 = 0, & 
-     iwp2_pr3 = 0, & 
+     iwp2_pr3 = 0, &
+     iwp2_pr_dfsn = 0, &  
      iwp2_dp1 = 0, & 
      iwp2_dp2 = 0, &
      iwp2_sdmp = 0, &
@@ -1138,7 +1144,7 @@ module stats_variables
      iwp2_splat = 0
 
 !$omp   threadprivate(iwp2_bt, iwp2_ma, iwp2_ta, iwp2_ac, iwp2_bp)
-!$omp   threadprivate(iwp2_pr1, iwp2_pr2, iwp2_pr3)
+!$omp   threadprivate(iwp2_pr1, iwp2_pr2, iwp2_pr3, iwp2_pr_dfsn)
 !$omp   threadprivate(iwp2_dp1, iwp2_dp2)
 !$omp   threadprivate(iwp2_sdmp, iwp2_pd, iwp2_cl, iwp2_sf, iwp2_splat)
 
@@ -1482,19 +1488,6 @@ module stats_variables
     irtp2_from_chi = 0
 
 !$omp threadprivate( irtp2_from_chi )
-
-  ! Variables that contains all the statistics
-
-  type (stats), target, public, save :: stats_zt,   &    ! stats_zt grid
-                                        stats_zm,   &    ! stats_zm grid
-                                        stats_lh_zt,  &  ! stats_lh_zt grid
-                                        stats_lh_sfc,  & ! stats_lh_sfc grid
-                                        stats_rad_zt,  & ! stats_rad_zt grid
-                                        stats_rad_zm,  & ! stats_rad_zm grid
-                                        stats_sfc        ! stats_sfc
-
-!$omp threadprivate(stats_zt, stats_zm, stats_lh_zt, stats_lh_sfc)
-!$omp threadprivate(stats_rad_zt, stats_rad_zm, stats_sfc)
 
   ! Scratch space
 

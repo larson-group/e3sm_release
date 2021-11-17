@@ -37,11 +37,12 @@ module clip_explicit
   contains
 
   !=============================================================================
-  subroutine clip_covars_denom( dt, rtp2, thlp2, up2, vp2, wp2, &
+  subroutine clip_covars_denom( gr, dt, rtp2, thlp2, up2, vp2, wp2, &
                                 sclrp2, wprtp_cl_num, wpthlp_cl_num, &
                                 wpsclrp_cl_num, upwp_cl_num, vpwp_cl_num, &
                                 l_predict_upwp_vpwp, &
                                 l_tke_aniso, &
+                                stats_zm, & 
                                 wprtp, wpthlp, upwp, vpwp, wpsclrp )
 
     ! Description:
@@ -64,7 +65,7 @@ module clip_explicit
     !-----------------------------------------------------------------------
 
     use grid_class, only: &
-        gr ! Variable(s)
+        grid ! Type
 
     use parameters_model, only: &
         sclr_dim ! Variable(s)
@@ -72,7 +73,14 @@ module clip_explicit
     use clubb_precision, only: & 
         core_rknd ! Variable(s)
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zm
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), intent(in) :: &
@@ -164,9 +172,10 @@ module clip_explicit
     endif
 
     ! Clip w'r_t'
-    call clip_covar( clip_wprtp, l_first_clip_ts,   & ! intent(in) 
+    call clip_covar( gr, clip_wprtp, l_first_clip_ts,   & ! intent(in) 
                      l_last_clip_ts, dt, wp2, rtp2, & ! intent(in)
                      l_predict_upwp_vpwp,           & ! intent(in)
+                     stats_zm,                      & ! intent(inout)
                      wprtp, wprtp_chnge )             ! intent(inout)
 
 
@@ -202,9 +211,10 @@ module clip_explicit
     endif
 
     ! Clip w'th_l'
-    call clip_covar( clip_wpthlp, l_first_clip_ts,   & ! intent(in)
+    call clip_covar( gr, clip_wpthlp, l_first_clip_ts,   & ! intent(in)
                      l_last_clip_ts, dt, wp2, thlp2, & ! intent(in)
                      l_predict_upwp_vpwp,            & ! intent(in)
+                     stats_zm,                       & ! intent(inout)
                      wpthlp, wpthlp_chnge )            ! intent(inout)
 
 
@@ -241,9 +251,10 @@ module clip_explicit
 
     ! Clip w'sclr'
     do i = 1, sclr_dim, 1
-      call clip_covar( clip_wpsclrp, l_first_clip_ts,           & ! intent(in)
+      call clip_covar( gr, clip_wpsclrp, l_first_clip_ts,       & ! intent(in)
                        l_last_clip_ts, dt, wp2(:), sclrp2(:,i), & ! intent(in)
                        l_predict_upwp_vpwp,                     & ! intent(in)
+                       stats_zm,                                & ! intent(inout)
                        wpsclrp(:,i), wpsclrp_chnge(:,i) )         ! intent(inout)
     enddo
 
@@ -281,15 +292,17 @@ module clip_explicit
 
     ! Clip u'w'
     if ( l_tke_aniso ) then
-      call clip_covar( clip_upwp, l_first_clip_ts,   & ! intent(in)
+      call clip_covar( gr, clip_upwp, l_first_clip_ts,   & ! intent(in)
                        l_last_clip_ts, dt, wp2, up2, & ! intent(in)
                        l_predict_upwp_vpwp,          & ! intent(in)
+                       stats_zm,                     & ! intent(inout)
                        upwp, upwp_chnge )              ! intent(inout)
     else
       ! In this case, up2 = wp2, and the variable `up2' does not interact
-      call clip_covar( clip_upwp, l_first_clip_ts,   & ! intent(in)
+      call clip_covar( gr, clip_upwp, l_first_clip_ts,   & ! intent(in)
                        l_last_clip_ts, dt, wp2, wp2, & ! intent(in)
                        l_predict_upwp_vpwp,          & ! intent(in)
+                       stats_zm,                     & ! intent(inout)
                        upwp, upwp_chnge )              ! intent(inout)
     end if
 
@@ -327,15 +340,17 @@ module clip_explicit
     endif
 
     if ( l_tke_aniso ) then
-      call clip_covar( clip_vpwp, l_first_clip_ts,   & ! intent(in)
+      call clip_covar( gr, clip_vpwp, l_first_clip_ts,   & ! intent(in)
                        l_last_clip_ts, dt, wp2, vp2, & ! intent(in)
                        l_predict_upwp_vpwp,          & ! intent(in)
+                       stats_zm,                     & ! intent(inout)
                        vpwp, vpwp_chnge )              ! intent(inout)
     else
       ! In this case, vp2 = wp2, and the variable `vp2' does not interact
-      call clip_covar( clip_vpwp, l_first_clip_ts,   & ! intent(in)
+      call clip_covar( gr, clip_vpwp, l_first_clip_ts,   & ! intent(in)
                        l_last_clip_ts, dt, wp2, wp2, & ! intent(in)
                        l_predict_upwp_vpwp,          & ! intent(in)
+                       stats_zm,                     & ! intent(inout)
                        vpwp, vpwp_chnge )              ! intent(inout)
     end if
 
@@ -344,9 +359,10 @@ module clip_explicit
   end subroutine clip_covars_denom
 
   !=============================================================================
-  subroutine clip_covar( solve_type, l_first_clip_ts,  & 
+  subroutine clip_covar( gr, solve_type, l_first_clip_ts,  & 
                          l_last_clip_ts, dt, xp2, yp2,  &
                          l_predict_upwp_vpwp, &
+                         stats_zm, &
                          xpyp, xpyp_chnge )
 
     ! Description:
@@ -390,7 +406,7 @@ module clip_explicit
     !-----------------------------------------------------------------------
 
     use grid_class, only: & 
-        gr ! Variable(s)
+        grid ! Type
 
     use constants_clubb, only: &
         max_mag_correlation,      & ! Constant(s)
@@ -405,7 +421,6 @@ module clip_explicit
         stat_end_update
 
     use stats_variables, only: & 
-        stats_zm,  & ! Variable(s)
         iwprtp_cl, &
         iwpthlp_cl, &
         irtpthlp_cl, &
@@ -413,7 +428,14 @@ module clip_explicit
         ivpwp_cl, &
         l_stats_samp
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zm
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables
     integer, intent(in) :: & 
@@ -483,9 +505,11 @@ module clip_explicit
 
     if ( l_stats_samp ) then
       if ( l_first_clip_ts ) then
-        call stat_begin_update( ixpyp_cl, xpyp / dt, stats_zm )
+        call stat_begin_update( gr, ixpyp_cl, xpyp / dt, & ! intent(in)
+                                stats_zm ) ! intent(inout)
       else
-        call stat_modify( ixpyp_cl, -xpyp / dt, stats_zm )
+        call stat_modify( gr, ixpyp_cl, -xpyp / dt, & ! intent(in)
+                          stats_zm ) ! intent(inout)
       endif
     endif
 
@@ -540,9 +564,11 @@ module clip_explicit
 
     if ( l_stats_samp ) then
       if ( l_last_clip_ts ) then
-        call stat_end_update( ixpyp_cl, xpyp / dt, stats_zm )
+        call stat_end_update( gr, ixpyp_cl, xpyp / dt, & ! intent(in)
+                              stats_zm ) ! intent(inout)
       else
-        call stat_modify( ixpyp_cl, xpyp / dt, stats_zm )
+        call stat_modify( gr, ixpyp_cl, xpyp / dt, & ! intent(in)
+                          stats_zm ) ! intent(inout)
       endif
     endif
 
@@ -553,6 +579,7 @@ module clip_explicit
   subroutine clip_covar_level( solve_type, level, l_first_clip_ts,  & 
                                l_last_clip_ts, dt, xp2, yp2,  &
                                l_predict_upwp_vpwp, &
+                               stats_zm, & 
                                xpyp, xpyp_chnge )
 
     ! Description:
@@ -609,7 +636,6 @@ module clip_explicit
         stat_end_update_pt
 
     use stats_variables, only: & 
-        stats_zm,  & ! Variable(s)
         iwprtp_cl, &
         iwpthlp_cl, &
         irtpthlp_cl, &
@@ -617,7 +643,12 @@ module clip_explicit
         ivpwp_cl, &
         l_stats_samp
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zm
 
     ! Input Variables
     integer, intent(in) :: & 
@@ -684,11 +715,11 @@ module clip_explicit
 
     if ( l_stats_samp ) then
        if ( l_first_clip_ts ) then
-          call stat_begin_update_pt( ixpyp_cl, level, &
-                                     xpyp / dt, stats_zm )
+          call stat_begin_update_pt( ixpyp_cl, level, xpyp / dt, & ! intent(in)
+                                     stats_zm ) ! intent(inout)
        else
-          call stat_modify_pt( ixpyp_cl, level, &
-                               -xpyp / dt, stats_zm )
+          call stat_modify_pt( ixpyp_cl, level, -xpyp / dt, & ! intent(in)
+                               stats_zm ) ! intent(inout)
        endif
     endif
 
@@ -735,11 +766,11 @@ module clip_explicit
 
     if ( l_stats_samp ) then
        if ( l_last_clip_ts ) then
-          call stat_end_update_pt( ixpyp_cl, level, &
-                                   xpyp / dt, stats_zm )
+          call stat_end_update_pt( ixpyp_cl, level, xpyp / dt, & ! intent(in)
+                                   stats_zm ) ! intent(inout)
        else
-          call stat_modify_pt( ixpyp_cl, level, &
-                               xpyp / dt, stats_zm )
+          call stat_modify_pt( ixpyp_cl, level, xpyp / dt, & ! intent(in)
+                               stats_zm ) ! intent(inout)
        endif
     endif
 
@@ -748,7 +779,8 @@ module clip_explicit
   end subroutine clip_covar_level
 
   !=============================================================================
-  subroutine clip_variance( solve_type, dt, threshold, &
+  subroutine clip_variance( gr, solve_type, dt, threshold, &
+                            stats_zm, & ! intent(inout)
                             xp2 )
 
     ! Description:
@@ -767,7 +799,7 @@ module clip_explicit
     !-----------------------------------------------------------------------
 
     use grid_class, only: & 
-        gr ! Variable(s)
+        grid ! Type
 
     use clubb_precision, only: & 
         core_rknd ! Variable(s)
@@ -777,7 +809,6 @@ module clip_explicit
         stat_end_update
 
     use stats_variables, only: & 
-        stats_zm,  & ! Variable(s)
         iwp2_cl, & 
         irtp2_cl, & 
         ithlp2_cl, & 
@@ -785,7 +816,14 @@ module clip_explicit
         ivp2_cl, & 
         l_stats_samp
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zm
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables
     integer, intent(in) :: & 
@@ -827,7 +865,8 @@ module clip_explicit
 
 
     if ( l_stats_samp ) then
-      call stat_begin_update( ixp2_cl, xp2 / dt, stats_zm )
+      call stat_begin_update( gr, ixp2_cl, xp2 / dt, & ! intent(in)
+                              stats_zm ) ! intent(inout)
     endif
 
     ! Limit the value of x'^2 at threshold.
@@ -848,7 +887,8 @@ module clip_explicit
     enddo
 
     if ( l_stats_samp ) then
-      call stat_end_update( ixp2_cl, xp2 / dt, stats_zm )
+      call stat_end_update( gr, ixp2_cl, xp2 / dt, & ! intent(in)
+                            stats_zm ) ! intent(inout)
     endif
 
 
@@ -856,7 +896,8 @@ module clip_explicit
   end subroutine clip_variance
 
   !=============================================================================
-  subroutine clip_variance_level( solve_type, dt, threshold, level, &
+  subroutine clip_variance_level( gr, solve_type, dt, threshold, &
+                                  stats_zm, & ! intent(inout)
                                   xp2 )
 
     ! Description:
@@ -879,11 +920,10 @@ module clip_explicit
         core_rknd ! Variable(s)
 
     use stats_type_utilities, only: & 
-        stat_begin_update_pt,  & ! Procedure(s)
-        stat_end_update_pt
+        stat_begin_update,  & ! Procedure(s)
+        stat_end_update
 
     use stats_variables, only: & 
-        stats_zm,  & ! Variable(s)
         iwp2_cl, & 
         irtp2_cl, & 
         ithlp2_cl, & 
@@ -891,7 +931,17 @@ module clip_explicit
         ivp2_cl, & 
         l_stats_samp
 
+    use stats_type, only: stats ! Type
+
+    use grid_class, only: grid ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zm
+
+    type(grid), target, intent(in) :: &
+      gr
 
     ! Input Variables
     integer, intent(in) :: & 
@@ -900,18 +950,15 @@ module clip_explicit
     real( kind = core_rknd ), intent(in) :: & 
       dt          ! Model timestep; used here for STATS     [s]
 
-    real( kind = core_rknd ), intent(in) :: & 
+    real( kind = core_rknd ), dimension(gr%nz), intent(in) :: & 
       threshold   ! Minimum value of x'^2                   [{x units}^2]
 
-    integer, intent(in) :: &
-      level       ! Vertical level index
-
     ! Output Variable
-    real( kind = core_rknd ), intent(inout) :: & 
+    real( kind = core_rknd ), dimension(gr%nz), intent(inout) :: & 
       xp2         ! Variance of x, x'^2 (momentum levels)   [{x units}^2]
 
     integer :: & 
-      ixp2_cl
+      ixp2_cl, k
 
     ! ---- Begin Code ----
 
@@ -930,18 +977,23 @@ module clip_explicit
       ixp2_cl = 0
     end select
 
-
     if ( l_stats_samp ) then
-       call stat_begin_update_pt( ixp2_cl, level, xp2 / dt, stats_zm )
+       call stat_begin_update( gr, ixp2_cl, xp2 / dt, & ! intent(in)
+                                  stats_zm ) ! intent(inout)
     endif
+
+    do k = 1, gr%nz, 1
 
     ! Limit the value of x'^2 at threshold.
-    if ( xp2 < threshold ) then
-       xp2 = threshold
-    endif
+      if ( xp2(k) < threshold(k) ) then
+         xp2(k) = threshold(k)
+      endif
+
+    enddo
 
     if ( l_stats_samp ) then
-       call stat_end_update_pt( ixp2_cl, level, xp2 / dt, stats_zm )
+       call stat_end_update( gr, ixp2_cl, xp2 / dt, & ! intent(in)
+                                stats_zm ) ! intent(inout)
     endif
 
 
@@ -950,7 +1002,8 @@ module clip_explicit
   end subroutine clip_variance_level
 
   !=============================================================================
-  subroutine clip_skewness( dt, sfc_elevation, wp2_zt, &
+  subroutine clip_skewness( gr, dt, sfc_elevation, Skw_max_mag, wp2_zt, &
+                            stats_zt, & ! intent(inout)
                             wp3 )
 
     ! Description:
@@ -993,21 +1046,27 @@ module clip_explicit
     !-----------------------------------------------------------------------
 
     use grid_class, only: & 
-      gr ! Variable(s)
+        grid ! Type
 
     use clubb_precision, only: & 
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     use stats_type_utilities, only: &
-      stat_begin_update,  & ! Procedure(s)
-      stat_end_update
+        stat_begin_update,  & ! Procedure(s)
+        stat_end_update
 
     use stats_variables, only: & 
-      stats_zt,  & ! Variable(s)
-      iwp3_cl, & 
-      l_stats_samp     
+        iwp3_cl, & 
+        l_stats_samp     
+
+    use stats_type, only: stats ! Type
 
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zt
+
+    type (grid), target, intent(in) :: gr
 
     ! External
     intrinsic :: sign, sqrt, real
@@ -1017,7 +1076,8 @@ module clip_explicit
       dt               ! Model timestep; used here for STATS        [s]
 
     real( kind = core_rknd ), intent(in) ::  &
-      sfc_elevation    ! Elevation of ground level                  [m AMSL]
+      sfc_elevation, & ! Elevation of ground level                  [m AMSL]
+      Skw_max_mag      ! Maximum allowable magnitude of Skewness    [-]
 
     real( kind = core_rknd ), dimension(gr%nz), intent(in) :: &
       wp2_zt           ! w'^2 interpolated to thermodyamic levels   [m^2/s^2]
@@ -1029,38 +1089,42 @@ module clip_explicit
     ! ---- Begin Code ----
 
     if ( l_stats_samp ) then
-      call stat_begin_update( iwp3_cl, wp3 / dt, stats_zt )
+      call stat_begin_update( gr, iwp3_cl, wp3 / dt, & ! intent(in)
+                              stats_zt ) ! intent(inout)
     endif
 
-    call clip_skewness_core( sfc_elevation, wp2_zt, wp3 )
+    call clip_skewness_core( gr, sfc_elevation, Skw_max_mag, wp2_zt, & ! intent(in)
+                             wp3 ) ! intent(inout)
 
     if ( l_stats_samp ) then
-      call stat_end_update( iwp3_cl, wp3 / dt, stats_zt )
+      call stat_end_update( gr, iwp3_cl, wp3 / dt, & ! intent(in)
+                            stats_zt ) ! intent(inout)
     endif
 
     return
   end subroutine clip_skewness
 
 !=============================================================================
-  subroutine clip_skewness_core( sfc_elevation, wp2_zt, wp3 )
+  subroutine clip_skewness_core( gr, sfc_elevation, Skw_max_mag, wp2_zt, &
+                                 wp3 )
 !
     use grid_class, only: & 
-      gr ! Variable(s)
-
-    use parameters_tunable, only: &
-      Skw_max_mag ! [-]
+        grid ! Type
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! External
     intrinsic :: sign, sqrt, real
 
     ! Input Variables
     real( kind = core_rknd ), intent(in) ::  &
-      sfc_elevation    ! Elevation of ground level                  [m AMSL]
+      sfc_elevation, & ! Elevation of ground level                  [m AMSL]
+      Skw_max_mag      ! Maximum allowable magnitude of Skewness    [-]
 
     real( kind = core_rknd ), dimension(gr%nz), intent(in) :: &
       wp2_zt           ! w'^2 interpolated to thermodyamic levels   [m^2/s^2]
@@ -1105,7 +1169,7 @@ module clip_explicit
       if ( gr%zt(k) - sfc_elevation <= 100.0_core_rknd ) then ! Clip for 100 m. AGL.
        !wp3_upper_lim(k) =  0.2_core_rknd * sqrt_2 * wp2_zt(k)**(3.0_core_rknd/2.0_core_rknd)
        !wp3_lower_lim(k) = -0.2_core_rknd * sqrt_2 * wp2_zt(k)**(3.0_core_rknd/2.0_core_rknd)
-        wp3_lim_sqd(k) = 0.002_core_rknd * Skw_max_mag**2 * wp2_zt_cubed(k)
+        wp3_lim_sqd(k) = 0.0021_core_rknd * Skw_max_mag**2 * wp2_zt_cubed(k)
       else                          ! Clip skewness consistently with a.
        !wp3_upper_lim(k) =  4.5_core_rknd * wp2_zt(k)**(3.0_core_rknd/2.0_core_rknd)
        !wp3_lower_lim(k) = -4.5_core_rknd * wp2_zt(k)**(3.0_core_rknd/2.0_core_rknd)

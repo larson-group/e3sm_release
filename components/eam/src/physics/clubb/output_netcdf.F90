@@ -29,7 +29,8 @@ module output_netcdf
 !-------------------------------------------------------------------------------
   subroutine open_netcdf_for_writing( nlat, nlon, fdir, fname, ia, iz, zgrid,  & 
                           day, month, year, lat_vals, lon_vals, & 
-                          time, dtwrite, nvar, ncf, &
+                          time, dtwrite, nvar, &
+                          ncf, &
                           nsamp) ! optional
 
 ! Description:
@@ -39,24 +40,24 @@ module output_netcdf
 !   None
 !-------------------------------------------------------------------------------
     use netcdf, only: & 
-      NF90_CLOBBER, & ! Variable(s)
-      NF90_NOERR,   & 
-      nf90_create,  & ! Procedure
-      nf90_strerror
+        NF90_CLOBBER, & ! Variable(s)
+        NF90_NOERR,   & 
+        nf90_create,  & ! Procedure
+        nf90_strerror
 
     use stat_file_module, only: & 
-      stat_file ! Type
+        stat_file ! Type
 
     use clubb_precision, only:  & 
-      time_precision, & ! Variable(s)
-      core_rknd
+        time_precision, & ! Variable(s)
+        core_rknd
 
     use constants_clubb, only:  & 
-      fstderr ! Variable(s)
+        fstderr ! Variable(s)
 
     use error_code, only: &
-      err_code, &           ! Error Indicator
-      clubb_fatal_error     ! Constant
+        err_code, &           ! Error Indicator
+        clubb_fatal_error     ! Constant
 
     implicit none
 
@@ -189,10 +190,10 @@ module output_netcdf
 
 !-------------------------------------------------------------------------------
 
-  subroutine write_netcdf( l_uv_nudge, &
+  subroutine write_netcdf( clubb_params, &
+                           l_uv_nudge, &
                            l_tke_aniso, &
                            l_standard_term_ta, &
-                           l_single_C2_Skw, &
                            ncf )
 
 ! Description:
@@ -215,24 +216,30 @@ module output_netcdf
         sec_per_min
 
     use error_code, only: &
-      err_code, &           ! Error Indicator
-      clubb_fatal_error     ! Constant
+        err_code, &           ! Error Indicator
+        clubb_fatal_error     ! Constant
+
+    use parameter_indices, only: &
+        nparams    ! Variable(s)
 
     use clubb_precision, only: &
-      time_precision ! Constant(s)
+        time_precision, & ! Constant(s)
+        core_rknd
 
     implicit none
 
     ! Input
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
+
     logical, intent(in) :: &
       l_uv_nudge,         & ! For wind speed nudging
       l_tke_aniso,        & ! For anisotropic turbulent kinetic energy, i.e. TKE = 1/2
                             ! (u'^2 + v'^2 + w'^2)
-      l_standard_term_ta, & ! Use the standard discretization for the turbulent advection terms.
+      l_standard_term_ta    ! Use the standard discretization for the turbulent advection terms.
                             ! Setting to .false. means that a_1 and a_3 are pulled outside of the
                             ! derivative in advance_wp2_wp3_module.F90 and in
                             ! advance_xp2_xpyp_module.F90.
-      l_single_C2_Skw       ! Use a single Skewness dependent C2 for rtp2, thlp2, and rtpthlp
 
     type (stat_file), intent(inout) :: ncf    ! The file
 
@@ -252,12 +259,12 @@ module output_netcdf
     ncf%ntimes = ncf%ntimes + 1
 
     if ( .not. ncf%l_defined ) then
-      call first_write( l_uv_nudge, &
-                        l_tke_aniso, &
-                        l_standard_term_ta, &
-                        l_single_C2_Skw, &
-                        ncf ) ! finalize the variable definitions
-      call write_grid( ncf )  ! define lat., long., and grid
+      call first_write( clubb_params, & ! intent(in)
+                        l_uv_nudge, & ! intent(in)
+                        l_tke_aniso, & ! intent(in)
+                        l_standard_term_ta, & ! intent(in)
+                        ncf ) ! finalize the variable definitions intent(inout)
+      call write_grid( ncf )  ! define lat., long., and grid intent(inout)
       ncf%l_defined = .true.
       if ( err_code == clubb_fatal_error ) return
     end if
@@ -333,25 +340,25 @@ module output_netcdf
 !   None
 !-------------------------------------------------------------------------------
     use netcdf, only: & 
-      NF90_NOERR,   & ! Constants
-      NF90_DOUBLE, & 
-      NF90_UNLIMITED
+        NF90_NOERR,   & ! Constants
+        NF90_DOUBLE, & 
+        NF90_UNLIMITED
 
     use netcdf, only: & 
-      nf90_def_dim,  & ! Functions
-      nf90_strerror, & 
-      nf90_def_var, & 
-      nf90_put_att
+        nf90_def_dim,  & ! Functions
+        nf90_strerror, & 
+        nf90_def_var, & 
+        nf90_put_att
 
     use clubb_precision, only:  & 
-      time_precision ! Variable(s)
+        time_precision ! Variable(s)
 
     use constants_clubb, only:  & 
-      fstderr ! Variable(s)
+        fstderr ! Variable(s)
 
     use error_code, only: &
-      err_code, &           ! Error Indicator
-      clubb_fatal_error     ! Constant
+        err_code, &           ! Error Indicator
+        clubb_fatal_error     ! Constant
 
     implicit none
 
@@ -465,7 +472,8 @@ module output_netcdf
       return
     end if
 
-    call format_date( day, month, year, time, TimeUnits )
+    call format_date( day, month, year, time, & ! intent(in)
+                      TimeUnits ) ! intent(out)
 
     stat = nf90_put_att( ncid, TimeVarId, "units", TimeUnits )
     if ( stat /= NF90_NOERR ) then
@@ -563,10 +571,10 @@ module output_netcdf
   end subroutine close_netcdf
 
 !-------------------------------------------------------------------------------
-  subroutine first_write( l_uv_nudge, &
+  subroutine first_write( clubb_params, &
+                          l_uv_nudge, &
                           l_tke_aniso, &
                           l_standard_term_ta, &
-                          l_single_C2_Skw, &
                           ncf )
 
 ! Description:
@@ -577,47 +585,43 @@ module output_netcdf
 !-------------------------------------------------------------------------------
 
     use netcdf, only: & 
-      NF90_NOERR,  & ! Constants
-      NF90_FLOAT,  &
-      NF90_DOUBLE, & 
-      NF90_GLOBAL, &
-      nf90_def_var,  & ! Procedure(s)
-      nf90_strerror, & 
-      nf90_put_att, & 
-      nf90_enddef
+        NF90_NOERR,  & ! Constants
+        NF90_FLOAT,  &
+        NF90_DOUBLE, & 
+        NF90_GLOBAL, &
+        nf90_def_var,  & ! Procedure(s)
+        nf90_strerror, & 
+        nf90_put_att, & 
+        nf90_enddef
 
     use stat_file_module, only: &
-      stat_file ! Derived type
+        stat_file ! Derived type
 
     use constants_clubb, only:  &
-      fstderr ! Variable
+        fstderr ! Variable
 
     use parameters_model, only: &
-      T0, &       ! Real variables
-      ts_nudge, &
-      sclr_tol    ! Real array variable
+        T0, &       ! Real variables
+        ts_nudge, &
+        sclr_tol    ! Real array variable
 
     use parameters_tunable, only: &
-      params_list ! Variable names (characters)
-
-    use parameters_tunable, only: &
-      get_parameters ! Subroutine
+        params_list ! Variable names (characters)
 
     use parameter_indices, only: &
-      nparams ! Integer
+        nparams ! Integer
 
     use model_flags, only: &
-      l_pos_def, &
-      l_hole_fill, &
-      l_clip_semi_implicit, &
-      l_gamma_Skw
+        l_pos_def, &
+        l_hole_fill, &
+        l_gamma_Skw
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     use error_code, only: &
-      err_code, &           ! Error Indicator
-      clubb_fatal_error     ! Constant
+        err_code, &           ! Error Indicator
+        clubb_fatal_error     ! Constant
 
     implicit none
 
@@ -634,15 +638,17 @@ module output_netcdf
       l_output_file_run_date = .false.
 
     ! Input Variables
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
+
     logical, intent(in) :: &
       l_uv_nudge,         & ! For wind speed nudging
       l_tke_aniso,        & ! For anisotropic turbulent kinetic energy, i.e. TKE = 1/2
                             ! (u'^2 + v'^2 + w'^2)
-      l_standard_term_ta, & ! Use the standard discretization for the turbulent advection terms.
+      l_standard_term_ta    ! Use the standard discretization for the turbulent advection terms.
                             ! Setting to .false. means that a_1 and a_3 are pulled outside of the
                             ! derivative in advance_wp2_wp3_module.F90 and in
                             ! advance_xp2_xpyp_module.F90.
-      l_single_C2_Skw       ! Use a single Skewness dependent C2 for rtp2, thlp2, and rtpthlp
 
     ! Input/Output Variables
     type (stat_file), intent(inout) :: ncf
@@ -651,8 +657,6 @@ module output_netcdf
     integer, dimension(:), allocatable :: stat
     
     integer :: netcdf_precision ! Level of precision for netCDF output
-
-    real( kind = core_rknd ), dimension(nparams) :: params ! Tunable parameters
 
     integer :: i     ! Array index
 
@@ -814,19 +818,15 @@ module output_netcdf
 
     ! Write the model flags to the file
     deallocate( stat )
-    allocate( stat(8) ) ! # of model flags
+    allocate( stat(6) ) ! # of model flags
 
     stat(1) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_pos_def", lchar( l_pos_def ) )
     stat(2) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_hole_fill", lchar( l_hole_fill ) )
-    stat(3) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_clip_semi_implicit", &
-      lchar( l_clip_semi_implicit ) )
-    stat(4) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_standard_term_ta", &
+    stat(3) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_standard_term_ta", &
       lchar( l_standard_term_ta ) )
-    stat(5) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_single_C2_Skw", &
-      lchar( l_single_C2_Skw ) )
-    stat(6) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_gamma_Skw", lchar( l_gamma_Skw ) )
-    stat(7) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_uv_nudge", lchar( l_uv_nudge ) )
-    stat(8) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_tke_aniso", lchar( l_tke_aniso ) )
+    stat(4) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_gamma_Skw", lchar( l_gamma_Skw ) )
+    stat(5) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_uv_nudge", lchar( l_uv_nudge ) )
+    stat(6) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "l_tke_aniso", lchar( l_tke_aniso ) )
 
     if ( any( stat /= NF90_NOERR ) ) then
       write(fstderr,*) "Error writing model flags"
@@ -845,10 +845,8 @@ module output_netcdf
     stat(2) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "ts_nudge", ts_nudge )
     stat(3) = nf90_put_att( ncf%iounit, NF90_GLOBAL, "sclr_tol", sclr_tol )
 
-    call get_parameters( params )
-
     do i = 1, nparams, 1
-      stat(i) = nf90_put_att( ncf%iounit, NF90_GLOBAL, params_list(i), params(i) )
+      stat(i) = nf90_put_att( ncf%iounit, NF90_GLOBAL, params_list(i), clubb_params(i) )
     end do
 
     if ( any( stat /= NF90_NOERR ) ) then
@@ -951,7 +949,8 @@ module output_netcdf
 !-------------------------------------------------------------------------------
 
   subroutine format_date & 
-             ( day_in, month_in, year_in, time_in, date )
+             ( day_in, month_in, year_in, time_in, &
+               date )
 
 ! Description:
 !   Put the model date in a format that udunits and NetCDF can easily
@@ -964,7 +963,7 @@ module output_netcdf
 !-------------------------------------------------------------------------------
 
     use calendar, only:  &
-      compute_current_date ! Procedure(s)
+        compute_current_date ! Procedure(s)
 
     use clubb_precision, only:  & 
         time_precision ! Variable(s)
@@ -990,12 +989,12 @@ module output_netcdf
 
     real(kind=time_precision) :: st_time ! Start time [s]
 
-    call compute_current_date( day_in, month_in,  & 
-                               year_in, & 
-                               time_in, & 
-                               iday, imonth, & 
-                               iyear, & 
-                               st_time )
+    call compute_current_date( day_in, month_in,  & ! intent(in)
+                               year_in, &  ! intent(in)
+                               time_in, & ! intent(in)
+                               iday, imonth, & ! intent(out)
+                               iyear, &  ! intent(out)
+                               st_time ) ! intent(out)
 
     if ( .not. l_grads_netcdf_boost_ts ) then
       date = "seconds since YYYY-MM-DD HH:MM:00.0"

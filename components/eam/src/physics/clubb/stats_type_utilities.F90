@@ -31,7 +31,8 @@ module stats_type_utilities
   !=============================================================================
   subroutine stat_assign( var_index, var_name,  &
                           var_description, var_units, &
-                          l_silhs, grid_kind )
+                          l_silhs, &
+                          grid_kind )
 
     ! Description:
     !   Assigns pointers for statistics variables in grid. There is an
@@ -99,10 +100,10 @@ module stats_type_utilities
     !---------------------------------------------------------------------
 
     use clubb_precision, only: &
-      stat_rknd ! Constant
+        stat_rknd ! Constant
 
     use stat_file_module, only: &
-      clubb_i, clubb_j ! Variable(s)
+        clubb_i, clubb_j ! Variable(s)
 
     implicit none
 
@@ -148,10 +149,10 @@ module stats_type_utilities
     !---------------------------------------------------------------------
 
     use clubb_precision, only: &
-      stat_rknd ! Constant
+        stat_rknd ! Constant
 
     use stat_file_module, only: &
-      clubb_i, clubb_j ! Variable(s)
+        clubb_i, clubb_j ! Variable(s)
 
     implicit none
 
@@ -183,7 +184,7 @@ module stats_type_utilities
   end subroutine stat_update_var_pt
 
   !=============================================================================
-  subroutine stat_begin_update( var_index, value, &
+  subroutine stat_begin_update( gr, var_index, value, &
                                 grid_kind )
 
     ! Description:
@@ -217,9 +218,11 @@ module stats_type_utilities
     ! component is sent into stat_end_update_pt.
     !---------------------------------------------------------------------
 
-    use grid_class, only: gr  ! Variable(s)
+    use grid_class, only: grid
 
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables(s)
 
@@ -238,7 +241,8 @@ module stats_type_utilities
     do i = 1, gr%nz
 
       call stat_begin_update_pt &
-            ( var_index, i, value(i), grid_kind )
+            ( var_index, i, value(i), & ! intent(in)
+              grid_kind ) ! intent(inout)
 
     enddo
 
@@ -264,16 +268,16 @@ module stats_type_utilities
     !---------------------------------------------------------------------
 
     use clubb_precision, only: &
-      stat_rknd ! Constant
+        stat_rknd ! Constant
 
     use stat_file_module, only: &
-      clubb_i, clubb_j ! Variable(s)
+        clubb_i, clubb_j ! Variable(s)
 
     use constants_clubb, only: & 
-      fstderr   ! Constant(s) 
+        fstderr   ! Constant(s) 
 
     use error_code, only: &
-      clubb_at_least_debug_level   ! Procedure
+        clubb_at_least_debug_level   ! Procedure
 
     implicit none
 
@@ -315,7 +319,7 @@ module stats_type_utilities
   end subroutine stat_begin_update_pt
 
   !=============================================================================
-  subroutine stat_end_update( var_index, value, &
+  subroutine stat_end_update( gr, var_index, value, &
                               grid_kind )
 
     ! Description:
@@ -349,9 +353,11 @@ module stats_type_utilities
     ! component is sent into stat_end_update_pt.
     !---------------------------------------------------------------------
 
-    use grid_class, only: gr ! Variable(s)
+    use grid_class, only: grid
 
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables(s)
 
@@ -371,7 +377,8 @@ module stats_type_utilities
 
     do k = 1,gr%nz
       call stat_end_update_pt &
-               ( var_index, k, value(k), grid_kind )
+               ( var_index, k, value(k), & ! intent(in)
+                 grid_kind ) ! intent(inout)
     enddo
 
     return
@@ -393,13 +400,13 @@ module stats_type_utilities
     !---------------------------------------------------------------------
 
     use stat_file_module, only: &
-      clubb_i, clubb_j ! Variable(s)
+        clubb_i, clubb_j ! Variable(s)
 
     use constants_clubb, only: & 
-      fstderr   ! Constant(s) 
+        fstderr   ! Constant(s) 
 
     use error_code, only: &
-      clubb_at_least_debug_level   ! Procedure
+        clubb_at_least_debug_level   ! Procedure
 
     implicit none
 
@@ -424,7 +431,8 @@ module stats_type_utilities
       if ( grid_kind%l_in_update(clubb_i,clubb_j,grid_level,var_index) ) then
 
         call stat_update_var_pt &
-                 ( var_index, grid_level, value, grid_kind )
+                 ( var_index, grid_level, value, & ! intent(in)
+                   grid_kind ) ! intent(inout)
 
         grid_kind%l_in_update(clubb_i,clubb_j,grid_level,var_index) = .false. ! End Record
 
@@ -440,7 +448,7 @@ module stats_type_utilities
   end subroutine stat_end_update_pt
 
   !=============================================================================
-  subroutine stat_modify( var_index, value, &
+  subroutine stat_modify( gr, var_index, value, &
                           grid_kind )
 
     ! Description:
@@ -453,9 +461,11 @@ module stats_type_utilities
     ! stat_begin_update and stat_end_update.
     !---------------------------------------------------------------------
 
-    use grid_class, only: gr ! Variable(s)
+    use grid_class, only: grid
 
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables(s)
 
@@ -475,7 +485,8 @@ module stats_type_utilities
 
     do k = 1, gr%nz
 
-      call stat_modify_pt( var_index, k, value(k), grid_kind )
+      call stat_modify_pt( var_index, k, value(k), & ! intent(in)
+                           grid_kind ) ! intent(inout)
 
     enddo
 
@@ -495,10 +506,10 @@ module stats_type_utilities
     !---------------------------------------------------------------------
 
     use clubb_precision, only: &
-      stat_rknd ! Constant
+        stat_rknd ! Constant
 
     use stat_file_module, only: &
-      clubb_i, clubb_j ! Variable(s)
+        clubb_i, clubb_j ! Variable(s)
 
     implicit none
 

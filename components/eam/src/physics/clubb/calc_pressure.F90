@@ -12,7 +12,7 @@ module calc_pressure
   contains
 
   !=============================================================================
-  subroutine update_pressure( thlm, rtm, rcm, rho_ds_zt, thv_ds_zt, &
+  subroutine update_pressure( gr, thlm, rtm, rcm, rho_ds_zt, thv_ds_zt, &
                               p_in_Pa, exner, &
                               p_in_Pa_zm, exner_zm )
 
@@ -73,7 +73,7 @@ module calc_pressure
     !-----------------------------------------------------------------------
 
     use grid_class, only: &
-        gr,    & ! Variable Type(s)
+        grid, & ! Type
         zt2zm    ! Procedure(s)
 
     use constants_clubb, only: &
@@ -90,6 +90,8 @@ module calc_pressure
         core_rknd    ! Variable(s)
 
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), dimension(gr%nz), intent(in) :: &
@@ -134,7 +136,7 @@ module calc_pressure
     thvm = calculate_thvm( thlm, rtm, rcm, exner, thv_ds_zt )
 
     ! Interpolate thvm to momentum grid levels.
-    thvm_zm = zt2zm( thvm )
+    thvm_zm = zt2zm( gr, thvm )
 
     ! Calculate mean theta (thm) at the uppermost thermodynamic vertical grid
     ! level.
@@ -183,7 +185,7 @@ module calc_pressure
     else ! .not. l_calc_p_exner_m_levs
 
        ! Interpolate exner to momentum levels
-       exner_zm(gr%nz) = zt2zm( exner, gr%nz )
+       exner_zm(gr%nz) = zt2zm( gr, exner, gr%nz )
 
     endif ! l_calc_p_exner_m_levs
 
@@ -237,7 +239,7 @@ module calc_pressure
        else ! .not. l_calc_p_exner_m_levs
 
           ! Interpolate exner to momentum levels
-          exner_zm(k) = zt2zm( exner, k )
+          exner_zm(k) = zt2zm( gr, exner, k )
 
        endif ! l_calc_p_exner_m_levs
 
@@ -300,7 +302,7 @@ module calc_pressure
   end subroutine update_pressure
 
   !=============================================================================
-  subroutine init_pressure( thvm, p_sfc, &
+  subroutine init_pressure( gr, thvm, p_sfc, &
                             p_in_Pa, exner, p_in_Pa_zm, exner_zm )
 
     ! Description:
@@ -346,7 +348,7 @@ module calc_pressure
     !-----------------------------------------------------------------------
 
     use grid_class, only: &
-        gr,    & ! Variable Type(s)
+        grid, & ! Type
         zt2zm    ! Procedure(s)
 
     use constants_clubb, only: &
@@ -360,6 +362,8 @@ module calc_pressure
         core_rknd    ! Variable(s)
 
     implicit none
+
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), dimension(gr%nz), intent(in) :: &
@@ -397,7 +401,7 @@ module calc_pressure
     exner(1) = exner_zm(1)
 
     ! Interpolate theta_v to momentum levels.
-    thvm_zm = zt2zm( thvm )
+    thvm_zm = zt2zm( gr, thvm )
 
     ! Calculate exner at all other thermodynamic and momentum grid levels.
     ! exner2

@@ -55,7 +55,7 @@ module interpolation
 !-------------------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     use constants_clubb, only: fstderr ! Constant
 
@@ -97,7 +97,7 @@ module interpolation
   !-------------------------------------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -131,21 +131,16 @@ module interpolation
   !-------------------------------------------------------------------------------------------------
 
     use constants_clubb, only: &
-      three_halves, & ! Constant(s)
-      eps
+        eps ! Constant
 
     use clubb_precision, only: &
-      core_rknd ! Constant
+        core_rknd ! Constant
     
     use model_flags, only: &
-      l_quintic_poly_interp ! Variable(s)
+        l_quintic_poly_interp ! Variable(s)
 
     implicit none
 
-    ! Constant Parameters
-    logical, parameter :: &
-      l_equation_21 = .true.
-      
     ! External
     intrinsic :: sign, abs, min
 
@@ -177,15 +172,8 @@ module interpolation
    
     ! ---- Begin Code ---- 
 
-    if ( l_equation_21 ) then
-      ! Use the formula from Steffen (1990), which should make the interpolation
-      ! less restrictive
-      coef1 = three_halves
-      coef2 = 1.0_core_rknd/three_halves
-    else
-      coef1 = 1.0_core_rknd
-      coef2 = 1.0_core_rknd
-    end if
+    coef1 = 1.0_core_rknd
+    coef2 = 1.0_core_rknd
 
     if ( km1 <= k00 ) then
       hm1 = z00 - zm1
@@ -283,13 +271,13 @@ module interpolation
     !-----------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd                  ! Variable(s)
+        core_rknd                  ! Variable(s)
 
     use constants_clubb, only: &
-      fstderr                    ! Variable(s)
+        fstderr                    ! Variable(s)
     
     use error_code, only: &
-      clubb_at_least_debug_level ! Error indicator
+        clubb_at_least_debug_level ! Error indicator
 
     implicit none
 
@@ -389,7 +377,7 @@ module interpolation
 !-----------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -428,7 +416,7 @@ module interpolation
 !-----------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -572,7 +560,8 @@ module interpolation
 
 !-------------------------------------------------------------------------------
   subroutine lin_interpolate_on_grid & 
-             ( nparam, xlist, tlist, xvalue, tvalue )
+             ( nparam, xlist, tlist, xvalue, &
+               tvalue )
 
 ! Description:
 !   Linear interpolation for 25 June 1996 altocumulus case.
@@ -588,10 +577,10 @@ module interpolation
     use constants_clubb, only: fstderr ! Constant
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     use error_code, only: &
-      clubb_at_least_debug_level ! Error indicator
+        clubb_at_least_debug_level ! Error indicator
 
     implicit none
 

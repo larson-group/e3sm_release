@@ -1,80 +1,65 @@
-commit b0feee8d65aa980edaf16d71a04dc52b754d179b
+commit 1c77ed3f85d66c5ec3818b2e146a5cc95bbcf306
+Author: bmg929 <bmg2@uwm.edu>
+Date:   Mon Nov 15 22:59:37 2021 -0600
+
+    Passing w_up_in_cloud out of advance_clubb_core
+
+commit 335d83b7e89d00fa3cd1ce727356d6d7b006dd36
+Author: JanGrn <jan.gruenenwald@gmail.com>
+Date:   Thu Nov 11 14:56:45 2021 -0600
+
+    fixed a typo in pdf_closure_module.f90, line 1284
+
+commit df3b263c7525b030ed469116534560eb74ae8ddf
+Author: JanGrn <jan.gruenenwald@gmail.com>
+Date:   Thu Nov 11 14:54:14 2021 -0600
+
+    Included a check in pdf_closure_module.f90 to check if flag for iw_up_in_cloud is set. Removed iw_up_in_cloud from standard_stats.in to prevent binary diffs in CLUBB output files after merge
+
+commit 202f78110b0f343f565b8ac1ea633ded7b27ee11
+Author: JanGrn <jan.gruenenwald@gmail.com>
+Date:   Thu Nov 11 11:31:26 2021 -0600
+
+    Resolved any issues in the pull request. See https://github.com/larson-group/clubb/pull/970 for details
+
+commit f7cd1d8ccc310129bfb3ceb243b0c47284eaccf5
+Author: JanGrn <jan.gruenenwald@gmail.com>
+Date:   Tue Nov 9 15:03:36 2021 -0600
+
+    Added sam file name to DYCOMS_RF02_DO case, fixed the clipping in calc_w_up_in_cloud in pdf_closure_module.f90, and changed long name of w_up_in_cloud in stats_zt_module.f90
+
+commit 7a8e16c077839c803937a1346546fd5419c541a2
+Author: JanGrn <jan.gruenenwald@gmail.com>
+Date:   Fri Oct 29 10:28:51 2021 -0500
+
+    Added WSUP from SAM to the VariableGroupWs.py in pyplotgen
+
+commit e33002f85d35ee72f9b155437f36e9c103765cc3
+Author: JanGrn <jan.gruenenwald@gmail.com>
+Date:   Tue Oct 12 12:04:23 2021 -0500
+
+    See respective messages on the issue 958 on date 10/12/2021
+
+commit 6aa4ad30eef8b9bc2ce8dc46fb355d414b431542
+Author: JanGrn <jan.gruenenwald@gmail.com>
+Date:   Thu Sep 30 08:48:51 2021 -0500
+
+    added some documentation in pdf_close_module.f90 and started writing of w_up_in_cloud to disk
+
+commit cea625cee42c8cbf6d1793eaae65f6bb136b16f9
+Author: JanGrn <jan.gruenenwald@gmail.com>
+Date:   Fri Sep 24 12:33:43 2021 -0500
+
+    See ticket
+    #958
+
+commit 1c59a5018700023f704a46b68ad581445427d51f
 Author: Vincent Larson <vlarson@users.noreply.github.com>
-Date:   Thu May 27 14:03:40 2021 -0500
+Date:   Wed Nov 10 18:07:38 2021 -0600
 
-    Add rule to name subroutines using verbs.
-
-commit e908c383b187e87a396bee5a1ecf8d6caa3d6579
-Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
-Date:   Tue May 25 09:02:38 2021 -0500
-
-    Deleting comments around the old "magic number" for the near-surface clipping.
+    Turn off l_Lscale_vert_avg because this flag has been deprecated.
     
-    See #921.
-
-commit 5e53e0cc0bcd487e20e6e22e203defab1bb41a13
-Author: bstephens82 <benjamin.andrew.stephens@gmail.com>
-Date:   Wed May 5 10:11:03 2021 -0500
-
-    Makes surface clipping of wp3 consistent with clipping aloft, per #921. This is BIT_CHANGING since it affects how clipping is applied near the surface.
-
-commit 0a67773b3e07b493a4a97f6738a771a8bdcf2158
-Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
-Date:   Sun May 23 20:50:28 2021 -0500
-
-    Update Case_definitions.py
+    We're not concerned about any damage to backwards compatibility because NCAR doesn't run SILHS.
+    Hopefully, this will allow the clubb_bin_diff_regression_backwards_compatibility_gfortran_test Jenkins test to pass.
     
-    Removing path to GABLS2 COAMPS files since the main LES output files only have one time step.
-
-commit 7887bf57213c4a01cf06fef5ecc08dec2207ccc6
-Author: RhodesKeegan <rhodesk@msoe.edu>
-Date:   Sat May 22 14:53:05 2021 -0500
-
-    Added intent comments for advance_xp2_xpyp_module.F90.
-    Additionally, I made changes to certain argument lists to better reflect the coding standard.
-    Changed confirmed to be BFB.
-    For ticket #924.
-
-commit a00e509513edf74b47faf4f54b5f97e94723d5f3
-Author: RhodesKeegan <rhodesk@msoe.edu>
-Date:   Sat May 22 14:16:03 2021 -0500
-
-    Added intent comments.
-    For the file advance_xm_wpxp_module.F90.
-    I also changed the order of arguments in certain arugment lists to conform to the coding standard.
-    Changes confirmed to be BFB.
-    For ticket #924.
-
-commit 2550ba10c41c38490d5d1b93c220909262aaa06c
-Author: RhodesKeegan <rhodesk@msoe.edu>
-Date:   Sat May 22 13:00:33 2021 -0500
-
-    Added intent comments.
-    For file advance_wp2_wp3_module.F90.
-    Results are confirmed to be BFB.
-    For ticket #924.
-
-commit 0032d0d7450495c4853b4c7d32f30b0b1711058f
-Merge: 6598213 cd1b872
-Author: vlarson <vlarson@uwm.edu>
-Date:   Fri May 14 12:46:02 2021 -0500
-
-    Merge branch 'master' of https://github.com/larson-group/clubb
-
-commit cd1b872d020d40c317c91a17eab52f459ff154c1
-Author: Benjamin A. Stephens <59519056+bstephens82@users.noreply.github.com>
-Date:   Fri May 14 12:37:28 2021 -0500
-
-    Removing one instance of "l_input_fields"...
-    
-    ...since it was duplicated in this file.
-
-commit 65982131da3b7dcb589db54e5bb58f8bbee75f5c
-Author: vlarson <vlarson@uwm.edu>
-Date:   Fri May 14 12:36:25 2021 -0500
-
-    Introduce user-chosen scaling factor for dashboard plots.
-    It is useful for plotting parameters such as C_invrs_tau_wpxp_N2_thresh,
-    which has much smaller values than other parameters.
-    
-    For #910.
+    larson-group/sys_admin#763

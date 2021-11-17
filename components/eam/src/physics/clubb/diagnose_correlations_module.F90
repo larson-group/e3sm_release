@@ -88,9 +88,9 @@ module diagnose_correlations_module
        corr_array_swapped = corr_array_pre_swapped
     endif
 
-    call diagnose_corr( pdf_dim, sqrt(sigma2_on_mu2_ip_array), &
-                        corr_array_pre_swapped, &
-                        corr_array_swapped )
+    call diagnose_corr( pdf_dim, sqrt(sigma2_on_mu2_ip_array), & ! intent(in)
+                        corr_array_pre_swapped, & ! intent(in)
+                        corr_array_swapped ) ! intent(inout)
 
     ! Swap rows back
     call rearrange_corr_array( pdf_dim, corr_array_swapped, & ! Intent(in)
@@ -115,11 +115,8 @@ module diagnose_correlations_module
     use clubb_precision, only: &
         core_rknd ! Variable(s)
 
-!    use parameters_tunable, only:  &
-!        alpha_corr ! Constant(s)
-
     use constants_clubb, only: &
-      max_mag_correlation
+        max_mag_correlation
 
     implicit none
 
@@ -340,9 +337,6 @@ module diagnose_correlations_module
 !    use pdf_parameter_module, only:  &
 !        pdf_parameter  ! Type
 !
-!    use parameters_tunable, only: &
-!        c_K_hm ! Variable(s)
-!
 !    use constants_clubb, only: &
 !        one ! Constant(s)
 !
@@ -433,10 +427,10 @@ module diagnose_correlations_module
     !-----------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     use constants_clubb, only: &
-      max_mag_correlation
+        max_mag_correlation
 
     implicit none
 
@@ -483,7 +477,7 @@ module diagnose_correlations_module
     !-----------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -521,7 +515,7 @@ module diagnose_correlations_module
     !-----------------------------------------------------------------------
     
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -605,7 +599,7 @@ module diagnose_correlations_module
     call rearrange_corr_array( n_variables, corr_mtx_approx_swap, &  ! Intent(in)
                                corr_mtx_approx )                     ! Intent(inout)
 
-    call corr_array_assertion_checks( n_variables, corr_mtx_approx )
+    call corr_array_assertion_checks( n_variables, corr_mtx_approx ) ! intent(in)
 
     ! Set lower triangle to zero for conformity
     do i = 2, n_variables
@@ -784,13 +778,13 @@ module diagnose_correlations_module
     !-----------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     use constants_clubb, only: &
-      max_mag_correlation ! Variable(s)
+        max_mag_correlation ! Variable(s)
 
     use constants_clubb, only: &
-      one ! Variable(s)
+        one ! Variable(s)
 
     use error_code, only: &
         clubb_at_least_debug_level  ! Procedure

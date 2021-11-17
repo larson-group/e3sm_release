@@ -354,15 +354,15 @@ module corr_varnce_module
     !-----------------------------------------------------------------------------
 
     use input_reader, only: &
-      one_dim_read_var, & ! Variable(s)
-      read_one_dim_file, deallocate_one_dim_vars, count_columns ! Procedure(s)
+        one_dim_read_var, & ! Variable(s)
+        read_one_dim_file, deallocate_one_dim_vars, count_columns ! Procedure(s)
 
     use matrix_operations, only: set_lower_triangular_matrix ! Procedure(s)
 
     use constants_clubb, only: fstderr ! Variable(s)
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -405,7 +405,8 @@ module corr_varnce_module
     end do
 
     ! Read the values from the specified file
-    call read_one_dim_file( iunit, nCols, input_file, retVars )
+    call read_one_dim_file( iunit, nCols, input_file, & ! intent(in)
+                            retVars ) ! intent(out)
 
     if( size( retVars(1)%values ) /= nCols ) then
       write(fstderr, *) "Correlation matrix must have an equal number of rows and cols in file ", &
@@ -422,14 +423,15 @@ module corr_varnce_module
           var_index2 = get_corr_var_index( retVars(j)%name )
           if( var_index2 > -1 ) then
             call set_lower_triangular_matrix &
-                 ( pdf_dim, var_index1, var_index2, retVars(i)%values(j), &
-                   corr_array_n )
+                 ( pdf_dim, var_index1, var_index2, retVars(i)%values(j), & ! intent(in)
+                   corr_array_n ) ! intent(inout)
           end if
         end do
       end if
     end do
 
-    call deallocate_one_dim_vars( nCols, retVars )
+    call deallocate_one_dim_vars( nCols, & ! intent(in)
+                                  retVars ) ! intent(inout)
 
     return
   end subroutine read_correlation_matrix
@@ -730,8 +732,8 @@ module corr_varnce_module
     use matrix_operations, only: mirror_lower_triangular_matrix ! Procedure
 
     use constants_clubb, only: &
-      fstderr, &  ! Constant(s)
-      eps
+        fstderr, &  ! Constant(s)
+        eps
 
     implicit none
 
@@ -783,8 +785,10 @@ module corr_varnce_module
     endif
 
     ! Mirror the correlation matrices
-    call mirror_lower_triangular_matrix( pdf_dim, corr_array_n_cloud )
-    call mirror_lower_triangular_matrix( pdf_dim, corr_array_n_below )
+    call mirror_lower_triangular_matrix( pdf_dim, & ! intent(in)
+                                         corr_array_n_cloud ) ! intent(inout)
+    call mirror_lower_triangular_matrix( pdf_dim, & ! intent(in)
+                                         corr_array_n_below ) ! intent(inout)
 
     ! Sanity check to avoid confusing non-convergence results.
     if ( clubb_at_least_debug_level( 2 ) ) then

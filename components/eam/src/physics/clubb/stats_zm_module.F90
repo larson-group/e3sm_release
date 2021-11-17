@@ -15,7 +15,9 @@ module stats_zm_module
   contains
 
 !-----------------------------------------------------------------------
-  subroutine stats_init_zm( vars_zm, l_error )
+  subroutine stats_init_zm( vars_zm, & ! intent(in)
+                            l_error, & !intent(inout)
+                            stats_zm ) ! intent(inout)
 
 ! Description:
 !   Initializes array indices for stats_zm
@@ -31,7 +33,6 @@ module stats_zm_module
         fstderr ! Constant(s)
 
     use stats_variables, only: &
-        stats_zm, &
         iwp2, &
         irtp2, &
         ithlp2, &
@@ -160,6 +161,7 @@ module stats_zm_module
         iwp2_pr1, &
         iwp2_pr2, &
         iwp2_pr3, &
+        iwp2_pr_dfsn, &
         iwp2_dp1, &
         iwp2_dp2, &
         iwp2_sdmp, &
@@ -346,7 +348,12 @@ module stats_zm_module
         hydromet_list, & ! Variable(s)
         l_mix_rat_hm
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zm
 
     ! External
     intrinsic :: trim
@@ -1374,6 +1381,15 @@ module stats_zm_module
 
         k = k + 1
 
+      case ('wp2_pr_dfsn')
+        iwp2_pr_dfsn = k
+        call stat_assign( var_index=iwp2_pr_dfsn, var_name="wp2_pr_dfsn", &
+             var_description="w'^2_pr_dfsn, wp2 budget: wp2 pressure diffusion term", &
+              var_units="m^2/s^3", &
+             l_silhs=.false., grid_kind=stats_zm )
+
+        k = k + 1
+
       case ('wp2_dp1')
         iwp2_dp1 = k
         call stat_assign( var_index=iwp2_dp1, var_name="wp2_dp1", &
@@ -1701,7 +1717,7 @@ module stats_zm_module
 
       case ('upwp_tp')
         iupwp_tp = k
-        call stat_assign( var_index=iupwp_tp, var_name="upwp_tp, ", &
+        call stat_assign( var_index=iupwp_tp, var_name="upwp_tp", &
              var_description="u'w'_t', upwp budget: upwp turbulent production", &
              var_units="m^2/s^3", l_silhs=.false., grid_kind=stats_zm )
         k = k + 1

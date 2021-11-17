@@ -27,7 +27,8 @@ module precipitation_fraction
                               hydromet, cloud_frac, cloud_frac_1, &
                               cloud_frac_2, ice_supersat_frac, &
                               ice_supersat_frac_1, ice_supersat_frac_2, &
-                              mixt_frac, l_stats_samp, &
+                              mixt_frac, clubb_params, l_stats_samp, &
+                              stats_sfc, & 
                               precip_frac, &
                               precip_frac_1, &
                               precip_frac_2, &
@@ -47,6 +48,10 @@ module precipitation_fraction
         cloud_frac_min, &
         fstderr
 
+    use parameter_indices, only: &
+        nparams, & ! Variable(s)
+        iupsilon_precip_frac_rat
+
     use parameters_model, only: &
         hydromet_dim  ! Variable(s)
 
@@ -56,7 +61,6 @@ module precipitation_fraction
         hydromet_tol
 
     use stats_variables, only: &
-        stats_sfc,        & ! Variable(s)
         iprecip_frac_tol
 
     use stats_type_utilities, only: &
@@ -70,7 +74,12 @@ module precipitation_fraction
         err_code, &                     ! Error Indicator
         clubb_fatal_error               ! Constant
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_sfc
 
     ! Input Variables
     integer, intent(in) :: &
@@ -88,6 +97,9 @@ module precipitation_fraction
       ice_supersat_frac_1, & ! Ice supersaturation fraction (1st PDF comp.)  [-]
       ice_supersat_frac_2, & ! Ice supersaturation fraction (2nd PDF comp.)  [-]
       mixt_frac              ! Mixture fraction                              [-]
+
+    real( kind = core_rknd ), dimension(nparams), intent(in) :: &
+      clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
 
     logical, intent(in) :: &
       l_stats_samp     ! Flag to record statistical output.
@@ -205,21 +217,22 @@ module precipitation_fraction
 
       ! Calculatate precip_frac_1 and precip_frac_2 based on the greatest
       ! weighted cloud_frac_1 at or above a grid level.
-      call component_precip_frac_weighted( nz, ngrdcol, &
-                                           hydromet(:,:,:), precip_frac(:,:), &
-                                           cloud_frac_1(:,:), cloud_frac_2(:,:), &
-                                           ice_supersat_frac_1(:,:), &
-                                           ice_supersat_frac_2(:,:), mixt_frac(:,:), &
-                                           precip_frac_tol(:), &
-                                           precip_frac_1(:,:), precip_frac_2(:,:) )
+      call component_precip_frac_weighted( nz, ngrdcol, & ! intent(in)
+                                           hydromet(:,:,:), precip_frac(:,:), & ! intent(in)
+                                           cloud_frac_1(:,:), cloud_frac_2(:,:), & ! intent(in)
+                                           ice_supersat_frac_1(:,:), & ! intent(in)
+                                           ice_supersat_frac_2(:,:), mixt_frac(:,:), & !intent(in)
+                                           precip_frac_tol(:), & ! intent(in)
+                                           precip_frac_1(:,:), precip_frac_2(:,:) ) ! intent(out)
                                             
     elseif ( precip_frac_calc_type == 2 ) then
 
       ! Specified method.
-      call component_precip_frac_specify( nz, ngrdcol, &
-                                          hydromet(:,:,:), precip_frac(:,:), &
-                                          mixt_frac(:,:), precip_frac_tol(:), &
-                                          precip_frac_1(:,:), precip_frac_2(:,:) )
+      call component_precip_frac_specify( nz, ngrdcol, & ! intent(in)
+                                          clubb_params(iupsilon_precip_frac_rat), & ! intent(in)
+                                          hydromet(:,:,:), precip_frac(:,:), & ! intent(in)
+                                          mixt_frac(:,:), precip_frac_tol(:), & ! intent(in)
+                                          precip_frac_1(:,:), precip_frac_2(:,:) ) ! intent(out)
 
     else ! Invalid option selected.
 
@@ -364,8 +377,8 @@ module precipitation_fraction
     if ( l_stats_samp ) then
       if ( iprecip_frac_tol > 0 ) then
         do j = 1, ngrdcol
-          call stat_update_var_pt( iprecip_frac_tol, 1, precip_frac_tol(j), &
-                                   stats_sfc )
+          call stat_update_var_pt( iprecip_frac_tol, 1, precip_frac_tol(j), & ! intent(in)
+                                   stats_sfc ) ! intent(inout)
         end do
       end if ! iprecip_frac_tol
     end if ! l_stats_samp
@@ -374,9 +387,9 @@ module precipitation_fraction
     ! Assertion check for precip_frac, precip_frac_1, and precip_frac_2.
     if ( clubb_at_least_debug_level( 2 ) ) then
       do j = 1, ngrdcol
-        call precip_frac_assert_check( nz, hydromet(j,:,:), mixt_frac(j,:), precip_frac(j,:), &
-                                       precip_frac_1(j,:), precip_frac_2(j,:), &
-                                       precip_frac_tol(j) )
+        call precip_frac_assert_check( nz, hydromet(j,:,:), mixt_frac(j,:), precip_frac(j,:), & !in
+                                       precip_frac_1(j,:), precip_frac_2(j,:), & ! intent(in)
+                                       precip_frac_tol(j) ) ! intent(in)
       end do
     endif
 
@@ -721,6 +734,7 @@ module precipitation_fraction
 
   !=============================================================================
   subroutine component_precip_frac_specify( nz, ngrdcol, &
+                                            upsilon_precip_frac_rat, &
                                             hydromet, precip_frac, &
                                             mixt_frac, precip_frac_tol, &
                                             precip_frac_1, precip_frac_2 )
@@ -766,9 +780,6 @@ module precipitation_fraction
         zero, &
         eps
 
-    use parameters_tunable, only: &
-        upsilon_precip_frac_rat  ! Variable(s)
-
     use parameters_model, only: &
         hydromet_dim  ! Variable(s)
 
@@ -784,6 +795,9 @@ module precipitation_fraction
     integer, intent(in) :: &
       nz,      & ! Number of model vertical grid levels
       ngrdcol    ! Number of grid columns
+
+    real( kind = core_rknd ), intent(in) :: &
+      upsilon_precip_frac_rat    ! ratio mixt_frac*precip_frac_1/precip_frac [-]
 
     real( kind = core_rknd ), dimension(ngrdcol,nz,hydromet_dim), intent(in) :: &
       hydromet    ! Mean of hydrometeor, hm (overall)           [units vary]

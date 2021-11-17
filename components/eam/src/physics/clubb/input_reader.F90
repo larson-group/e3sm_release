@@ -77,13 +77,13 @@ module input_reader
     !
     !-----------------------------------------------------------------------------------------------
     use constants_clubb, only: &
-      fstderr ! Constant(s)
+        fstderr ! Constant(s)
 
     use input_names, only: &
-      time_name ! Constant(s)
+        time_name ! Constant(s)
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -213,7 +213,8 @@ module input_reader
   end subroutine read_two_dim_file
 
   !------------------------------------------------------------------------------------------------
-  subroutine read_one_dim_file( iunit, nCol, filename, read_vars )
+  subroutine read_one_dim_file( iunit, nCol, filename, &
+                                read_vars )
     !
     ! Description: 
     !   This subroutine reads from a file containing data that varies
@@ -224,7 +225,7 @@ module input_reader
     !----------------------------------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -334,7 +335,7 @@ module input_reader
     !----------------------------------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -448,7 +449,7 @@ module input_reader
     use interpolation, only: zlinterp_fnc
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -516,7 +517,8 @@ module input_reader
     return
   end function linear_fill_blanks
   !----------------------------------------------------------------------------
-  subroutine deallocate_one_dim_vars( num_vars, one_dim_vars )
+  subroutine deallocate_one_dim_vars( num_vars, &
+                                      one_dim_vars )
     !
     !  Description: 
     !    This subroutine deallocates the pointer stored in
@@ -613,10 +615,10 @@ module input_reader
     !-----------------------------------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     use constants_clubb, only: &
-      fstderr ! Constant(s)
+        fstderr ! Constant(s)
 
     implicit none
 
@@ -689,10 +691,10 @@ module input_reader
     !----------------------------------------------------------------------------------------------
 
     use constants_clubb, only: &
-      fstderr  ! Variable for writing to error stream
+        fstderr  ! Variable for writing to error stream
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 

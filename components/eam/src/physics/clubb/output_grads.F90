@@ -41,7 +41,8 @@ module output_grads
                          ia, iz, nlat, nlon, z, & 
                          day, month, year, lat_vals, lon_vals, & 
                          time, dtwrite, & 
-                         nvar, grads_file )
+                         nvar, &
+                         grads_file )
 ! Description:
 !   Opens and initialize variable components for derived type 'grads_file'
 !   If the GrADS file already exists, open_grads will overwrite it.
@@ -190,12 +191,12 @@ module output_grads
 
       !  Check existing ctl file
 
-      call check_grads( iunit, fdir, fname,  & 
-                        ia, iz, & 
-                        day, month, year, time, dtwrite, & 
-                        nvar,  & 
-                        l_error, grads_file%ntimes, grads_file%nrecord, &
-                        grads_file%time )
+      call check_grads( iunit, fdir, fname,  & ! intent(in)
+                        ia, iz, &  ! intent(in)
+                        day, month, year, time, dtwrite, & ! intent(in) 
+                        nvar,  &  ! intent(in)
+                        l_error, grads_file%ntimes, grads_file%nrecord, & ! intent(out)
+                        grads_file%time ) ! intnet(out)
 
       if ( l_error ) then
         write(unit=fstderr,fmt=*) "Error in open_grads:"
@@ -482,17 +483,17 @@ module output_grads
 !-------------------------------------------------------------------------------
 
     use constants_clubb, only: & 
-      fstderr ! Variable(s)
+        fstderr ! Variable(s)
 
     use model_flags, only: &
-      l_byteswap_io ! Variable
+        l_byteswap_io ! Variable
 
     use endian, only: & 
-      big_endian, & ! Variable
-      little_endian
+        big_endian, & ! Variable
+        little_endian
 
     use stat_file_module, only: & 
-      stat_file ! Type
+        stat_file ! Type
 
 !   use stat_file_module, only: &
 !     clubb_i, clubb_j ! Variable(s)
@@ -666,17 +667,17 @@ module output_grads
 !   None
 !---------------------------------------------------------
     use clubb_precision, only:  & 
-      time_precision    ! Variable(s)
+        time_precision    ! Variable(s)
 
     use calendar, only:  & 
-      compute_current_date ! Procedure(s)
+        compute_current_date ! Procedure(s)
 
     use calendar, only: & 
-      month_names ! Variable(s)
+        month_names ! Variable(s)
 
     use constants_clubb, only: &
-      sec_per_hr, & ! Variable(s)
-      min_per_hr
+        sec_per_hr, & ! Variable(s)
+        min_per_hr
 
     implicit none
 
@@ -734,9 +735,9 @@ module output_grads
 !   None
 !-------------------------------------------------------------------------------
     use constants_clubb, only: &
-      sec_per_day, & ! Constants
-      sec_per_hr, &
-      sec_per_min
+        sec_per_day, & ! Constants
+        sec_per_hr, &
+        sec_per_min
 
 
     implicit none
