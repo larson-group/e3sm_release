@@ -625,7 +625,7 @@ contains
 
                                          l_stats_samp, &
 
-                                         zm2zt_api, setup_grid_heights_api, gr, &
+                                         zm2zt_api, setup_grid_heights_api, &
 
                                          iirr, iiNr, iirs, iiri, &
                                          iirg, iiNs, &
@@ -693,8 +693,6 @@ contains
       real(r8) :: scale = 1.0_r8
 
       character(len=16) :: microp_scheme
-
-      real(r8), dimension(nparams) :: clubb_params ! Adjustable CLUBB parameters
 
       real(r8) :: c_K ! CLUBB parameter c_K (for eddy diffusivity)
 

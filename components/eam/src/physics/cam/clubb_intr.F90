@@ -688,6 +688,7 @@ end subroutine clubb_init_cnst
     use hb_diff,                only: init_hb_diff
     use trb_mtn_stress,         only: init_tms
     use rad_constituents,       only: rad_cnst_get_info, rad_cnst_get_mode_num_idx, rad_cnst_get_mam_mmr_idx
+    use cam_abortutils,         only: endrun
 
     !  From the CLUBB libraries
     use clubb_api_module, only: setup_clubb_core_api, &
@@ -1039,7 +1040,6 @@ end subroutine clubb_init_cnst
 
     call init_clubb_config_flags( clubb_config_flags ) ! In/Out
     clubb_config_flags%l_uv_nudge = .false.
-    clubb_config_flags%l_update_pressure = .false.
     ! Brian:  these flags were previously set in CLUBB's model_flags.F90
     clubb_config_flags%l_predict_upwp_vpwp = .false.
     clubb_config_flags%l_diag_Lscale_from_tau = .true.
@@ -2495,7 +2495,7 @@ end subroutine clubb_init_cnst
          wp2_sponge_damp_settings%sponge_damp_depth &
          = ( zi_g(pverp) - zi_g(pverp-top_lev+1) ) / zi_g(pverp)
 
-         call initialize_tau_sponge_damp_api( dtime, zi_g,              & ! In
+         call initialize_tau_sponge_damp_api( gr, dtime, zi_g,          & ! In
                                               wp2_sponge_damp_settings, & ! In
                                               wp2_sponge_damp_profile )   ! Out
 
@@ -2508,7 +2508,7 @@ end subroutine clubb_init_cnst
          wp3_sponge_damp_settings%sponge_damp_depth &
          = ( zi_g(pverp) - zi_g(pverp-top_lev+1) ) / zi_g(pverp)
 
-         call initialize_tau_sponge_damp_api( dtime, zt_g,              & ! In
+         call initialize_tau_sponge_damp_api( gr, dtime, zt_g,          & ! In
                                               wp3_sponge_damp_settings, & ! In
                                               wp3_sponge_damp_profile )   ! Out
 
@@ -2571,8 +2571,8 @@ end subroutine clubb_init_cnst
 
       !  Compute some inputs from the thermodynamic grid
       !  to the momentum grid
-      thv_ds_zm       = zt2zm_api(thv_ds_zt)
-      wm_zm           = zt2zm_api(wm_zt)
+      thv_ds_zm       = zt2zm_api(gr, thv_ds_zt)
+      wm_zm           = zt2zm_api(gr, wm_zt)
  
       !  Surface fluxes provided by host model
       wpthlp_sfc = cam_in%shf(i)/(cpair*rho_ds_zm(1))       ! Sensible heat flux
