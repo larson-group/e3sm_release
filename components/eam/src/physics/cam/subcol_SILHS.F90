@@ -521,10 +521,12 @@ contains
            'Weights for each subcolumn', flag_xyfill=.true., fill_value=1.e30_r8)
       call addfld('SILHS_WM_SCOL', (/'psubcols', 'ilev    '/), 'I', 'm/s', &
            'Subcolumn vertical velocity from SILHS', flag_xyfill=.true., fill_value=1.e30_r8)
+#ifdef SILHS
       if ( microp_scheme == 'MG' ) then
          call addfld('NR_IN_LH', (/ 'lev' /), 'I', 'm^-3', &
                      'Num Rain Conc as input to SILHS')
       endif ! microp_scheme == 'MG'
+#endif
       call addfld('RTM_CLUBB', (/ 'ilev' /), 'I', 'kg/kg', &
                    'Input total water mixing ratio')
       call addfld('THLM_CLUBB', (/ 'ilev' /), 'I', 'K', &
@@ -625,7 +627,7 @@ contains
 
                                          l_stats_samp, &
 
-                                         zm2zt_api, setup_grid_heights_api, gr, &
+                                         zm2zt_api, setup_grid_heights_api, &
 
                                          iirr, iiNr, iirs, iiri, &
                                          iirg, iiNs, &
@@ -693,8 +695,6 @@ contains
       real(r8) :: scale = 1.0_r8
 
       character(len=16) :: microp_scheme
-
-      real(r8), dimension(nparams) :: clubb_params ! Adjustable CLUBB parameters
 
       real(r8) :: c_K ! CLUBB parameter c_K (for eddy diffusivity)
 
