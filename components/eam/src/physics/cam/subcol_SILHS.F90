@@ -521,10 +521,12 @@ contains
            'Weights for each subcolumn', flag_xyfill=.true., fill_value=1.e30_r8)
       call addfld('SILHS_WM_SCOL', (/'psubcols', 'ilev    '/), 'I', 'm/s', &
            'Subcolumn vertical velocity from SILHS', flag_xyfill=.true., fill_value=1.e30_r8)
+#ifdef SILHS
       if ( microp_scheme == 'MG' ) then
          call addfld('NR_IN_LH', (/ 'lev' /), 'I', 'm^-3', &
                      'Num Rain Conc as input to SILHS')
       endif ! microp_scheme == 'MG'
+#endif
       call addfld('RTM_CLUBB', (/ 'ilev' /), 'I', 'kg/kg', &
                    'Input total water mixing ratio')
       call addfld('THLM_CLUBB', (/ 'ilev' /), 'I', 'K', &
