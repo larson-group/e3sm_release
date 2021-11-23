@@ -1718,7 +1718,6 @@ end subroutine clubb_init_cnst
    character(len=6) :: choice_radf
    
    integer                               :: time_elapsed               ! time keep track of stats          [s]
-   real(r8), dimension(nparams)          :: clubb_params                ! These adjustable CLUBB parameters (C1, C2 ...)
    real(r8), dimension(sclr_dim)         :: sclr_tol                    ! Tolerance on passive scalar       [units vary]
    integer :: stats_nsamp, stats_nout                               ! Stats sampling and output intervals for CLUBB [timestep]
    character(len=200)                    :: temp1, sub                  ! Strings needed for CLUBB output
