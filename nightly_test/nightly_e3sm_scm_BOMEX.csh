@@ -95,7 +95,7 @@ set clubb_vars_zm_list = "'wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 
   set E3SMROOT=${code_dir}
   
   cd $E3SMROOT/cime/scripts
-  set compset=F_SCAM5
+  set compset=F_SCAM
   
   if ($dycore == Eulerian) then
     set grid=T42_T42
@@ -157,7 +157,7 @@ set clubb_vars_zm_list = "'wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 
   end
 
 # CAM configure options.  By default set up with settings the same as E3SMv1
-  set CAM_CONFIG_OPTS="-phys cam5 -scam -nlev 72 -clubb_sgs"
+  set CAM_CONFIG_OPTS="-phys default -scam -nlev 72 -clubb_sgs"
   if ($dycore == Eulerian) then
     set CAM_CONFIG_OPTS="$CAM_CONFIG_OPTS -nospmd -nosmp"
   endif
