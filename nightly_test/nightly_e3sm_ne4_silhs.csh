@@ -966,7 +966,7 @@ cat <<EOF >> user_nl_cpl
 ! finidat=''
 EOF
 
-cat <<EOF >> user_nl_cam 
+cat <<EOF >> user_nl_eam 
 ! clubb_ice_deep = 25.e-7 ! -6
 ! clubb_ice_sh = 50.e-7
 ! clubb_liq_deep = 8.e-7
