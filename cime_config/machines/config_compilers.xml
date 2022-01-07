@@ -916,7 +916,7 @@ flags should be captured within MPAS CMake files.
   <PNETCDF_PATH>$ENV{PNETCDF_PATH}</PNETCDF_PATH>
 </compiler>
 
-<compiler MACH="blues" COMPILER="pgigpu"cat /home/pbroels/e3sm/projects/scratch/SCM_runs/test_BOMEX/build/e3sm.bldlog.220103-145700>
+<compiler MACH="blues" COMPILER="pgigpu">
   <CONFIG_ARGS>
     <base> --host=Linux </base>
   </CONFIG_ARGS>
@@ -1028,7 +1028,7 @@ flags should be captured within MPAS CMake files.
    <base> -L$ENV{GFORTRAN_NETCDF_FORTRAN}/lib -lnetcdff -lnetcdf -L$ENV{GFORTRAN_NETCDF_C}/lib -lnetcdf -L/usr/local/lapack-3.8.0 -llapack -lrefblas </base>
  </SLIBS>
  <FFLAGS>
-   <append> -g -fallow-argument-mismatch -fallow-invaild-boz </append>
+   <append> -g -fbacktrace </append>
  </FFLAGS>
  <LDFLAGS>
    <append> -Wl,-rpath,$ENV{GFORTRAN_NETCDF_FORTRAN}/lib </append>
