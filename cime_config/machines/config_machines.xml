@@ -1795,7 +1795,7 @@
     <MAX_TASKS_PER_NODE>1</MAX_TASKS_PER_NODE>
     <MAX_MPITASKS_PER_NODE>1</MAX_MPITASKS_PER_NODE>
     <mpirun mpilib="default">
-      <executable>$ENV{GFORTRAN_MPICH}/bin/mpirun</executable>
+      <executable>$ENV{GFORTRAN_MPICH_8}/bin/mpirun</executable>
       <arguments>
         <arg name="anum_tasks"> -np $TOTALPES</arg>
         <arg name="labelstdout">-prepend-rank</arg>
@@ -1833,7 +1833,7 @@
     <MAX_TASKS_PER_NODE>1</MAX_TASKS_PER_NODE>
     <MAX_MPITASKS_PER_NODE>1</MAX_MPITASKS_PER_NODE>
     <mpirun mpilib="default">
-      <executable>$ENV{GFORTRAN_MPICH}/bin/mpirun</executable>
+      <executable>$ENV{GFORTRAN_MPICH_8}/bin/mpirun</executable>
       <arguments>
         <arg name="anum_tasks"> -np $TOTALPES</arg>
         <arg name="labelstdout">-prepend-rank</arg>

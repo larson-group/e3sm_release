@@ -1003,10 +1003,10 @@ flags should be captured within MPAS CMake files.
 
 <compiler MACH="carson">
   <!-- Environment Variable definitions can be found here: https://github.com/larson-group/sys_admin/blob/master/set_larson-group_paths/larson-group.sh -->
-  <SCC>$ENV{GFORTRAN_MPICH}/bin/mpicc</SCC>
-  <SFC>$ENV{GFORTRAN_MPICH}/bin/mpif90</SFC>
-  <MPICC>$ENV{GFORTRAN_MPICH}/bin/mpicc</MPICC>
-  <MPIFC>$ENV{GFORTRAN_MPICH}/bin/mpif90</MPIFC>
+  <SCC>$ENV{GFORTRAN_MPICH_8}/bin/mpicc</SCC>
+  <SFC>$ENV{GFORTRAN_MPICH_8}/bin/mpif90</SFC>
+  <MPICC>$ENV{GFORTRAN_MPICH_8}/bin/mpicc</MPICC>
+  <MPIFC>$ENV{GFORTRAN_MPICH_8}/bin/mpif90</MPIFC>
   <SLIBS>
    <base> -L$ENV{GFORTRAN_NETCDF_FORTRAN}/lib -lnetcdff -lnetcdf -L$ENV{GFORTRAN_NETCDF_C}/lib -lnetcdf -L/usr/local/lapack-3.8.0 -llapack -lrefblas </base>
  </SLIBS>
@@ -1020,10 +1020,10 @@ flags should be captured within MPAS CMake files.
 
 <compiler MACH="nelson">
   <!-- Environment Variable definitions can be found here: https://github.com/larson-group/sys_admin/blob/master/set_larson-group_paths/larson-group.sh	-->
-  <SCC>$ENV{GFORTRAN_MPICH}/bin/mpicc</SCC>
-  <SFC>$ENV{GFORTRAN_MPICH}/bin/mpif90</SFC>
-  <MPICC>$ENV{GFORTRAN_MPICH}/bin/mpicc</MPICC>
-  <MPIFC>$ENV{GFORTRAN_MPICH}/bin/mpif90</MPIFC>
+  <SCC>$ENV{GFORTRAN_MPICH_8}/bin/mpicc</SCC>
+  <SFC>$ENV{GFORTRAN_MPICH_8}/bin/mpif90</SFC>
+  <MPICC>$ENV{GFORTRAN_MPICH_8}/bin/mpicc</MPICC>
+  <MPIFC>$ENV{GFORTRAN_MPICH_8}/bin/mpif90</MPIFC>
   <SLIBS>
    <base> -L$ENV{GFORTRAN_NETCDF_FORTRAN}/lib -lnetcdff -lnetcdf -L$ENV{GFORTRAN_NETCDF_C}/lib -lnetcdf -L/usr/local/lapack-3.8.0 -llapack -lrefblas </base>
  </SLIBS>
