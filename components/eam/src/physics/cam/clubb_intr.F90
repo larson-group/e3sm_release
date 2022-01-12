@@ -1171,6 +1171,7 @@ end subroutine clubb_init_cnst
     call addfld ('CLOUDFRAC_CLUBB', (/ 'lev' /),  'A',  '1', 'Cloud Fraction')
     call addfld ('RCMINLAYER_CLUBB',     (/ 'ilev' /), 'A', 'g/kg', 'Cloud Water in Layer')
     call addfld ('CLOUDCOVER_CLUBB', (/ 'ilev' /), 'A', 'fraction', 'Cloud Cover') 
+    call addfld ('W_UP_IN_CL_CLUBB', (/ 'ilev' /), 'A',      'm/s', 'Mean in-cloud updraft velocity') 
     call addfld ('WPTHVP_CLUBB',     (/ 'lev' /),  'A',     'W/m2', 'Buoyancy Flux')
     call addfld ('RVMTEND_CLUBB',  (/ 'lev' /),  'A',    'g/kg /s', 'Water vapor tendency')
     call addfld ('STEND_CLUBB',      (/ 'lev' /),  'A',      'k/s', 'Temperature tendency')
@@ -1260,6 +1261,7 @@ end subroutine clubb_init_cnst
        call add_default('CLOUDFRAC_CLUBB',  1, ' ')
        call add_default('RCMINLAYER_CLUBB', 1, ' ')
        call add_default('CLOUDCOVER_CLUBB', 1, ' ')
+       call add_default('W_UP_IN_CL_CLUBB', 1, ' ')
        call add_default('WPTHVP_CLUBB',     1, ' ')
        call add_default('RVMTEND_CLUBB',    1, ' ')
        call add_default('STEND_CLUBB',      1, ' ')
@@ -3709,6 +3711,7 @@ end subroutine clubb_init_cnst
    tmp_array = rcm_in_layer(:ncol,:)*1000._r8
    call outfld( 'RCMINLAYER_CLUBB', tmp_array,               ncol,  lchnk )
    call outfld( 'CLOUDCOVER_CLUBB', cloud_frac,              pcols, lchnk )
+   call outfld( 'W_UP_IN_CL_CLUBB', w_up_in_cloud,           pcols, lchnk )
    call outfld( 'WPTHVP_CLUBB',     wpthvp_diag*cpair,       pcols, lchnk )
    call outfld( 'ZT_CLUBB',         1._r8*zt_out,            pcols, lchnk )
    call outfld( 'ZM_CLUBB',         1._r8*zi_out,            pcols, lchnk )
