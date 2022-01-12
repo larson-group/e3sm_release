@@ -224,6 +224,7 @@ module clubb_intr
     rel_idx, &          ! Rel
     kvh_idx, &          ! CLUBB eddy diffusivity on thermo levels
     kvm_idx, &          ! CLUBB eddy diffusivity on mom levels
+    w_up_in_cl_idx, &   ! CLUBB mean in-cloud updraft speed
     pblh_idx, &         ! PBL pbuf
     icwmrdp_idx, &      ! In cloud mixing ratio for deep convection
     tke_idx, &          ! turbulent kinetic energy
@@ -367,6 +368,7 @@ module clubb_intr
     call pbuf_add_field('tke',        'global', dtype_r8, (/pcols, pverp/),             tke_idx)
     call pbuf_add_field('kvh',        'global', dtype_r8, (/pcols, pverp/),             kvh_idx)
     call pbuf_add_field('kvm',        'global', dtype_r8, (/pcols, pverp/),             kvm_idx)
+    call pbuf_add_field('w_up_in_cl', 'global', dtype_r8, (/pcols, pverp/),             w_up_in_cl_idx)
     call pbuf_add_field('tpert',      'global', dtype_r8, (/pcols/),                    tpert_idx)
     call pbuf_add_field('AST',        'global', dtype_r8, (/pcols,pver,dyn_time_lvls/),    ast_idx)
     call pbuf_add_field('AIST',       'global', dtype_r8, (/pcols,pver,dyn_time_lvls/),    aist_idx)
@@ -1773,6 +1775,7 @@ end subroutine clubb_init_cnst
    real(r8), pointer, dimension(:,:) :: shalcu   ! shallow convection cloud fraction            [fraction]    
    real(r8), pointer, dimension(:,:) :: khzt     ! eddy diffusivity on thermo levels            [m^2/s]
    real(r8), pointer, dimension(:,:) :: khzm     ! eddy diffusivity on momentum levels          [m^2/s]
+   real(r8), pointer, dimension(:,:) :: w_up_in_cloud ! Mean in-cloud updraft velocity          [m/s]
    real(r8), pointer, dimension(:) :: pblh     ! planetary boundary layer height                [m]
    real(r8), pointer, dimension(:,:) :: tke      ! turbulent kinetic energy                     [m^2/s^2]
    real(r8), pointer, dimension(:,:) :: dp_icwmr ! deep convection in cloud mixing ratio        [kg/kg]
@@ -2012,6 +2015,7 @@ end subroutine clubb_init_cnst
    call pbuf_get_field(pbuf, sh_frac_idx, shalcu)
    call pbuf_get_field(pbuf, kvm_idx,     khzt)
    call pbuf_get_field(pbuf, kvh_idx,     khzm)
+   call pbuf_get_field(pbuf, w_up_in_cl_idx, w_up_in_cloud)
    call pbuf_get_field(pbuf, pblh_idx,    pblh)
    call pbuf_get_field(pbuf, icwmrdp_idx, dp_icwmr)
    call pbuf_get_field(pbuf, cmfmc_sh_idx, cmfmc_sh)
@@ -2647,14 +2651,15 @@ end subroutine clubb_init_cnst
          endif
 
          !  Initialize these to prevent crashing behavior
-         wprcp_out(k)        = 0._r8
-         rcm_in_layer_out(k) = 0._r8
-         cloud_cover_out(k)  = 0._r8
-         invrs_tau_zm_out(k) = 0._r8
-         edsclr_in(k,:)      = 0._r8
-         edsclr_out(k,:)     = 0._r8
-         khzm_out(k)         = 0._r8
-         khzt_out(k)         = 0._r8
+         wprcp_out(k)         = 0._r8
+         rcm_in_layer_out(k)  = 0._r8
+         cloud_cover_out(k)   = 0._r8
+         invrs_tau_zm_out(k)  = 0._r8
+         edsclr_in(k,:)       = 0._r8
+         edsclr_out(k,:)      = 0._r8
+         khzm_out(k)          = 0._r8
+         khzt_out(k)          = 0._r8
+         w_up_in_cloud_out(k) = 0._r8
 
          ! Hydrometeor array inputs, set to zero
          hydromet(k,:)        = 0._r8
@@ -3006,14 +3011,15 @@ end subroutine clubb_init_cnst
           pdf_zm_varnce_w_1(i,k) = pdf_zm_varnce_w_1_inout(pverp-k+1)
           pdf_zm_varnce_w_2(i,k) = pdf_zm_varnce_w_2_inout(pverp-k+1)
           pdf_zm_mixt_frac(i,k) =  pdf_zm_mixt_frac_inout(pverp-k+1)
-          rcm_in_layer(i,k) = rcm_in_layer_out(pverp-k+1)
-          cloud_cover(i,k)  = min(cloud_cover_out(pverp-k+1),1._r8)
-          zt_out(i,k)       = zt_g(pverp-k+1)
-          zi_out(i,k)       = zi_g(pverp-k+1)
-          khzm(i,k)         = khzm_out(pverp-k+1)
-          khzt(i,k)         = khzt_out(pverp-k+1)
-          qclvar(i,k)       = min(1._r8,qclvar_out(pverp-k+1))
-          invrs_tau_zm(i,k) = invrs_tau_zm_out(pverp-k+1)
+          rcm_in_layer(i,k)  = rcm_in_layer_out(pverp-k+1)
+          cloud_cover(i,k)   = min(cloud_cover_out(pverp-k+1),1._r8)
+          zt_out(i,k)        = zt_g(pverp-k+1)
+          zi_out(i,k)        = zi_g(pverp-k+1)
+          khzm(i,k)          = khzm_out(pverp-k+1)
+          khzt(i,k)          = khzt_out(pverp-k+1)
+          w_up_in_cloud(i,k) = w_up_in_cloud_out(pverp-k+1)
+          qclvar(i,k)        = min(1._r8,qclvar_out(pverp-k+1))
+          invrs_tau_zm(i,k)  = invrs_tau_zm_out(pverp-k+1)
 
           wm_zt_out(i,k)    = wm_zt(pverp-k+1)
 
