@@ -1171,7 +1171,7 @@ end subroutine clubb_init_cnst
     call addfld ('CLOUDFRAC_CLUBB', (/ 'lev' /),  'A',  '1', 'Cloud Fraction')
     call addfld ('RCMINLAYER_CLUBB',     (/ 'ilev' /), 'A', 'g/kg', 'Cloud Water in Layer')
     call addfld ('CLOUDCOVER_CLUBB', (/ 'ilev' /), 'A', 'fraction', 'Cloud Cover') 
-    call addfld ('W_UP_IN_CL_CLUBB', (/ 'ilev' /), 'A',      'm/s', 'Mean in-cloud updraft velocity') 
+    call addfld ('W_UP_IN_CL_CLUBB', (/ 'lev' /), 'A',       'm/s', 'Mean in-cloud updraft velocity')
     call addfld ('WPTHVP_CLUBB',     (/ 'lev' /),  'A',     'W/m2', 'Buoyancy Flux')
     call addfld ('RVMTEND_CLUBB',  (/ 'lev' /),  'A',    'g/kg /s', 'Water vapor tendency')
     call addfld ('STEND_CLUBB',      (/ 'lev' /),  'A',      'k/s', 'Temperature tendency')
