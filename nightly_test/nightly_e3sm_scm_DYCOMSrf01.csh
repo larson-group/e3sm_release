@@ -7,7 +7,7 @@
 #######  Non-precipitating marine stratocumulus
 #######  
 #######  Script Author: P. Bogenschutz (bogenschutz1@llnl.gov)
-
+#######  modified for clubb_subcol_v2 Zhun Guo (guozhun@uwm.edu)
 #######################################################
 #######  BEGIN USER DEFINED SETTINGS
 
@@ -25,11 +25,11 @@
   # Directory of output
   setenv output_dir $e3smSource/projects/scratch
 
-  # Name of machine you are running on (i.e. cori, anvil, etc)                                                    
+  # Name of machine you are running on (i.e. cori, anvil, etc)
   setenv machine carson
 
   # Name of project to run on, if submitting to queue
-  setenv projectname condo 
+  setenv projectname condo
 
   # Aerosol specification
   # Options include:
@@ -39,15 +39,23 @@
   #                 concentration)
   setenv init_aero_type silhs 
   setenv NUMSC 4
-  setenv MGVER 2  
+  setenv MGVER 2
+
+  # What version of E3SM? (v1 or v2)
+  #  Select v1 if you are running with E3SMv1 RELEASE code
+  #  Select v2 if you are running with up-to-date E3SM master or v2 release code
+  #  (If you are running with non-up-to-date master code then you may need to modify
+  #    aspects of this script to get it to compile.)
+
+  # NOTE: v2 tunings provided are subject to change as model release is finalized
+  #  (and if so will be updated here)
+  setenv e3sm_version v2
 
   # Set the dynamical core
-  #   1) Select "Eulerian" IF you are running E3SMv1 release code 
-  #    
-  #   2) Select "SE" IF you are running code from E3SM master branch that
-  #     is AFTER March 10,2019
+  #   1) Select "Eulerian" ONLY if you are running E3SMv1 release code
+  #
+  #   2) Select "SE" IF you are running code from recent E3SM master or v2
   setenv dycore SE
-
   #  WARNING:  EULERIAN DYCORE SCM IS NO LONGER SUPPORTED. You are only safe
   #  to use Eulerian dycore SCM if you are using E3SMv1 release code.  Else,
   #  user be(very)ware
@@ -56,8 +64,8 @@
 #  EXAMPLE:
 
 ####### END USER DEFINED SETTINGS
-####### Likely POSSIBLE EXCEPTION (not limited to):  
-#######  - If the user wants to add addition output, for example, the CAM
+####### Likely POSSIBLE EXCEPTION (not limited to):
+#######  - If the user wants to add addition output, for example, the EAM
 #######	   namelist (user_nl_eam) should be modified below to accomodate for this
 ###########################################################################
 ###########################################################################
@@ -91,28 +99,28 @@ set clubb_vars_zm_list = "'wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 
 
   set PROJECT=$projectname
   set E3SMROOT=${code_dir}
-  
+
   cd $E3SMROOT/cime/scripts
   set compset=F_SCAM
   
   if ($dycore == Eulerian) then
     set grid=T42_T42
   endif
-  
+
   if ($dycore == SE) then
-    set grid=ne16_ne16
+    set grid=ne4_ne4
   endif
 
-  set CASEID=$casename   
+  set CASEID=$casename
 
   set CASEDIR=${casedirectory}/$CASEID
-  
+
   set run_root_dir = $CASEDIR
-  set temp_case_scripts_dir = $run_root_dir/case_scripts   
+  set temp_case_scripts_dir = $run_root_dir/case_scripts
 
   set case_scripts_dir = $run_root_dir/case_scripts
   set case_build_dir   = $run_root_dir/build
-  set case_run_dir     = $run_root_dir/run 
+  set case_run_dir     = $run_root_dir/run
 
   set walltime = '00:02:00'
 
@@ -127,10 +135,12 @@ set clubb_vars_zm_list = "'wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 
   if ($dycore == Eulerian) then
     ./xmlchange --id MPILIB --val mpi-serial
   endif
-  
+
+  ./xmlchange JOB_WALLCLOCK_TIME=$walltime
+
 # Define executable and run directories
   ./xmlchange --id EXEROOT --val "${case_build_dir}"
-  ./xmlchange --id RUNDIR --val "${case_run_dir}" 
+  ./xmlchange --id RUNDIR --val "${case_run_dir}"
   ./xmlchange --id DIN_LOC_ROOT --val "${input_data_dir}"
   ./xmlchange --id CIME_OUTPUT_ROOT --val "${output_dir}"
   ./xmlchange --id DIN_LOC_ROOT_CLMFORC --val "${e3smSource}/projects/ptclm-data"
@@ -139,12 +149,11 @@ set clubb_vars_zm_list = "'wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 
   ./xmlchange -file env_batch.xml  -id  JOB_QUEUE  -val 'acme-small'  
   ./xmlchange PROJECT="condo",CHARGE_ACCOUNT="condo"
 
-
-# Set to debug, only on certain machines  
-  if ($machine =~ 'cori*') then 
+# Set to debug, only on certain machines
+  if ($machine =~ 'cori*') then
     ./xmlchange --id JOB_QUEUE --val 'debug'
-  endif 
-  
+  endif
+
   if ($machine == 'quartz' || $machine == 'syrah') then
     ./xmlchange --id JOB_QUEUE --val 'pdebug'
   endif
@@ -164,9 +173,9 @@ set clubb_vars_zm_list = "'wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 
   if ($dycore == Eulerian) then
     set CAM_CONFIG_OPTS="$CAM_CONFIG_OPTS -nospmd -nosmp"
   endif
-  
+
   if ( $do_cosp == true ) then
-    set  CAM_CONFIG_OPTS="$CAM_CONFIG_OPTS -cosp -verbose" 
+    set  CAM_CONFIG_OPTS="$CAM_CONFIG_OPTS -cosp -verbose"
   endif
 
 # CAM configure options dependant on what aerosol specification is used
@@ -178,19 +187,37 @@ set clubb_vars_zm_list = "'wp2', 'rtp2', 'thlp2', 'rtpthlp', 'wprtp', 'wpthlp', 
     set CAM_CONFIG_OPTS="$CAM_CONFIG_OPTS -nadv 29 -rad rrtmg -chem trop_mam3 -silent -nlev 72 -microphys mg2 -psubcols $NUMSC -cppdefs '-DUWM_MISC -DSILHS'" 
   endif
 
-  if ($init_aero_type == prescribed || $init_aero_type == observed) then
+  if ($init_aero_type == cons_droplet || $init_aero_type == prescribed || $init_aero_type == observed) then
     set CAM_CONFIG_OPTS="$CAM_CONFIG_OPTS -chem none"
   endif
 
-  ./xmlchange CAM_CONFIG_OPTS="$CAM_CONFIG_OPTS" 
+  ./xmlchange CAM_CONFIG_OPTS="$CAM_CONFIG_OPTS"
 #  ./xmlchange --id DEBUG --val "True"
   set clubb_micro_steps = 8
-# If SE dycore is used then we need to change the timestep 
-# to be consistent with ne30 timestep.  Also change the 
+# If SE dycore is used then we need to change the timestep
+# to be consistent with ne30 timestep.  Also change the
 # cld_macmic_num_steps to be consistent
   if ($dycore == SE) then
     ./xmlchange ATM_NCPL='48'
     set clubb_micro_steps = 6
+  endif
+
+  if ($e3sm_version == v2) then
+    ./xmlchange CAM_TARGET=theta-l
+  endif
+
+# if we want to turn off SW radiation, then set appropriate namelist settings here
+  if ($do_turnoff_swrad == true) then
+    set iradsw_in = 0
+  else
+    set iradsw_in = 1
+  endif
+
+# if we want to turn off LW radiation, then set appropriate namelist settings here
+  if ($do_turnoff_lwrad == true) then
+    set iradlw_in = 0
+  else
+    set iradlw_in = 1
   endif
 
 # User enter CAM namelist options
@@ -202,18 +229,16 @@ cat <<EOF >> user_nl_eam
  iopfile = '$input_data_dir/$iop_path/$iop_file'
  mfilt = 10000
  nhtfrq = 1
- scm_iop_srf_prop = $do_iop_srf_prop 
+ scm_iop_srf_prop = $do_iop_srf_prop
  scm_relaxation = $do_scm_relaxation
- iradlw = 1
- iradsw = 1
- swrad_off = $do_turnoff_swrad 
- lwrad_off = $do_turnoff_lwrad
+ iradlw = $iradlw_in
+ iradsw = $iradsw_in
  precip_off = $do_turnoff_precip
- scmlat = $lat 
+ scmlat = $lat
  scmlon = $lon
- ncdata         = '$input_data_dir/atm/cam/inic/homme/cami_mam3_Linoz_ne16np4_L72_c160614.nc'
  clubb_vars_zt = $clubb_vars_zt_list
  clubb_vars_zm = $clubb_vars_zm_list
+ ncdata         = '$input_data_dir/atm/cam/inic/homme/cami_mam3_Linoz_ne16np4_L72_c160614.nc'
  fincl1 = $clubb_vars_zt_list,$clubb_vars_zm_list,
 'U:A','PS:A','T:A','V:A','OMEGA:A','Z3:A','PRECT:A',
 'CLDLIQ:A', 'CLDICE:A', 'LWCF:A', 'SWCF:A', 'FLUT:A',
@@ -294,44 +319,29 @@ cat <<EOF >> user_nl_eam
 EOF
 
 cat <<EOF >> user_nl_eam
- use_hetfrz_classnuc = .false.
+ use_hetfrz_classnuc = .true.
 ! micro_mg_dcs_tdep = .true.
  microp_aero_wsub_scheme = 1
- sscav_tuning = .false.
- convproc_do_aer = .false.
- demott_ice_nuc = .false.
- liqcf_fix = .false.
- regen_fix = .false.
+ sscav_tuning = .true.
+ convproc_do_aer = .true.
+ demott_ice_nuc = .true.
+ liqcf_fix = .true.
+ regen_fix = .true.
  resus_fix = .false.
- mam_amicphys_optaa = 0
- fix_g1_err_ndrop = .false.
- ssalt_tuning = .false.
-! use_rad_dt_cosz = .false.
- ice_sed_ai = 700.0
- cldfrc_dp1 = 0.1D0
- zmconv_c0_lnd = 0.0075D0
- zmconv_c0_ocn = 0.045D0
- zmconv_dmpdz = -1e-3
- zmconv_ke = 1E-6
- effgw_oro = 0.125D0
- seasalt_emis_scale = 0.85
- dust_emis_fact = 2.05D0
- cldfrc2m_rhmaxi = 1.05D0
-! effgw_beres = 0.4
-
+ mam_amicphys_optaa = 1
+ fix_g1_err_ndrop = .true.
+ ssalt_tuning = .true.
+ relvar_fix = .true.
+ mg_prc_coeff_fix = .true.
+ rrtmg_temp_fix = .true.
+ mam_amicphys_optaa = 1
+ fix_g1_err_ndrop = .true.
+ ssalt_tuning = .true.
+ use_rad_dt_cosz = .true.
+ ice_sed_ai = 500.0
  do_tms = .false.
- so4_sz_thresh_icenuc = 0.1e-6
- n_so4_monolayers_pcage = 3.0D0
- micro_mg_accre_enhan_fac = 1.0D0
- zmconv_tiedke_add = 0.5D0
- zmconv_cape_cin = 5
- zmconv_mx_bot_lyr_adj = 0
- taubgnd = 1.5D-3
- raytau0 = 5.0D0
- prc_coef1 = 1350.0D0
- prc_exp = 2.47D0
- prc_exp1 = -1.79D0
- se_ftype = 0
+ n_so4_monolayers_pcage = 8.0D0
+ se_ftype = 2
 
  microp_scheme = 'MG'
  micro_mg_version = $MGVER
@@ -431,10 +441,10 @@ cat <<EOF >> user_nl_cice
   histfreq='y','x','x','x','x'
 EOF
 
-# Use CLM4.5.  Currently need to point to the correct file for Eulerian 
+# Currently need to point to the correct file for Eulerian 
 #  dy-core (this will be fixed in upcoming PR)
-set CLM_CONFIG_OPTS="-phys clm4_5"
-./xmlchange CLM_CONFIG_OPTS="$CLM_CONFIG_OPTS"
+set ELM_CONFIG_OPTS="-phys elm"
+./xmlchange ELM_CONFIG_OPTS="$ELM_CONFIG_OPTS"
 
 # Modify the run start and duration parameters for the desired case
   ./xmlchange RUN_STARTDATE="$startdate",START_TOD="$start_in_sec",STOP_OPTION="$stop_option",STOP_N="$stop_n"
