@@ -73,7 +73,7 @@
 
 # Case specific information kept here
   set lat = 36.605 # latitude  
-  set lon = -97.485 # longitude
+  set lon = 262.515 # -97.485 longitude
   set do_iop_srf_prop = .true. # Use surface fluxes in IOP file?
   set do_scm_relaxation = .false. # Relax case to observations?
   set do_turnoff_swrad = .false. # Turn off SW calculation
@@ -82,7 +82,7 @@
   set micro_nccons_val = 70.0D6 # cons_droplet value for liquid
   set micro_nicons_val = 0.0001D6 # cons_droplet value for ice
   set startdate = 1997-06-18 # Start date in IOP file
-  set start_in_sec = 0 # start time in seconds in IOP file
+  set start_in_sec = 84585 # start time in seconds in IOP file
   set stop_option = nhours 
   set stop_n = 24
   set iop_file = ARM97_4scam.nc #IOP file name
