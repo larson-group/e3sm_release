@@ -3162,7 +3162,7 @@ subroutine micro_mg_tend ( &
   elsewhere
      nfice=0._r8
   end where
-       write(*,*) "Zhun added micro_mg_tend"
+
 end subroutine micro_mg_tend
 
 !========================================================================
