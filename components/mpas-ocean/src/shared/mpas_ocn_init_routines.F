@@ -99,10 +99,11 @@ contains
       type (mpas_pool_type), pointer :: meshPool
       type (mpas_pool_type), pointer :: statePool, tracersPool
       type (mpas_pool_type), pointer :: forcingPool, scratchPool
-      integer :: iEdge, iCell
+      integer :: i, iEdge, iCell, k
       integer :: err1
 
       integer, dimension(:,:), pointer :: boundaryCellTmp
+      integer, dimension(:,:), pointer :: edgeSignOnCellTmp, edgeSignOnVertexTmp
       real (kind=RKIND), dimension(:,:), pointer :: layerThickness
       real (kind=RKIND), dimension(:,:), pointer :: normalVelocity
 

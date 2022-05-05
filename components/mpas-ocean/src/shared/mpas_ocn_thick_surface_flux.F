@@ -25,7 +25,6 @@ module ocn_thick_surface_flux
    use mpas_pool_routines
    use ocn_constants
    use ocn_config
-   use ocn_mesh
 
    use ocn_forcing
 
@@ -73,13 +72,16 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   subroutine ocn_thick_surface_flux_tend(transmissionCoefficients, transmissionCoefficientsRunoff, &
+   subroutine ocn_thick_surface_flux_tend(meshPool, transmissionCoefficients, transmissionCoefficientsRunoff, &
       surfaceThicknessFlux, surfaceThicknessFluxRunoff, tend, err)!{{{
       !-----------------------------------------------------------------
       !
       ! input variables
       !
       !-----------------------------------------------------------------
+
+      type (mpas_pool_type), intent(in) :: &
+         meshPool              !< Input: mesh information
 
       real (kind=RKIND), dimension(:,:), intent(in) :: &
          transmissionCoefficients,     &!< Input: Coefficients for the transmission of surface fluxes
@@ -113,7 +115,10 @@ contains
       !
       !-----------------------------------------------------------------
 
-      integer :: iCell, k
+      integer :: iCell, k, nCells
+      integer, pointer :: nVertLevels
+      integer, dimension(:), pointer :: nCellsArray
+      integer, dimension(:), pointer :: minLevelCell, maxLevelCell
 
       real (kind=RKIND) :: remainingFlux, remainingFluxRunoff
 
@@ -123,18 +128,16 @@ contains
 
       call mpas_timer_start("thick surface flux")
 
-#ifdef MPAS_OPENACC
-      !$acc enter data copyin(transmissionCoefficients, transmissionCoefficientsRunoff)
+      call mpas_pool_get_array(meshPool, 'minLevelCell', minLevelCell)
+      call mpas_pool_get_array(meshPool, 'maxLevelCell', maxLevelCell)
 
-      !$acc parallel loop &
-      !$acc     present(tend, surfaceThicknessFlux, surfaceThicknessFluxRunoff, &
-      !$acc     transmissionCoefficients, transmissionCoefficientsRunoff, minLevelCell, maxLevelCell) &
-      !$acc     private(k, remainingFlux, remainingFluxRunoff)
-#else
+      call mpas_pool_get_dimension(meshPool, 'nCellsArray', nCellsArray)
+
+      nCells = nCellsArray( 1 )
+
       !$omp parallel
       !$omp do schedule(runtime) private(remainingFlux, remainingFluxRunoff, k)
-#endif
-      do iCell = 1, nCellsOwned
+      do iCell = 1, nCells
         remainingFlux = 1.0_RKIND
         remainingFluxRunoff = 1.0_RKIND
         do k = minLevelCell(iCell), maxLevelCell(iCell)
@@ -154,14 +157,8 @@ contains
              + remainingFluxRunoff * surfaceThicknessFluxRunoff(iCell)
         end if
       end do
-#ifndef MPAS_OPENACC
       !$omp end do
       !$omp end parallel
-#endif
-
-#ifdef MPAS_OPENACC
-      !$acc exit data delete(transmissionCoefficients, transmissionCoefficientsRunoff)
-#endif
 
       call mpas_timer_stop("thick surface flux")
 

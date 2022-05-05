@@ -6,7 +6,6 @@
 #include "KernelVariables.hpp"
 #include "SphereOperators.hpp"
 #include "Types.hpp"
-#include "PhysicalConstants.hpp"
 #include "utilities/TestUtils.hpp"
 #include "utilities/SubviewUtils.hpp"
 
@@ -163,7 +162,7 @@ class compute_sphere_operator_test {
   ExecViewManaged<Real * [2][NP][NP]>::HostMirror
       vector_output_host;
 
-  SphereOperators     sphere_ops{PhysicalConstants::rearth0};
+  SphereOperators     sphere_ops;
 
   // tag for laplace_simple()
   struct TagSimpleLaplace {};

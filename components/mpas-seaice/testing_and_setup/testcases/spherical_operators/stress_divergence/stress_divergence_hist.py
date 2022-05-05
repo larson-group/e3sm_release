@@ -9,7 +9,7 @@ import matplotlib as mpl
 def stress_divergence_hist():
 
     # grid
-    fileGrid = Dataset("grid.40962.nc","r")
+    fileGrid = Dataset("x1.40962.grid.nc","r")
 
     nVertices = len(fileGrid.dimensions["nVertices"])
 

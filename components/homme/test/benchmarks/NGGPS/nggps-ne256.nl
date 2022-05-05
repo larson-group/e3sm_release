@@ -35,6 +35,7 @@ hypervis_subcycle=1
 hypervis_subcycle_q=1
 /
 &vert_nl
+vform         = "ccm"
 vfile_mid = './sabm-128.ascii'
 vfile_int = './sabi-128.ascii'
 /

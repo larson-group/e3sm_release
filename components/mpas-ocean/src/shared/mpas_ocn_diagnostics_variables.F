@@ -7,7 +7,7 @@
 !
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 !
-!  ocn_diagnostics_variables
+!  ocn_diagnostics
 !
 !> \brief MPAS ocean diagnostics variable definitions
 !> \author Matt Turner

@@ -116,6 +116,7 @@ contains
 
       integer :: iCell, iEdge, cell1, cell2
       integer :: i, k, iTracer, num_tracers, nCells
+      integer, pointer :: nVertLevels
       integer, dimension(:), pointer :: nCellsArray
 
       integer, dimension(:), pointer :: minLevelEdgeBot, maxLevelEdgeTop, nEdgesOnCell

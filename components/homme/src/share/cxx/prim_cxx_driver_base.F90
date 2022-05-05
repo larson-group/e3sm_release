@@ -32,10 +32,8 @@ module prim_cxx_driver_base
     use time_mod,         only : TimeLevel_t, TimeLevel_init
     use prim_driver_base, only : prim_init1_geometry, prim_init1_elem_arrays, &
                                  prim_init1_cleanup, prim_init1_buffers,      &
-                                 prim_init1_compose,                          &
                                  MetaVertex, GridEdge, deriv1
-    use compose_mod,      only : compose_control_kokkos_init_and_fin
-#if !defined(CAM) && !defined(SCREAM)
+#ifndef CAM
     use prim_driver_base, only : prim_init1_no_cam
 #endif
 
@@ -64,10 +62,8 @@ module prim_cxx_driver_base
 
     ! Initialize kokkos before any environment changes from the Fortran
     call initialize_hommexx_session()
-    ! Don't let any other components that use Kokkos control init/finalization.
-    call compose_control_kokkos_init_and_fin(.false.)
 
-#if !defined(CAM) && !defined(SCREAM)
+#ifndef CAM
     call prim_init1_no_cam(par)
 #endif
 
@@ -86,6 +82,14 @@ module prim_cxx_driver_base
     ! ==================================
     call init_cxx_connectivity(nelemd,GridEdge,MetaVertex,par)
 
+    ! Cleanup the tmp stuff used in prim_init1_geometry
+    call prim_init1_cleanup()
+
+    ! ==================================
+    ! Initialize the buffers for exchanges
+    ! ==================================
+    call prim_init1_buffers(elem,par)
+
     ! ==================================
     ! Initialize element pointers
     ! ==================================
@@ -95,16 +99,6 @@ module prim_cxx_driver_base
     ! Initialize element arrays (fluxes and state)
     ! ==================================
     call prim_init1_elem_arrays(elem,par)
-
-    call prim_init1_compose(par,elem)
-
-    ! ==================================
-    ! Initialize the buffers for exchanges
-    ! ==================================
-    call prim_init1_buffers(elem,par)
-
-    ! Cleanup the tmp stuff used in prim_init1_geometry
-    call prim_init1_cleanup()
 
     ! Initialize the time levels
     call TimeLevel_init(tl)

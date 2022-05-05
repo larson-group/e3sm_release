@@ -134,7 +134,7 @@ contains
       logical :: fieldActive
 
       logical :: keepField
-      integer :: iConst, iDim
+      integer :: iConst, iDim, iDim2
 
       integer, pointer :: nPoints
 
@@ -833,8 +833,8 @@ contains
       type (block_type), pointer :: block
 
       integer, pointer :: nPoints, nCells
-      integer :: iPoint
-      integer, dimension(:), pointer :: pointCellLocalID
+      integer :: iPoint, i
+      integer, dimension(:), pointer :: pointCellGlobalID, pointCellLocalID, indexToPointCellLocalID
 
       character (len=*), parameter :: AMName = 'pointwiseStats'
 
@@ -845,6 +845,7 @@ contains
       real (kind=RKIND), dimension(:, :, :, :), pointer :: ptr4DReal1, ptr4DReal2
       real (kind=RKIND), dimension(:, :, :, :, :), pointer :: ptr5DReal1, ptr5DReal2
 
+      integer, pointer :: ptr0DInt1, ptr0DInt2
       integer, dimension(:), pointer :: ptr1DInt1, ptr1DInt2
       integer, dimension(:, :), pointer :: ptr2DInt1, ptr2DInt2
       integer, dimension(:, :, :), pointer :: ptr3DInt1, ptr3DInt2
@@ -854,6 +855,7 @@ contains
       type (mpas_pool_iterator_type) :: poolItr
       type (mpas_pool_field_info_type) :: fieldInfo
       integer :: nElements
+      integer, dimension(:), pointer :: arrShape
 
       real (kind=RKIND), dimension(:), pointer :: tempRealArrLocal, tempRealArrGlobal
       integer, dimension(:), pointer :: tempIntArrLocal, tempIntArrGlobal

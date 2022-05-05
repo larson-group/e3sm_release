@@ -51,7 +51,7 @@ void prim_advance_exp (TimeLevel& tl, const Real dt, const bool compute_diagnost
 
   // Perform time-advance
   switch (params.time_step_type) {
-    case TimeStepType::ttype5:
+    case TimeStepType::ULLRICH_RK35:
       // Perform RK stages
       u3_5stage_timestep(tl, dt, eta_ave_w);
       break;
@@ -71,11 +71,13 @@ void prim_advance_exp (TimeLevel& tl, const Real dt, const bool compute_diagnost
   }
 #endif
 
-  // Get and run the HVF
-  HyperviscosityFunctor& functor = Context::singleton().get<HyperviscosityFunctor>();
-  GPTLstart("tl-ae advance_hypervis_dp");
-  functor.run(tl.np1,dt,eta_ave_w);
-  GPTLstop("tl-ae advance_hypervis_dp");
+  if (!is_implicit(params.time_step_type)) {
+    // Get and run the HVF
+    HyperviscosityFunctor& functor = Context::singleton().get<HyperviscosityFunctor>();
+    GPTLstart("tl-ae advance_hypervis_dp");
+    functor.run(tl.np1,dt,eta_ave_w);
+    GPTLstop("tl-ae advance_hypervis_dp");
+  }
 
 #ifdef ENERGY_DIAGNOSTICS
   if (compute_diagnostics) {

@@ -279,7 +279,14 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   subroutine ocn_surface_bulk_forcing_thick(forcingPool, surfaceThicknessFlux, surfaceThicknessFluxRunoff, err)!{{{
+   subroutine ocn_surface_bulk_forcing_thick(meshPool, forcingPool, surfaceThicknessFlux, surfaceThicknessFluxRunoff, err)!{{{
+
+      !-----------------------------------------------------------------
+      !
+      ! input variables
+      !
+      !-----------------------------------------------------------------
+      type (mpas_pool_type), intent(in) :: meshPool !< Input: mesh information
 
       !-----------------------------------------------------------------
       !
@@ -305,7 +312,10 @@ contains
       !
       !-----------------------------------------------------------------
 
-      integer :: iCell, nCells
+      integer :: iCell, nCells, nEdges
+      integer, dimension(:), pointer :: nCellsArray
+
+      integer, dimension(:,:), pointer :: cellsOnEdge
 
       real (kind=RKIND), dimension(:), pointer :: evaporationFlux, snowFlux
       real (kind=RKIND), dimension(:), pointer :: seaIceFreshWaterFlux, icebergFreshWaterFlux, riverRunoffFlux, iceRunoffFlux
@@ -317,6 +327,8 @@ contains
 
       call mpas_timer_start("bulk_thick", .false.)
 
+      call mpas_pool_get_dimension(meshPool, 'nCellsArray', nCellsArray)
+
       call mpas_pool_get_array(forcingPool, 'evaporationFlux', evaporationFlux)
       call mpas_pool_get_array(forcingPool, 'snowFlux', snowFlux)
       call mpas_pool_get_array(forcingPool, 'seaIceFreshWaterFlux', seaIceFreshWaterFlux)
@@ -325,34 +337,18 @@ contains
       call mpas_pool_get_array(forcingPool, 'iceRunoffFlux', iceRunoffFlux)
       call mpas_pool_get_array(forcingPool, 'rainFlux', rainFlux)
 
-      nCells = nCellsHalo( 2 )
+      nCells = nCellsArray( 3 )
 
       ! Build surface fluxes at cell centers
-#ifdef MPAS_OPENACC
-      !$acc enter data copyin(evaporationFlux, snowFlux, seaIceFreshWaterFlux, icebergFreshWaterFlux, &
-      !$acc     riverRunoffFlux, iceRunoffFlux, rainFlux)
-
-      !$acc parallel loop &
-      !$acc     present(surfaceThicknessFlux, surfaceThicknessFluxRunoff, evaporationFlux, snowFlux, &
-      !$acc     seaIceFreshWaterFlux, icebergFreshWaterFlux, riverRunoffFlux, iceRunoffFlux, rainFlux)
-#else
       !$omp parallel
       !$omp do schedule(runtime)
-#endif
       do iCell = 1, nCells
         surfaceThicknessFlux(iCell) = surfaceThicknessFlux(iCell) + ( snowFlux(iCell) + rainFlux(iCell) + evaporationFlux(iCell) &
                                     + seaIceFreshWaterFlux(iCell) + icebergFreshWaterFlux(iCell) + iceRunoffFlux(iCell) ) / rho_sw
         surfaceThicknessFluxRunoff(iCell) = riverRunoffFlux(iCell) / rho_sw
       end do
-#ifndef MPAS_OPENACC
       !$omp end do
       !$omp end parallel
-#endif
-
-#ifdef MPAS_OPENACC
-      !$acc exit data delete(evaporationFlux, snowFlux, seaIceFreshWaterFlux, icebergFreshWaterFlux, &
-      !$acc     riverRunoffFlux, iceRunoffFlux, rainFlux)
-#endif
 
       call mpas_timer_stop("bulk_thick")
 
@@ -467,9 +463,9 @@ contains
       real (kind=RKIND), dimension(:), pointer :: shortWaveHeatFlux, penetrativeTemperatureFlux
       real (kind=RKIND), dimension(:), pointer :: snowFlux, rainFlux
       real (kind=RKIND), dimension(:), pointer :: rainTemperatureFlux, evapTemperatureFlux, &
-                                                  seaIceTemperatureFlux, icebergTemperatureFlux, &
+                                                  seaIceFreshWaterTemperatureFlux, icebergFreshWaterTemperatureFlux, &
                                                   totalFreshWaterTemperatureFlux
-      real (kind=RKIND) :: requiredSalt, allowedSalt, surfaceTemperatureFluxWithoutRunoff
+      real (kind=RKIND) :: requiredSalt, allowedSalt
 
       err = 0
 
@@ -500,8 +496,8 @@ contains
 
       call mpas_pool_get_array(forcingPool, 'rainTemperatureFlux', rainTemperatureFlux)
       call mpas_pool_get_array(forcingPool, 'evapTemperatureFlux', evapTemperatureFlux)
-      call mpas_pool_get_array(forcingPool, 'seaIceTemperatureFlux', seaIceTemperatureFlux)
-      call mpas_pool_get_array(forcingPool, 'icebergTemperatureFlux', icebergTemperatureFlux)
+      call mpas_pool_get_array(forcingPool, 'seaIceFreshWaterTemperatureFlux', seaIceFreshWaterTemperatureFlux)
+      call mpas_pool_get_array(forcingPool, 'icebergFreshWaterTemperatureFlux', icebergFreshWaterTemperatureFlux)
       call mpas_pool_get_array(forcingPool, 'totalFreshWaterTemperatureFlux', totalFreshWaterTemperatureFlux)
 
       nCells = nCellsArray( 3 )
@@ -546,7 +542,7 @@ contains
       ! indices on tracerGroup are (iTracer, iLevel, iCell)
       if (.not. bulkThicknessFluxOff) then
          !$omp parallel
-         !$omp do schedule(runtime) private(surfaceTemperatureFluxWithoutRunoff)
+         !$omp do schedule(runtime)
          do iCell = 1, nCells
 
            ! Accumulate fluxes that use the surface temperature
@@ -558,22 +554,21 @@ contains
                       * max(tracerGroup(index_temperature_flux,minLevelCell(iCell),iCell), 0.0_RKIND) / rho_sw
 
            ! Accumulate fluxes that use the freezing point
-! mrp performance note: should call ocn_freezing_temperature just once here 
-           seaIceTemperatureFlux(iCell) = seaIceFreshWaterFlux(iCell) * &
+           seaIceFreshWaterTemperatureFlux(iCell) = seaIceFreshWaterFlux(iCell) * &
                ocn_freezing_temperature( tracerGroup(index_salinity_flux, minLevelCell(iCell), iCell), pressure=0.0_RKIND, &
                                          inLandIceCavity=.false.) / rho_sw
-           icebergTemperatureFlux(iCell) = icebergFreshWaterFlux(iCell) * &
+           icebergFreshWaterTemperatureFlux(iCell) = icebergFreshWaterFlux(iCell) * &
                ocn_freezing_temperature( tracerGroup(index_salinity_flux, minLevelCell(iCell), iCell), pressure=0.0_RKIND, &
                                          inLandIceCavity=.false.) / rho_sw
 
-           surfaceTemperatureFluxWithoutRunoff = rainTemperatureFlux(iCell) + evapTemperatureFlux(iCell) + &
-                                                 seaIceTemperatureFlux(iCell) + icebergTemperatureFlux(iCell)
+           totalFreshWaterTemperatureFlux(iCell) = rainTemperatureFlux(iCell) + evapTemperatureFlux(iCell) + &
+                                                   seaIceFreshWaterTemperatureFlux(iCell) + icebergFreshWaterTemperatureFlux(iCell)
 
            tracersSurfaceFlux(index_temperature_flux, iCell) = tracersSurfaceFlux(index_temperature_flux, iCell) &
-              + surfaceTemperatureFluxWithoutRunoff
+              + totalFreshWaterTemperatureFlux(iCell)
 
            ! add runoff contribution for sending through coupler
-           totalFreshWaterTemperatureFlux(iCell) = surfaceTemperatureFluxWithoutRunoff &
+           totalFreshWaterTemperatureFlux(iCell) = totalFreshWaterTemperatureFlux(iCell) &
               + tracersSurfaceFluxRunoff(index_temperature_flux,iCell)
 
            ! Fields with zero temperature are not accumulated. These include:

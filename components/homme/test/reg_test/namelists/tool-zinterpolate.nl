@@ -6,6 +6,7 @@ mesh_file='none'
 &vert_nl
 ! for E3SM output, set this correctly:
 !vanalytic=0
+!vform         = "ccm"
 !vfile_mid     = "/home/mataylo/codes/homme/test/vcoord/acme-72m.ascii"
 !vfile_int     = "/home/mataylo/codes/homme/test/vcoord/acme-72i.ascii"
 /                                                                                                                 

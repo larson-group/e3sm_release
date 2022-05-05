@@ -140,10 +140,9 @@ VECTOR_SIMD_LOOP
 #else
   KOKKOS_FORCEINLINE_FUNCTION
   void debug_set_invalid(int left, int right) {
-// removing this for now as this causes crash in DEBUG mode
-//    for(int i = left; i <= right; i++) {
-//      _data[i] = 0.0 / 0.0;
-//    }
+    for(int i = left; i <= right; i++) {
+      _data[i] = 0.0 / 0.0;
+    }
   }
 #endif
 

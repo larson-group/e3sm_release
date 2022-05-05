@@ -6,7 +6,6 @@
 
 #include "Context.hpp"
 #include "EulerStepFunctor.hpp"
-#include "ComposeTransport.hpp"
 #include "SimulationParams.hpp"
 #include "TimeLevel.hpp"
 #include "profiling.hpp"
@@ -14,29 +13,23 @@
 namespace Homme
 {
 
-static void prim_advec_tracers_remap_RK2 (const Real dt);
-#ifdef MODEL_THETA_L
-static void prim_advec_tracers_remap_compose (const Real dt);
-#endif
+void prim_advec_tracers_remap_RK2 (const Real dt);
+void prim_advec_tracers_remap (const Real dt);
 
 // ----------- IMPLEMENTATION ---------- //
 
 void prim_advec_tracers_remap (const Real dt) {
   SimulationParams& params = Context::singleton().get<SimulationParams>();
 
-  if (params.transport_alg > 0) {
-#ifdef MODEL_THETA_L
-    prim_advec_tracers_remap_compose(dt);
-#else
-    Errors::runtime_abort("prim_advec_tracers_remap: "
-      "transport_alg > 0 not supported for non-theta-l builds.");
-#endif
+  if (params.use_semi_lagrangian_transport) {
+    Errors::option_error("prim_advec_tracers_remap","use_semi_lagrangian_transport",
+                          params.use_semi_lagrangian_transport);
   } else {
     prim_advec_tracers_remap_RK2(dt);
   }
 }
 
-static void prim_advec_tracers_remap_RK2 (const Real dt)
+void prim_advec_tracers_remap_RK2 (const Real dt)
 {
   GPTLstart("tl-at prim_advec_tracers_remap_RK2");
   // Get control and simulation params
@@ -45,7 +38,7 @@ static void prim_advec_tracers_remap_RK2 (const Real dt)
 
   // Get time info and update tracers time levels
   TimeLevel& tl = Context::singleton().get<TimeLevel>();
-  tl.update_tracers_levels(params.dt_tracer_factor);
+  tl.update_tracers_levels(params.qsplit);
 
   // Get the ESF
   EulerStepFunctor& esf = Context::singleton().get<EulerStepFunctor>();
@@ -95,19 +88,5 @@ static void prim_advec_tracers_remap_RK2 (const Real dt)
   }
   GPTLstop("tl-at prim_advec_tracers_remap_RK2");
 }
-
-#ifdef MODEL_THETA_L
-static void prim_advec_tracers_remap_compose (const Real dt) {
-  GPTLstart("tl-at prim_advec_tracers_compose");
-  const auto& params = Context::singleton().get<SimulationParams>();
-  assert(params.params_set);
-  auto& tl = Context::singleton().get<TimeLevel>();
-  tl.update_tracers_levels(params.dt_tracer_factor);
-  auto& ct = Context::singleton().get<ComposeTransport>();
-  ct.reset(params);
-  ct.run(tl, dt);
-  GPTLstop("tl-at prim_advec_tracers_compose");
-}
-#endif
 
 } // namespace Homme

@@ -13033,8 +13033,7 @@ contains
          config_use_skeletal_biochemistry, &
          config_do_restart_zsalinity, &
          config_do_restart_bgc, &
-         config_do_restart_hbrine, &
-         config_use_macromolecules
+         config_do_restart_hbrine
 
     real(kind=RKIND), pointer :: &
          config_dt, &
@@ -13053,8 +13052,7 @@ contains
          biologyGrid, &           ! bgrid
          verticalShortwaveGrid, & ! swgrid
          interfaceGrid, &         ! icgrid
-         rayleighCriteriaReal, &
-         DOCPoolFractions
+         rayleighCriteriaReal
 
     real(kind=RKIND), dimension(:,:), pointer :: &
          oceanAlgaeConc, &
@@ -13118,7 +13116,6 @@ contains
     call MPAS_pool_get_config(domain % configs, "config_use_vertical_tracers", config_use_vertical_tracers)
     call MPAS_pool_get_config(domain % configs, "config_dt", config_dt)
     call MPAS_pool_get_config(domain % configs, "config_snow_porosity_at_ice_surface", config_snow_porosity_at_ice_surface)
-    call MPAS_pool_get_config(domain % configs, "config_use_macromolecules", config_use_macromolecules)
 
     abortFlag = .false.
 
@@ -13159,7 +13156,6 @@ contains
        call MPAS_pool_get_array(biogeochemistry, "oceanHumicsConc", oceanHumicsConc)
        call MPAS_pool_get_array(biogeochemistry, "oceanZAerosolConc", oceanZAerosolConc)
        call MPAS_pool_get_array(biogeochemistry, "newlyFormedIce", newlyFormedIce)
-       call MPAS_pool_get_array(biogeochemistry, "DOCPoolFractions", DOCPoolFractions)
 
        call MPAS_pool_get_subpool(block % structs, "ocean_coupling", ocean_coupling)
        call MPAS_pool_get_array(ocean_coupling, "seaSurfaceSalinity", seaSurfaceSalinity)
@@ -13256,8 +13252,6 @@ contains
                   maxIronType, &
                   nZBGCTracers, &
                   maxAerosolType, &
-                  DOCPoolFractions, &
-                  config_use_macromolecules, &
                   abortFlag, &
                   abortMessage)
 

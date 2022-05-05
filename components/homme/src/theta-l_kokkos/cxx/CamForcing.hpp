@@ -9,7 +9,6 @@
 namespace Homme {
 
 void apply_cam_forcing(const Real dt);
-void apply_cam_forcing_tracers(const Real dt);
 void apply_cam_forcing_dynamics(const Real dt);
 
 } // namespace Homme

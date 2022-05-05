@@ -485,9 +485,6 @@ createAllRunScriptsGeneric() {
 
     if [ -n "${OMP_NUM_TESTS}" -a "${RUN_OPENMP}" = ON ]; then
       echo "export OMP_NUM_THREADS=${OMP_NUMBER_THREADS}" >> $thisRunScript
-      if [ "${MPI_EXEC}" = "srun" ] ; then
-         echo "export SLURM_CPUS_PER_TASK=${OMP_NUMBER_THREADS}" >> $thisRunScript
-      fi
       echo "export OMP_STACKSIZE=128M" >> $thisRunScript
       echo "" >> $thisRunScript # new line
       for testNum in $(seq 1 ${OMP_NUM_TESTS})
@@ -727,9 +724,6 @@ diffCprncOutput() {
 
     # Parse the output file to determine if they were identical
     DIFF_RESULT=`grep -ae 'diff_test' ${cprncOutputFile} | awk '{ print $8 }'`
-
-
-# Dimension time differs
 
     if [ "${DIFF_RESULT}" == IDENTICAL ] ; then
       # check for missing variables

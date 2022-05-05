@@ -110,7 +110,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      integer :: iCell
+      integer :: iCell, iLevel, iTracer
 
       !move to ocean constants
       real (kind=RKIND), parameter :: c0 = 0.0_RKIND

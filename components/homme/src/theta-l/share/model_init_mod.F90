@@ -23,7 +23,7 @@ module model_init_mod
   use viscosity_mod,      only: make_c0_vector
   use kinds,              only: real_kind,iulog
   use control_mod,        only: qsplit,theta_hydrostatic_mode, hv_ref_profiles, &
-       hv_theta_correction, tom_sponge_start
+       hv_theta_correction
   use time_mod,           only: timelevel_qdp, timelevel_t
   use physical_constants, only: g, TREF, Rgas, kappa
   use imex_mod,           only: test_imex_jacobian
@@ -108,9 +108,11 @@ contains
     enddo 
 
 
-    ! unit test for analytic jacobian and tri-diag solve used by IMEX methods
+    ! unit test for analytic jacobian used by IMEX methods
+#if 0
     if (.not. theta_hydrostatic_mode) &
          call test_imex_jacobian(elem,hybrid,hvcoord,tl,nets,nete)
+#endif
 
     !$omp master
     ! 
@@ -119,28 +121,35 @@ contains
     nlev_tom=0
     if (hybrid%masterthread) write(iulog,*) "sponge layer nu_top viscosity scaling factor"
     do k=1,nlev
-       if (tom_sponge_start==0) then
-          ! some test cases have ptop=200mb
-          if (hvcoord%etai(1)==0) then
-             ! pure sigma coordinates could have etai(1)=0
-             ptop_over_press = hvcoord%etam(1) / hvcoord%etam(k)  
-          else
-             ptop_over_press = hvcoord%etai(1) / hvcoord%etam(k)  
-          endif
-          ! active for p<10*ptop (following cd_core.F90 in CAM-FV)
-          ! CAM 26L and 30L:  top 3 levels 
-          ! E3SM 72L:  top 6 levels
-          !original cam formula
-          !nu_scale_top(k) = 8*(1+tanh(log(ptop_over_press))) ! active for p<4*ptop
-          nu_scale_top(k) = 16*ptop_over_press**2 / (ptop_over_press**2 + 1)
+       !press = (hvcoord%hyam(k)+hvcoord%hybm(k))*hvcoord%ps0
+       !ptop  = hvcoord%hyai(1)*hvcoord%ps0
+       ! sponge layer starts at p=4*ptop 
+       ! 
+       ! some test cases have ptop=200mb
+       if (hvcoord%etai(1)==0) then
+          ! pure sigma coordinates could have etai(1)=0
+          ptop_over_press = hvcoord%etam(1) / hvcoord%etam(k)  
        else
-          ptop_over_press = (tom_sponge_start/1d3) / hvcoord%etam(k)  
-          nu_scale_top(k)=0.15d0 * ptop_over_press**2
+          ptop_over_press = hvcoord%etai(1) / hvcoord%etam(k)  
        endif
 
-       if (nu_scale_top(k)<0.15d0) nu_scale_top(k)=0
-       if (nu_scale_top(k)>8d0) nu_scale_top(k)=8d0
+       ! active for p<10*ptop (following cd_core.F90 in CAM-FV)
+       ! CAM 26L and 30L:  top 3 levels 
+       ! E3SM 72L:  top 6 levels
+       !original cam formula
+       !nu_scale_top(k) = 8*(1+tanh(log(ptop_over_press))) ! active for p<4*ptop
+       nu_scale_top(k) = 16*ptop_over_press**2 / (ptop_over_press**2 + 1)
 
+       if (nu_scale_top(k)<0.15d0) nu_scale_top(k)=0
+
+       !nu_scale_top(k) = 8*(1+.911*tanh(log(ptop_over_press))) ! active for p<6.5*ptop
+       !if (nu_scale_top(k)<1d0) nu_scale_top(k)=0
+
+       ! original CAM3/preqx formula
+       !if (k==1) nu_scale_top(k)=4
+       !if (k==2) nu_scale_top(k)=2
+       !if (k==3) nu_scale_top(k)=1
+       !if (k>3) nu_scale_top(k)=0
 
        if (nu_scale_top(k)>0) nlev_tom=k
 
@@ -148,7 +157,6 @@ contains
           if (nu_scale_top(k)>0) write(iulog,*) "  nu_scale_top ",k,nu_scale_top(k)
        end if
     end do
-
     if (hybrid%masterthread) then
        write(iulog,*) "  nlev_tom ",nlev_tom
     end if

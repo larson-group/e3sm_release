@@ -332,6 +332,7 @@ contains
          windStressCoefficient, &
          rhoAir, &
          ramp, &
+         currentTime, &
          windStressCoefficientLimit
 
     integer, pointer :: &
@@ -482,6 +483,8 @@ contains
 !    character(len=StrKIND), pointer :: config_dt
 
     type (MPAS_timeInterval_type) :: timeStepESMF
+
+    character(len=StrKIND) :: timeStamp
 
     real (kind=RKIND) :: dtSim
 

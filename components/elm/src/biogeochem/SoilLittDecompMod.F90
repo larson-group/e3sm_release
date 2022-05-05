@@ -36,7 +36,6 @@ module SoilLittDecompMod
   ! clm interface & pflotran:
   use elm_varctl             , only : use_elm_interface, use_pflotran, pf_cmode
   use elm_varctl             , only : use_cn, use_fates
-  use elm_instMod            , only : alm_fates
   !
   implicit none
   save
@@ -121,7 +120,6 @@ contains
     type(soilstate_type)     , intent(in)    :: soilstate_vars
     type(cnstate_type)       , intent(inout) :: cnstate_vars
     type(ch4_type)           , intent(in)    :: ch4_vars
-
     ! add phosphorus --
 !    type(crop_type)          , intent(in)    :: crop_vars
     real(r8),   intent(in)    :: dtime
@@ -388,11 +386,10 @@ contains
       ! in addition, calculate fpi_vr, fpi_p_vr, & fgp
       event = 'CNAllocation - phase-2'
       call t_start_lnd(event)
-      call Allocation2_ResolveNPLimit(bounds,                       &
+      call Allocation2_ResolveNPLimit(bounds,                     &
                num_soilc, filter_soilc, num_soilp, filter_soilp,    &
                cnstate_vars,                                        &
-               soilstate_vars, dtime,                               &
-               alm_fates)
+               soilstate_vars, dtime)
       call t_stop_lnd(event)
 
 

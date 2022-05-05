@@ -56,6 +56,7 @@ wght_fm       = 0.10D0
 kcut_fm       = 2
 /
 &vert_nl
+vform     = "ccm"
 vfile_mid = '/gpfs/alpine/scratch/ambradl/cli115/vcoord/sabm-128.ascii'
 vfile_int = '/gpfs/alpine/scratch/ambradl/cli115/vcoord/sabi-128.ascii'
 /

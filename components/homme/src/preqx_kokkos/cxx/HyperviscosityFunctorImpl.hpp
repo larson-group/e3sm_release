@@ -11,7 +11,6 @@
 #include "SimulationParams.hpp"
 #include "KernelVariables.hpp"
 #include "SphereOperators.hpp"
-#include "PhysicalConstants.hpp"
 
 #include <memory>
 

@@ -27,6 +27,8 @@ module ocn_tracer_MacroMolecules
 
    use MACROS_mod
    use MACROS_parms
+   use BGC_mod
+   use BGC_parms
 
    implicit none
    private
@@ -69,15 +71,7 @@ module ocn_tracer_MacroMolecules
 
 ! hold indices in tracer pool corresponding to each tracer array
   type(MACROS_indices_type), public :: macrosIndices
-
-! indices for ecosys tracers
-  integer, public ::   &
-      zooC_ind_MPAS_MacroMolecules,  &
-      spC_ind_MPAS_MacroMolecules,  &
-      diatC_ind_MPAS_MacroMolecules,  &
-      diazC_ind_MPAS_MacroMolecules
-! Currently no Phaeo in MARBL
-!     phaeoC_ind_MPAS_MacroMolecules
+  type(BGC_indices_type) :: ecosysIndices
 
 !***********************************************************************
 
@@ -152,9 +146,9 @@ contains
 
       ! source/sink wants cm instead of m
 
-      real (kind=RKIND) :: convertLengthScale = 100.0_RKIND
+      real (kind=RKIND) :: zTop, zBot, convertLengthScale = 100.0_RKIND
 
-      integer :: iCell, iLevel, numColumns, column
+      integer :: iCell, iLevel, iTracer, numColumns, column
 
       call mpas_timer_start("MacroMolecules source-sink")
 
@@ -165,8 +159,8 @@ contains
       !DWJ 08/05/2016: This loop needs OpenMP added to it
       do iCell=1,nCellsSolve
          MacroMolecules_input%number_of_active_levels(column) = maxLevelCell(iCell) - minLevelCell(iCell) + 1
-         do iLevel=minLevelCell(iCell),MacroMolecules_input%number_of_active_levels(column)
-            MacroMolecules_input%cell_thickness(iLevel,column) = layerThickness(iLevel,iCell)*convertLengthScale
+         do iLevel=1,MacroMolecules_input%number_of_active_levels(column)
+            MacroMolecules_input%cell_thickness(iLevel,column)    = layerThickness(iLevel + minLevelCell(iCell) - 1,iCell)*convertLengthScale
 
             MacroMolecules_input%MACROS_tracers(iLevel,column,MacroMolecules_indices%prot_ind)  =   &
                MacroMoleculesTracers(macrosIndices%prot_ind,iLevel,iCell)
@@ -176,18 +170,15 @@ contains
                MacroMoleculesTracers(macrosIndices%lip_ind,iLevel,iCell)
 
             MacroMolecules_input%MACROS_tracers(iLevel,column,MacroMolecules_indices%zooC_ind)     =   &
-               ecosysTracers(zooC_ind_MPAS_MacroMolecules,iLevel,iCell)
+               ecosysTracers(ecosysIndices%zooC_ind,iLevel,iCell)
             MacroMolecules_input%MACROS_tracers(iLevel,column,MacroMolecules_indices%spC_ind)      =   &
-               ecosysTracers(spC_ind_MPAS_MacroMolecules,iLevel,iCell)
+               ecosysTracers(ecosysIndices%spC_ind,iLevel,iCell)
             MacroMolecules_input%MACROS_tracers(iLevel,column,MacroMolecules_indices%diatC_ind)    =   &
-               ecosysTracers(diatC_ind_MPAS_MacroMolecules,iLevel,iCell)
-            MacroMolecules_input%MACROS_tracers(iLevel,column,MacroMolecules_indices%diazC_ind)    =   &
-               ecosysTracers(diazC_ind_MPAS_MacroMolecules,iLevel,iCell)
-! Currently no Phaeo in MARBL
-!           MacroMolecules_input%MACROS_tracers(iLevel,column,MacroMolecules_indices%phaeoC_ind)   =   &
-!              ecosysTracers(phaeoC_ind_MPAS_MacroMolecules,iLevel,iCell)
+               ecosysTracers(ecosysIndices%diatC_ind,iLevel,iCell)
             MacroMolecules_input%MACROS_tracers(iLevel,column,MacroMolecules_indices%phaeoC_ind)   =   &
-               0.0_RKIND
+               ecosysTracers(ecosysIndices%phaeoC_ind,iLevel,iCell)
+            MacroMolecules_input%MACROS_tracers(iLevel,column,MacroMolecules_indices%diazC_ind)    =   &
+               ecosysTracers(ecosysIndices%diazC_ind,iLevel,iCell)
 
          enddo  !  iLevel
 
@@ -195,7 +186,7 @@ contains
                              MacroMolecules_output, MacroMolecules_diagnostic_fields, nVertLevels,   &
                              numColumnsMax, numColumns)
 
-         do iLevel=minLevelCell(iCell),MacroMolecules_input%number_of_active_levels(column)
+         do iLevel=1,MacroMolecules_input%number_of_active_levels(column)
 
             MacroMoleculesTracersTend(macrosIndices%prot_ind,iLevel,iCell) = &
                MacroMoleculesTracersTend(macrosIndices%prot_ind,iLevel,iCell)   &
@@ -404,16 +395,15 @@ contains
       macrosIndices%lip_ind = index_dummy
 
       call mpas_pool_get_dimension(tracersPool, 'index_zooC',     index_dummy)
-      zooC_ind_MPAS_MacroMolecules            = index_dummy
+      ecosysIndices%zooC_ind            = index_dummy
       call mpas_pool_get_dimension(tracersPool, 'index_spC',      index_dummy)
-      spC_ind_MPAS_MacroMolecules             = index_dummy
+      ecosysIndices%spC_ind             = index_dummy
       call mpas_pool_get_dimension(tracersPool, 'index_diatC',    index_dummy)
-      diatC_ind_MPAS_MacroMolecules           = index_dummy
+      ecosysIndices%diatC_ind           = index_dummy
       call mpas_pool_get_dimension(tracersPool, 'index_diazC',    index_dummy)
-      diazC_ind_MPAS_MacroMolecules           = index_dummy
-! Currently no Phaeo in MARBL
-!     call mpas_pool_get_dimension(tracersPool, 'index_phaeoC',   index_dummy)
-!     phaeoC_ind_MPAS_MacroMolecules          = index_dummy
+      ecosysIndices%diazC_ind           = index_dummy
+      call mpas_pool_get_dimension(tracersPool, 'index_phaeoC',   index_dummy)
+      ecosysIndices%phaeoC_ind          = index_dummy
 
 ! MacroMolecules_init sets short and long names, units in MacroMolecules_indices
 

@@ -35,18 +35,8 @@ if (NOT HAS_SAMXX EQUAL -1)
   set(USE_SAMXX TRUE)
 endif()
 
-string(FIND "${CAM_CONFIG_OPTS}" "-rrtmgpxx" HAS_RRTMGPXX)
-if (NOT HAS_RRTMGPXX EQUAL -1)
-  # The following is for the RRTMGPXX code:
-  set(USE_RRTMGPXX TRUE)
-endif()
-
-# If samxx or rrtmgpxx is being used, then YAKL must be used as well
-if (USE_SAMXX OR USE_RRTMGPXX)
-    set(USE_YAKL TRUE)
-else()
-    set(USE_YAKL FALSE)
-endif()
+# If samxx is being used, then YAKL must be used as well
+set(USE_YAKL ${USE_SAMXX})
 
 # If YAKL is being used, then we need to enable USE_CXX
 if (${USE_YAKL})
@@ -461,6 +451,8 @@ endif()
 # endif()
 
 # Add libraries and flags that we need on the link line when C++ code is included
+# We need to do these additions after CONFIG_ARGS is set, because they can sometimes break configure for mct, etc.,
+# if they are added to LDFLAGS in CONFIG_ARGS.
 if (USE_CXX)
   if (CXX_LIBS)
     set(SLIBS "${SLIBS} ${CXX_LIBS}")

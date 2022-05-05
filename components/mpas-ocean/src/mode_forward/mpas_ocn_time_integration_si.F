@@ -743,9 +743,8 @@ module ocn_time_integration_si
          !
          ! The split-implicit barotropic mode solver
          !    - uses the preconditioned communication-avoiding
-         !      (single-global synchronization) BiCGStab method 
-         !      as a linear iterative solver
-         !      (Kang et al., in preparation)
+         !      (single-reduction) BiCGStab method 
+         !      (Cool and Vanroose, 2017) as a linear iterative solver
          !                    
          !    - solves the nonlinear barotropic system but deals with
          !      it as the linear system by introducing the outer and                     
@@ -767,7 +766,7 @@ module ocn_time_integration_si
          !                     obtain SSH at time (n+1) 
          !          Stage 2.7. The barotropic velocity update
          !
-         !    - recommends to set 'config_n_ts_iter=2'
+         !    - requires 'config_n_ts_iter=2'
          !         :Time line of variables
          !
          !          Start of large outer time step iteration loop
@@ -788,7 +787,7 @@ module ocn_time_integration_si
          !                SSH and BtrVel at time (n+1)
          !
          !
-         ! Reference: Kang et al. (2021): A scalable semi-implicit 
+         ! Reference: Kang et al. (2021): A scalable split-implicit
          !            barotropic mode solver for the MPAS-Ocean, JAMES
          !
          !
@@ -2612,7 +2611,7 @@ module ocn_time_integration_si
 #endif
          call mpas_timer_stop('thick vert trans vel top')
 
-         call ocn_tend_thick(tendPool, forcingPool)
+         call ocn_tend_thick(tendPool, forcingPool, meshPool)
 
          call mpas_timer_stop('si thick tend')
 
@@ -3442,7 +3441,10 @@ module ocn_time_integration_si
       alpha2= 1.0_RKIND - alpha1
 
       ! Get time step size to compute coefficients for the SI solver
-      dt_si = dt
+      read(config_dt(1:2),*) ihh
+      read(config_dt(4:5),*) imm
+      read(config_dt(7:8),*) iss
+      dt_si = ihh * 3600.0_RKIND + imm * 60.0_RKIND + iss
 
       ! Determination of nSiLargeIter (the barotropic system 
       !                                large iteration loop)
@@ -3578,7 +3580,6 @@ module ocn_time_integration_si
 
          nPrecVec = nCellsHalo2nd ! length of preconditioning vector
          nPrecMatPacked = (nPrecVec*(nPrecVec+1))/2
-                                  ! Packed size of preconditiong matrix
 
          allocate(prec_ivmat(1:nPrecMatPacked))
                   prec_ivmat(:) = 0.0_RKIND
@@ -3639,9 +3640,8 @@ module ocn_time_integration_si
       elseif ( trim(config_btr_si_preconditioner) == &
                                         'block_jacobi' ) then
 
-         nPrecVec = nCells        ! length of preconditioning vector
+         nPrecVec = nCells ! length of preconditioning vector
          nPrecMatPacked = (nPrecVec*(nPrecVec+1))/2
-                                  ! Packed size of preconditiong matrix
 
          allocate(prec_ivmat(1:nPrecMatPacked))
                   prec_ivmat(:) = 0.0_RKIND
