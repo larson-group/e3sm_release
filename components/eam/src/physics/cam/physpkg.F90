@@ -215,7 +215,7 @@ subroutine phys_register
        ! cloud water
        if( microp_scheme == 'RK' ) then
           call stratiform_register()
-       elseif( microp_scheme == 'MG' .or. microp_scheme == 'P3') then
+       elseif( microp_scheme == 'MG' ) then
           if (.not. do_clubb_sgs) call macrop_driver_register()
           call microp_aero_register()
           call microp_driver_register()
@@ -878,7 +878,7 @@ subroutine phys_init( phys_state, phys_tend, pbuf2d, cam_out )
 
     if( microp_scheme == 'RK' ) then
        call stratiform_init()
-    elseif( microp_scheme == 'MG' .or. microp_scheme == 'P3') then 
+    elseif( microp_scheme == 'MG' ) then 
        if (.not. do_clubb_sgs) call macrop_driver_init(pbuf2d)
        call microp_aero_init()
        call microp_driver_init(pbuf2d)
@@ -2029,7 +2029,6 @@ subroutine tphysbc (ztodt,               &
     real(r8) :: zero(pcols)                    ! array of zeros
     real(r8) :: zero_sc(pcols*psubcols)        ! array of zeros
     real(r8) :: rliq(pcols)                    ! vertical integral of liquid not yet in q(ixcldliq)
-    real(r8) :: rice(pcols)                    ! vertical integral of ice not yet in q(ixcldice)
     real(r8) :: rliq2(pcols)                   ! vertical integral of liquid from shallow scheme
     real(r8) :: det_s  (pcols)                 ! vertical integral of detrained static energy from ice
     real(r8) :: det_ice(pcols)                 ! vertical integral of detrained ice
@@ -2337,7 +2336,7 @@ end if
     call convect_deep_tend(  &
          cmfmc,      cmfcme,             &
          dlf,        pflx,    zdu,       &
-         rliq,       rice, &
+         rliq,    &
          ztodt,   &
          state,   ptend, cam_in%landfrac, pbuf, mu, eu, du, md, ed, dp,   &
          dsubcld, jt, maxg, ideep, lengath) 
@@ -2363,9 +2362,7 @@ end if
 
     ! Check energy integrals, including "reserved liquid"
     flx_cnd(:ncol) = prec_dp(:ncol) + rliq(:ncol)
-    snow_dp(:ncol) = snow_dp(:ncol) + rice(:ncol)
     call check_energy_chng(state, tend, "convect_deep", nstep, ztodt, zero, flx_cnd, snow_dp, zero)
-    snow_dp(:ncol) = snow_dp(:ncol) - rice(:ncol)    
 
     !
     ! Call Hack (1994) convection scheme to deal with shallow/mid-level convection
@@ -2420,7 +2417,7 @@ end if
        call t_stopf('stratiform_tend')
      end if !l_st_mac
 
-    elseif( microp_scheme == 'MG' .or. microp_scheme == 'P3') then
+    elseif( microp_scheme == 'MG' ) then
        ! Start co-substepping of macrophysics and microphysics
        cld_macmic_ztodt = ztodt/cld_macmic_num_steps
 

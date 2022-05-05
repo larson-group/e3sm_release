@@ -173,7 +173,7 @@ contains
   subroutine gas_phase_chemdr(lchnk, ncol, imozart, q, &
                               phis, zm, zi, calday, &
                               tfld, pmid, pdel, pdeldry, pint,  &
-                              cldw, cldw_liq, troplev, &
+                              cldw, troplev, &
                               ncldwtr, ufld, vfld,  &
                               delt, ps, xactive_prates, &
                               fsds, ts, asdir, ocnfrac, icefrac, &
@@ -263,7 +263,6 @@ contains
     real(r8),       intent(in)    :: ufld(pcols,pver)               ! zonal velocity (m/s)
     real(r8),       intent(in)    :: vfld(pcols,pver)               ! meridional velocity (m/s)
     real(r8),       intent(in)    :: cldw(pcols,pver)               ! cloud water (kg/kg)
-    real(r8),       intent(in)    :: cldw_liq(pcols,pver)           ! cloud liquid (kg/kg)
     real(r8),       intent(in)    :: ncldwtr(pcols,pver)            ! droplet number concentration (#/kg)
     real(r8),       intent(in)    :: zm(pcols,pver)                 ! midpoint geopotential height above the surface (m)
     real(r8),       intent(in)    :: zi(pcols,pver+1)               ! interface geopotential height above the surface (m)
@@ -323,7 +322,7 @@ contains
          sulfate, &                                        ! trop sulfate aerosols
          pmb                                               ! pressure at midpoints ( hPa )
     real(r8), dimension(ncol,pver) :: &
-         cwat,cwat_liq,               &                    ! cloud water mass mixing ratio (kg/kg), cloud liquid (kg/kg)
+         cwat, &                                           ! cloud water mass mixing ratio (kg/kg)
          wrk
     real(r8), dimension(ncol,pver+1) :: &
          zintr                                              ! interface geopotential in km realitive to surf
@@ -603,7 +602,6 @@ contains
     end do
     
     cwat(:ncol,:pver) = cldw(:ncol,:pver)
-    cwat_liq(:ncol,:pver) = cldw_liq(:ncol,:pver)
 
     call usrrxt( reaction_rates, tfld, tfld, tfld, invariants, h2ovmr, ps, &
                  pmid, invariants(:,:,indexm), sulfate, mmr, relhum, strato_sad, &
@@ -795,7 +793,7 @@ contains
     call t_startf('aero_model_gasaerexch')
     call aero_model_gasaerexch( imozart-1, ncol, lchnk, delt, latndx, lonndx, reaction_rates, &
                                 tfld, pmid, pdel, mbar, relhum, &
-                                zm,  qh2o, cwat_liq, cldfr, ncldwtr, &
+                                zm,  qh2o, cwat, cldfr, ncldwtr, &
                                 invariants(:,:,indexm), invariants, del_h2so4_gasprod,  &
                                 vmr0, vmr, pbuf )
     call t_stopf('aero_model_gasaerexch')
