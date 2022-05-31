@@ -381,7 +381,7 @@ module clubb_intr
   type(pdf_parameter), target, allocatable, public, protected :: &
                                               pdf_params_chnk(:)    ! PDF parameters (thermo. levs.) [units vary]
   type(pdf_parameter), target, allocatable :: pdf_params_zm_chnk(:) ! PDF parameters on momentum levs. [units vary]
-  type(implicit_coefs_terms), target, allocatable :: pdf_implicit_coefs_terms_chnk(:,:) ! PDF impl. coefs. & expl. terms      [units vary]
+  type(implicit_coefs_terms), target, allocatable :: pdf_implicit_coefs_terms_chnk(:) ! PDF impl. coefs. & expl. terms      [units vary]
 #endif
 
   logical :: liqcf_fix = .FALSE.  ! HW for liquid cloud fraction fix
@@ -960,14 +960,7 @@ end subroutine clubb_init_cnst
     allocate( &
        pdf_params_chnk(begchunk:endchunk),   &
        pdf_params_zm_chnk(begchunk:endchunk), &
-       pdf_implicit_coefs_terms_chnk(pcols,begchunk:endchunk) )
-
-    do idx_chunk = begchunk, endchunk
-       do idx_pcols = 1, pcols
-          call init_pdf_implicit_coefs_terms_api( pverp, sclr_dim, &
-                                                  pdf_implicit_coefs_terms_chnk(idx_pcols,idx_chunk) )
-       enddo
-    enddo
+       pdf_implicit_coefs_terms_chnk(begchunk:endchunk) )
 
     ! ----------------------------------------------------------------- !
     ! Determine how many constituents CLUBB will transport.  Note that
@@ -2280,12 +2273,17 @@ end subroutine clubb_init_cnst
    ! Allocate arrays in single column versions of pdf_params
    call init_pdf_params_api( pverp, 1, pdf_params_single_col )
    
-    ! Allocate pdf_params only if they aren't allocated already.
-    if ( .not. allocated(pdf_params_chnk(lchnk)%mixt_frac) ) then
+   ! Allocate pdf_params only if they aren't allocated already.
+   if ( .not. allocated(pdf_params_chnk(lchnk)%mixt_frac) ) then
       call init_pdf_params_api( pverp, ncol, pdf_params_chnk(lchnk) )
       call init_pdf_params_api( pverp, ncol, pdf_params_zm_chnk(lchnk) )
-    end if
+   end if
     
+   if ( .not. allocated(pdf_implicit_coefs_terms_chnk(lchnk)%coef_wp4_implicit) ) then
+      call init_pdf_implicit_coefs_terms_api( pverp, ncol, sclr_dim, &
+                                              pdf_implicit_coefs_terms_chnk(lchnk) )
+   end if
+
    if (linearize_pbl_winds) then
       call pbuf_get_field(pbuf, wsresp_idx, wsresp)
       call pbuf_get_field(pbuf, tau_est_idx, tau_est)
@@ -2920,7 +2918,7 @@ end subroutine clubb_init_cnst
            um_pert_inout(:ncol,:), vm_pert_inout(:ncol,:),                                                  & ! intent(inout)
            upwp_pert_inout(:ncol,:), vpwp_pert_inout(:ncol,:),                                              & ! intent(inout)
            pdf_params_chnk(lchnk), pdf_params_zm_chnk(lchnk),                                               & ! intent(inout)
-           pdf_implicit_coefs_terms_chnk(:ncol,lchnk),                                                      & ! intent(inout)
+           pdf_implicit_coefs_terms_chnk(lchnk),                                                            & ! intent(inout)
            khzm_out(:ncol,:), khzt_out(:ncol,:), qclvar_out(:ncol,:), thlprcp_out(:ncol,:),                 & ! intent(out)
            wprcp_out(:ncol,:), w_up_in_cloud_out(:ncol,:),                                                  & ! intent(out)
            rcm_in_layer_out(:ncol,:), cloud_cover_out(:ncol,:), invrs_tau_zm_out(:ncol,:) )                   ! intent(out)
