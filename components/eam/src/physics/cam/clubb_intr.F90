@@ -2037,7 +2037,7 @@ end subroutine clubb_init_cnst
                           
    type(grid) :: gr(pcols)
    type(nu_vertical_res_dep) :: nu_vert_res_dep(pcols)   ! Vertical resolution dependent nu values
-   real(r8) :: lmin(pcols)
+   real(r8) :: lmin
    
    real(r8) :: sfc_v_diff_tau(pcols) ! Response to tau perturbation, m/s
    real(r8), parameter :: pert_tau = 0.1_r8 ! tau perturbation, Pa
@@ -2624,7 +2624,7 @@ end subroutine clubb_init_cnst
       call setup_parameters_api( zi_g(i,2), clubb_params, pverp, grid_type, &
                                  zi_g(i,:), zt_g(i,:), &
                                  clubb_config_flags%l_prescribed_avg_deltaz, &
-                                 lmin(i), nu_vert_res_dep(i), err_code )
+                                 lmin, nu_vert_res_dep(i), err_code )
     end do
 
     !  Compute some inputs from the thermodynamic grid
@@ -2882,7 +2882,7 @@ end subroutine clubb_init_cnst
 #endif
            wphydrometp(:ncol,:,:), wp2hmp(:ncol,:,:), rtphmp_zt(:ncol,:,:), thlphmp_zt(:ncol,:,:),          & ! intent(in)
            host_dx(:ncol), host_dy(:ncol),                                                                  & ! intent(in)
-           clubb_params, nu_vert_res_dep(:ncol), lmin(:ncol),                                               & ! intent(in)
+           clubb_params, nu_vert_res_dep(:ncol), lmin,                                               & ! intent(in)
            clubb_config_flags,                                                                              & ! intent(in)
            stats_zt(:ncol), stats_zm(:ncol), stats_sfc(:ncol),                                              & ! intent(inout)
            um_in(:ncol,:), vm_in(:ncol,:), upwp_in(:ncol,:), vpwp_in(:ncol,:),                              & ! intent(inout)
