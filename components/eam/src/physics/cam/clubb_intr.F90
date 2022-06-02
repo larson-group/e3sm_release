@@ -1692,7 +1692,7 @@ end subroutine clubb_init_cnst
    integer :: itim_old
    integer :: ncol, lchnk                       ! # of columns, and chunk identifier
    integer :: err_code                          ! Diagnostic, for if some calculation goes amiss.
-   integer :: begin_height, end_height
+   integer :: begin_height(pcols), end_height(pcols)
    integer :: icnt
    integer :: clubbtop(pcols)
    
@@ -2036,7 +2036,7 @@ end subroutine clubb_init_cnst
    type(pdf_parameter) :: pdf_params_single_col
                           
    type(grid) :: gr(pcols)
-   type(nu_vertical_res_dep) :: nu_vert_res_dep(pcols)   ! Vertical resolution dependent nu values
+   type(nu_vertical_res_dep) :: nu_vert_res_dep   ! Vertical resolution dependent nu values
    real(r8) :: lmin
    
    real(r8) :: sfc_v_diff_tau(pcols) ! Response to tau perturbation, m/s
@@ -2613,19 +2613,15 @@ end subroutine clubb_init_cnst
  
     !  Heights need to be set at each timestep.  Therefore, recall 
     !  setup_grid and setup_parameters for this.  
-    do i=1, ncol
-      call setup_grid_api( pverp, sfc_elevation(i), l_implemented,         & ! intent(in)
-                           grid_type, zi_g(i,2), zi_g(i,1), zi_g(i,pverp), & ! intent(in)
-                           zi_g(i,:), zt_g(i,:),                           & ! intent(in)
-                           gr(i), begin_height, end_height )                 ! intent(out)
-    end do                       
+    call setup_grid_api( pverp, ncol, sfc_elevation(1:ncol), l_implemented,         & ! intent(in)
+                         grid_type, zi_g(1:ncol,2), zi_g(1:ncol,1), zi_g(1:ncol,pverp),  & ! intent(in)
+                         zi_g(1:ncol,:), zt_g(1:ncol,:),                            & ! intent(in)
+                         gr(1:ncol), begin_height(1:ncol), end_height(1:ncol) )       ! intent(out)
 
-    do i=1, ncol
-      call setup_parameters_api( zi_g(i,2), clubb_params, pverp, grid_type, &
-                                 zi_g(i,:), zt_g(i,:), &
-                                 clubb_config_flags%l_prescribed_avg_deltaz, &
-                                 lmin, nu_vert_res_dep(i), err_code )
-    end do
+    call setup_parameters_api( zi_g(1:ncol,2), clubb_params, pverp, grid_type, &
+                               zi_g(1:ncol,:), zt_g(1:ncol,:), &
+                               clubb_config_flags%l_prescribed_avg_deltaz, &
+                               lmin, nu_vert_res_dep, err_code )
 
     !  Compute some inputs from the thermodynamic grid
     !  to the momentum grid
@@ -2882,7 +2878,7 @@ end subroutine clubb_init_cnst
 #endif
            wphydrometp(:ncol,:,:), wp2hmp(:ncol,:,:), rtphmp_zt(:ncol,:,:), thlphmp_zt(:ncol,:,:),          & ! intent(in)
            host_dx(:ncol), host_dy(:ncol),                                                                  & ! intent(in)
-           clubb_params, nu_vert_res_dep(:ncol), lmin,                                               & ! intent(in)
+           clubb_params, nu_vert_res_dep, lmin,                                               & ! intent(in)
            clubb_config_flags,                                                                              & ! intent(in)
            stats_zt(:ncol), stats_zm(:ncol), stats_sfc(:ncol),                                              & ! intent(inout)
            um_in(:ncol,:), vm_in(:ncol,:), upwp_in(:ncol,:), vpwp_in(:ncol,:),                              & ! intent(inout)
