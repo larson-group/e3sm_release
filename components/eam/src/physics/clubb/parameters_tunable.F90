@@ -1414,10 +1414,10 @@ module parameters_tunable
     if (clubb_C11b /= init_value) C11b = clubb_C11b
     if (clubb_C11c /= init_value) C11c = clubb_C11c
     if (clubb_C14 /= init_value) C14 = clubb_C14
-    if (clubb_C_wp2_pr_dfsn /= init_value) C_wp2_pr_dfsn = clubb_C_wp2_pr_dfsn
-    if (clubb_C_wp3_pr_tp /= init_value) C_wp3_pr_tp = clubb_C_wp3_pr_tp
+!    if (clubb_C_wp2_pr_dfsn /= init_value) C_wp2_pr_dfsn = clubb_C_wp2_pr_dfsn
+!    if (clubb_C_wp3_pr_tp /= init_value) C_wp3_pr_tp = clubb_C_wp3_pr_tp
     if (clubb_C_wp3_pr_turb /= init_value) C_wp3_pr_turb = clubb_C_wp3_pr_turb
-    if (clubb_C_wp3_pr_dfsn /= init_value) C_wp3_pr_dfsn = clubb_C_wp3_pr_dfsn
+!    if (clubb_C_wp3_pr_dfsn /= init_value) C_wp3_pr_dfsn = clubb_C_wp3_pr_dfsn
     if (clubb_beta /= init_value) beta = clubb_beta
     ! if clubb_gamma_coefb not specified, continue to use gamma_coefb=gamma_coef
     ! to preserve existing compsets that have assumed so  and only vary gamma_coef
@@ -1428,20 +1428,20 @@ module parameters_tunable
     ! Allows gamma_coefb to vary separately
     if (clubb_gamma_coefb /= init_value) gamma_coefb = clubb_gamma_coefb
     if (clubb_gamma_coefc /= init_value) gamma_coefc = clubb_gamma_coefc
-    if (clubb_pdf_component_stdev_factor_w /= init_value) &
-       pdf_component_stdev_factor_w = clubb_pdf_component_stdev_factor_w
+!    if (clubb_pdf_component_stdev_factor_w /= init_value) &
+!       pdf_component_stdev_factor_w = clubb_pdf_component_stdev_factor_w
     if (clubb_mu /= init_value) mu = clubb_mu
     if (clubb_c_K1 /= init_value) c_K1 = clubb_c_K1
     if (clubb_nu1 /= init_value) nu1 = clubb_nu1
     if (clubb_c_K2 /= init_value) c_K2 = clubb_c_K2
     if (clubb_nu2 /= init_value) nu2 = clubb_nu2
     if (clubb_c_K8 /= init_value) c_K8 = clubb_c_K8
-    if (clubb_nu8 /= init_value) nu8 = clubb_nu8
+!    if (clubb_nu8 /= init_value) nu8 = clubb_nu8
     if (clubb_c_K9 /= init_value) c_K9 = clubb_c_K9
     if (clubb_nu9 /= init_value) nu9 = clubb_nu9
     if (clubb_c_K10 /= init_value) c_K10 = clubb_c_K10
     if (clubb_c_K10h /= init_value) c_K10h = clubb_c_K10h
-    if (clubb_c_K_hmb /= init_value) c_K_hmb = clubb_c_K_hmb
+!    if (clubb_c_K_hmb /= init_value) c_K_hmb = clubb_c_K_hmb
     if (clubb_wpxp_L_thresh /= init_value) wpxp_L_thresh = clubb_wpxp_L_thresh
     if (clubb_lmin_coef /= init_value) lmin_coef = clubb_lmin_coef
     if (clubb_mult_coef /= init_value) mult_coef = clubb_mult_coef
@@ -1472,19 +1472,19 @@ module parameters_tunable
     if (clubb_C_invrs_tau_wpxp_N2_thresh /= init_value) &
        C_invrs_tau_wpxp_N2_thresh = clubb_C_invrs_tau_wpxp_N2_thresh
     if (clubb_C_wp2_splat  /= init_value ) C_wp2_splat = clubb_C_wp2_splat
-    if (clubb_xp3_coef_base /= init_value) xp3_coef_base = clubb_xp3_coef_base
-    if (clubb_xp3_coef_slope /= init_value) &
-       xp3_coef_slope = clubb_xp3_coef_slope
+!    if (clubb_xp3_coef_base /= init_value) xp3_coef_base = clubb_xp3_coef_base
+!    if (clubb_xp3_coef_slope /= init_value) &
+!       xp3_coef_slope = clubb_xp3_coef_slope
     if (clubb_altitude_threshold /= init_value) &
        altitude_threshold = clubb_altitude_threshold
-    if (clubb_rtp2_clip_coef /= init_value) &
-       rtp2_clip_coef = clubb_rtp2_clip_coef
-    if (clubb_Cx_min /= init_value) Cx_min = clubb_Cx_min
-    if (clubb_Cx_max /= init_value) Cx_max = clubb_Cx_max
-    if (clubb_Richardson_num_min /= init_value) &
-       Richardson_num_min = clubb_Richardson_num_min
-    if (clubb_Richardson_num_max /= init_value) &
-       Richardson_num_max = clubb_Richardson_num_max
+!    if (clubb_rtp2_clip_coef /= init_value) &
+!       rtp2_clip_coef = clubb_rtp2_clip_coef
+!    if (clubb_Cx_min /= init_value) Cx_min = clubb_Cx_min
+!    if (clubb_Cx_max /= init_value) Cx_max = clubb_Cx_max
+!    if (clubb_Richardson_num_min /= init_value) &
+!       Richardson_num_min = clubb_Richardson_num_min
+!    if (clubb_Richardson_num_max /= init_value) &
+!       Richardson_num_max = clubb_Richardson_num_max
     if (clubb_a3_coef_min /= init_value) a3_coef_min = clubb_a3_coef_min
 #endif /*E3SM*/
 
