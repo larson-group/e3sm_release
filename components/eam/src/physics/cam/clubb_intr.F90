@@ -2618,7 +2618,7 @@ end subroutine clubb_init_cnst
                          zi_g(1:ncol,:), zt_g(1:ncol,:),                            & ! intent(in)
                          gr(1:ncol), begin_height(1:ncol), end_height(1:ncol) )       ! intent(out)
 
-    call setup_parameters_api( zi_g(1:ncol,2), clubb_params, pverp, grid_type, &
+    call setup_parameters_api( zi_g(1:ncol,2), clubb_params, pverp, ncol, grid_type, &
                                zi_g(1:ncol,:), zt_g(1:ncol,:), &
                                clubb_config_flags%l_prescribed_avg_deltaz, &
                                lmin, nu_vert_res_dep, err_code )
