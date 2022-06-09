@@ -1692,7 +1692,7 @@ end subroutine clubb_init_cnst
    integer :: itim_old
    integer :: ncol, lchnk                       ! # of columns, and chunk identifier
    integer :: err_code                          ! Diagnostic, for if some calculation goes amiss.
-   integer :: begin_height(pcols), end_height(pcols)
+   integer :: begin_height, end_height
    integer :: icnt
    integer :: clubbtop(pcols)
    
@@ -2035,7 +2035,7 @@ end subroutine clubb_init_cnst
 
    type(pdf_parameter) :: pdf_params_single_col
                           
-   type(grid) :: gr(pcols)
+   type(grid) :: gr
    type(nu_vertical_res_dep) :: nu_vert_res_dep   ! Vertical resolution dependent nu values
    real(r8) :: lmin
    
@@ -2616,7 +2616,7 @@ end subroutine clubb_init_cnst
     call setup_grid_api( pverp, ncol, sfc_elevation(1:ncol), l_implemented,         & ! intent(in)
                          grid_type, zi_g(1:ncol,2), zi_g(1:ncol,1), zi_g(1:ncol,pverp),  & ! intent(in)
                          zi_g(1:ncol,:), zt_g(1:ncol,:),                            & ! intent(in)
-                         gr(1:ncol), begin_height(1:ncol), end_height(1:ncol) )       ! intent(out)
+                         gr, begin_height, end_height )       ! intent(out)
 
     call setup_parameters_api( zi_g(1:ncol,2), clubb_params, pverp, ncol, grid_type, &
                                zi_g(1:ncol,:), zt_g(1:ncol,:), &
@@ -2859,7 +2859,7 @@ end subroutine clubb_init_cnst
       !  Advance CLUBB CORE one timestep in the future
       call t_startf('advance_clubb_core')
                                             
-      call advance_clubb_core_api( gr(:ncol), pverp, ncol,                                                  & ! intent(in)
+      call advance_clubb_core_api( gr, pverp, ncol,                                                  & ! intent(in)
            l_implemented, dtime, fcor(:ncol), sfc_elevation(:ncol), hydromet_dim,                           & ! intent(in)
            thlm_forcing(:ncol,:), rtm_forcing(:ncol,:), um_forcing(:ncol,:), vm_forcing(:ncol,:),           & ! intent(in)
            sclrm_forcing(:ncol,:,:), edsclrm_forcing(:ncol,:,:), wprtp_forcing(:ncol,:),                    & ! intent(in)
@@ -2924,7 +2924,7 @@ end subroutine clubb_init_cnst
                                                 pdf_params_single_col)
          
           rvm_in(i,:) = rtm_in(i,:) - rcm_inout(i,:) 
-          call update_xp2_mc_api(gr(i), pverp, dtime, cloud_frac_inout(i,:), &
+          call update_xp2_mc_api(gr, pverp, dtime, cloud_frac_inout(i,:), &
           rcm_inout(i,:), rvm_in(i,:), thlm_in(i,:), wm_zt(i,:), exner(i,:), pre_in(i,:), pdf_params_single_col, &
           rtp2_mc_out(i,:), thlp2_mc_out(i,:), &
           wprtp_mc_out(i,:), wpthlp_mc_out(i,:), &
@@ -2948,9 +2948,9 @@ end subroutine clubb_init_cnst
       endif     
 
       if (do_cldcool) then
+        rcm_out_zm = zt2zm_api(nz, ngrdcol, gr, rcm_inout(1:ngrdcol,:))
+        qrl_zm     = zt2zm_api(nz, ngrdcol, gr, qrl_clubb(1:ngrdcol,:))
         do i=1,ncol 
-          rcm_out_zm(i,:) = zt2zm_api(gr(i), rcm_inout(i,:))
-          qrl_zm = zt2zm_api(gr(i), qrl_clubb(i,:))
           thlp2_rad_out(:) = 0._r8
           call calculate_thlp2_rad_api(pverp, rcm_out_zm(i,:), thlprcp_out(i,:), qrl_zm, clubb_params, &
                                        thlp2_rad_out)
