@@ -164,6 +164,81 @@ module clubb_intr
   integer            :: edsclr_dim       ! Number of scalars to transport in CLUBB
   integer            :: offset
 
+  real( kind = core_rknd ), parameter :: &
+    init_value = -999._core_rknd ! Initial value for the parameters, used to detect missing values
+
+  real( kind = core_rknd ) ::                        &
+    clubb_C1 = init_value,                           &
+    clubb_C1b = init_value,                          &
+    clubb_C1c = init_value,                          &
+    clubb_C2rt = init_value,                         &
+    clubb_C2thl = init_value,                        &
+    clubb_C2rtthl = init_value,                      &
+    clubb_C4 = init_value,                           &
+    clubb_C_uu_shr = init_value,                     &
+    clubb_C_uu_buoy = init_value,                    &
+    clubb_C6rt = init_value,                         &
+    clubb_C6rtb = init_value,                        &
+    clubb_C6rtc = init_value,                        &
+    clubb_C6thl = init_value,                        &
+    clubb_C6thlb = init_value,                       &
+    clubb_C6thlc = init_value,                       &
+    clubb_C7 = init_value,                           &
+    clubb_C7b = init_value,                          &
+    clubb_C8 = init_value,                           &
+    clubb_C8b = init_value,                          &
+    clubb_C11 = init_value,                          &
+    clubb_C11b = init_value,                         &
+    clubb_C11c = init_value,                         &
+    clubb_C14 = init_value,                          &
+    clubb_C_wp2_pr_dfsn = init_value,                &
+    clubb_C_wp3_pr_tp = init_value,                  &
+    clubb_C_wp3_pr_turb = init_value,                &
+    clubb_C_wp3_pr_dfsn = init_value,                &
+    clubb_beta = init_value,                         &
+    clubb_gamma_coef = init_value,                   &
+    clubb_gamma_coefb = init_value,                  &
+    clubb_gamma_coefc = init_value,                  &
+    clubb_pdf_component_stdev_factor_w = init_value, &
+    clubb_mu = init_value,                           &
+    clubb_c_K1 = init_value,                         &
+    clubb_nu1 = init_value,                          &
+    clubb_c_K2 = init_value,                         &
+    clubb_nu2 = init_value,                          &
+    clubb_c_K8 = init_value,                         &
+    clubb_nu8 = init_value,                          &
+    clubb_c_K9 = init_value,                         &
+    clubb_nu9 = init_value,                          &
+    clubb_c_K10 = init_value,                        &
+    clubb_c_K10h = init_value,                       &
+    clubb_c_K_hmb = init_value,                      &
+    clubb_wpxp_L_thresh = init_value,                &
+    clubb_lmin_coef = init_value,                    &
+    clubb_mult_coef = init_value,                    &
+    clubb_Skw_denom_coef = init_value,               &
+    clubb_up2_sfc_coef = init_value,                 &
+    clubb_Skw_max_mag = init_value,                  &
+    clubb_C_invrs_tau_bkgnd = init_value,            &
+    clubb_C_invrs_tau_sfc = init_value,              &
+    clubb_C_invrs_tau_shear = init_value,            &
+    clubb_C_invrs_tau_N2 = init_value,               &
+    clubb_C_invrs_tau_N2_wp2 = init_value,           &
+    clubb_C_invrs_tau_N2_xp2 = init_value,           &
+    clubb_C_invrs_tau_N2_wpxp = init_value,          &
+    clubb_C_invrs_tau_N2_clear_wp3 = init_value,     &
+    clubb_C_invrs_tau_wpxp_Ri = init_value,          &
+    clubb_C_invrs_tau_wpxp_N2_thresh = init_value,   &
+    clubb_C_wp2_splat = init_value,                  &
+    clubb_xp3_coef_base = init_value,                &
+    clubb_xp3_coef_slope = init_value,               &
+    clubb_altitude_threshold = init_value,           &
+    clubb_rtp2_clip_coef = init_value,               &
+    clubb_Cx_min = init_value,                       &
+    clubb_Cx_max = init_value,                       &
+    clubb_Richardson_num_min = init_value,           & 
+    clubb_Richardson_num_max = init_value,           &
+    clubb_a3_coef_min = init_value
+
   integer :: &
     clubb_iiPDF_type, &
     clubb_ipdf_call_placement
@@ -542,6 +617,28 @@ end subroutine clubb_init_cnst
                                 clubb_l_diag_Lscale_from_tau, clubb_l_use_C7_Richardson, &
                                 clubb_l_rcm_supersat_adj, clubb_l_damp_wp3_Skw_squared, &
                                 clubb_l_enable_relaxed_clipping
+    namelist /clubb_param_nl/ clubb_C1, clubb_C1b, clubb_C1c, clubb_C2rt, clubb_C2thl, &
+                              clubb_C2rtthl, clubb_C4, clubb_C_uu_shr, clubb_C_uu_buoy, &
+                              clubb_C6rt, clubb_C6rtb, clubb_C6rtc, clubb_C6thl, &
+                              clubb_C6thlb, clubb_C6thlc, clubb_C7, clubb_C7b, &
+                              clubb_C8, clubb_C8b, clubb_C11, clubb_C11b, clubb_C11c, &
+                              clubb_C14, clubb_C_wp2_pr_dfsn, clubb_C_wp3_pr_tp, &
+                              clubb_C_wp3_pr_turb, clubb_C_wp3_pr_dfsn, clubb_beta, &
+                              clubb_gamma_coef, clubb_gamma_coefb, clubb_gamma_coefc, &
+                              clubb_pdf_component_stdev_factor_w, clubb_mu, &
+                              clubb_c_K1, clubb_nu1, clubb_c_K2, clubb_nu2, clubb_c_K8, &
+                              clubb_nu8, clubb_c_K9, clubb_nu9, clubb_c_K10, clubb_c_K10h, &
+                              clubb_c_K_hmb, clubb_wpxp_L_thresh, clubb_lmin_coef, &
+                              clubb_mult_coef, clubb_Skw_denom_coef, clubb_up2_sfc_coef, &
+                              clubb_Skw_max_mag, clubb_C_invrs_tau_bkgnd, clubb_C_invrs_tau_sfc, &
+                              clubb_C_invrs_tau_shear, clubb_C_invrs_tau_N2, &
+                              clubb_C_invrs_tau_N2_wp2, clubb_C_invrs_tau_N2_xp2, &
+                              clubb_C_invrs_tau_N2_wpxp, clubb_C_invrs_tau_N2_clear_wp3, &
+                              clubb_C_invrs_tau_wpxp_Ri, clubb_C_invrs_tau_wpxp_N2_thresh, &
+                              clubb_C_wp2_splat, clubb_xp3_coef_base, clubb_xp3_coef_slope, &
+                              clubb_altitude_threshold, clubb_rtp2_clip_coef, clubb_Cx_min, &
+                              clubb_Cx_max, clubb_Richardson_num_min, clubb_Richardson_num_max, &
+                              clubb_a3_coef_min
 
     !----- Begin Code -----
 
@@ -578,6 +675,14 @@ end subroutine clubb_init_cnst
          end if
       end if
 
+      call find_group_name(iunit, 'clubb_param_nl', status=read_status)
+      if (read_status == 0) then
+         read(unit=iunit, nml=clubb_param_nl, iostat=read_status)
+         if (read_status /= 0) then
+            call endrun('clubb_readnl:  error reading namelist'//errmsg(__FILE__,__LINE__))
+         end if
+      end if
+
       close(unit=iunit)
       call freeunit(iunit)
     end if
@@ -602,8 +707,80 @@ end subroutine clubb_init_cnst
       call mpibcast(clubb_tk2,                1,   mpir8,   0, mpicom)
       call mpibcast(relvar_fix,               1,   mpilog,  0, mpicom)
       call mpibcast(clubb_use_sgv,            1,   mpilog,   0, mpicom)
-      call mpibcast(clubb_iiPDF_type,          1,   mpiint,   0, mpicom)
-      call mpibcast(clubb_ipdf_call_placement, 1,   mpiint,   0, mpicom)
+
+      call mpibcast(clubb_C1                ,         1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C1b                ,        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C1c,                        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C2rt,                       1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C2thl,                      1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C2rtthl,                    1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C4,                         1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_uu_shr,                   1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_uu_buoy,                  1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C6rt,                       1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C6rtb,                      1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C6rtc,                      1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C6thl,                      1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C6thlb,                     1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C6thlc,                     1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C7,                         1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C7b,                        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C8,                         1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C8b,                        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C11,                        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C11b,                       1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C11c,                       1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C14,                        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_wp2_pr_dfsn,              1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_wp3_pr_tp,                1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_wp3_pr_turb,              1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_wp3_pr_dfsn,              1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_beta,                       1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_gamma_coef,                 1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_gamma_coefb,                1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_gamma_coefc,                1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_pdf_component_stdev_factor_w, 1, mpir8,  0, mpicom)
+      call mpibcast(clubb_mu,                         1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_c_K1,                       1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_nu1,                        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_c_K2,                       1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_nu2,                        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_c_K8,                       1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_nu8,                        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_c_K9,                       1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_nu9,                        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_c_K10,                      1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_c_K10h,                     1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_c_K_hmb,                    1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_wpxp_L_thresh,              1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_lmin_coef,                  1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_mult_coef,                  1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_Skw_denom_coef,             1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_up2_sfc_coef,               1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_Skw_max_mag,                1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_invrs_tau_bkgnd,          1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_invrs_tau_sfc,            1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_invrs_tau_shear,          1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_invrs_tau_N2,             1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_invrs_tau_N2_wp2,         1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_invrs_tau_N2_xp2,         1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_invrs_tau_N2_wpxp,        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_invrs_tau_N2_clear_wp3,   1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_invrs_tau_wpxp_Ri,        1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_invrs_tau_wpxp_N2_thresh, 1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_C_wp2_splat,                1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_xp3_coef_base,              1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_xp3_coef_slope,             1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_altitude_threshold,         1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_rtp2_clip_coef,             1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_Cx_min,                     1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_Cx_max,                     1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_Richardson_num_min,         1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_Richardson_num_max,         1,  mpir8,  0,  mpicom)
+      call mpibcast(clubb_a3_coef_min,                1,  mpir8,  0,  mpicom)
+
+      call mpibcast(clubb_iiPDF_type,                 1,   mpiint,   0, mpicom)
+      call mpibcast(clubb_ipdf_call_placement,        1,   mpiint,   0, mpicom)
       call mpibcast(clubb_l_predict_upwp_vpwp,        1,   mpilog,   0, mpicom)
       call mpibcast(clubb_l_min_wp2_from_corr_wx,     1,   mpilog,   0, mpicom)
       call mpibcast(clubb_l_min_xp2_from_corr_wx,     1,   mpilog,   0, mpicom)
