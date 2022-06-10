@@ -591,7 +591,7 @@ end subroutine clubb_init_cnst
     use cam_abortutils,  only: endrun
     use clubb_api_module, only: l_stats, l_output_rad_files
     use mpishorthand
-    use parameters_tunable, only: clubb_param_readnl ! Brian: should be added to the api
+!    use parameters_tunable, only: clubb_param_readnl ! Brian: should be added to the api
 #endif
 
     character(len=*), intent(in) :: nlfile  ! filepath for file containing namelist input
@@ -828,7 +828,7 @@ end subroutine clubb_init_cnst
 
     ! read tunable parameters from namelist, handlings of masterproc vs others
     ! are done within clubb_param_readnl
-    call clubb_param_readnl(nlfile)
+    !call clubb_param_readnl(nlfile)
 #endif
   end subroutine clubb_readnl
 
@@ -1110,6 +1110,119 @@ end subroutine clubb_init_cnst
                C_invrs_tau_wpxp_Ri, C_invrs_tau_wpxp_N2_thresh, &
                Cx_min, Cx_max, Richardson_num_min, &
                Richardson_num_max, a3_coef_min )
+
+
+    if (clubb_C1 /= init_value) then
+       C1 = clubb_C1
+    endif
+    if (clubb_C1b /= init_value) then
+       C1b = clubb_C1b
+    end if
+    if (clubb_C1c /= init_value) then
+       C1c = clubb_C1c
+    end if
+    ! if clubb_C2thl and clubb_C2rtthl not specified, continue to use C2thl=C2rt, C2rtthl = 1.3*C2rt
+    ! to preserve existing compsets that have assumed so and only vary C2rt
+    if (clubb_C2rt /= init_value) then
+       C2rt = clubb_C2rt
+       if (clubb_C2thl == init_value) C2thl = C2rt
+       if (clubb_C2rtthl == init_value) C2rtthl = C2rt*2.0_core_rknd
+    end if
+    ! Allows C2thl and C2rtthl to vary separately
+    if (clubb_C2thl /= init_value) C2thl = clubb_C2thl
+    if (clubb_C2rtthl /= init_value) C2rtthl = clubb_C2rtthl
+    if (clubb_C4 /= init_value) C4 = clubb_C4
+    if (clubb_C_uu_shr /= init_value) C_uu_shr = clubb_C_uu_shr
+    if (clubb_C_uu_buoy /= init_value) C_uu_buoy = clubb_C_uu_buoy
+    if (clubb_C6rt /= init_value) then
+       C6rt = clubb_C6rt
+       if (clubb_C6thl == init_value) C6thl = C6rt
+    end if
+    if (clubb_C6rtb /= init_value) C6rtb = clubb_C6rtb
+    if (clubb_C6rtc /= init_value) C6rtc = clubb_C6rtc
+    if (clubb_C6thl /= init_value) C6thl = clubb_C6thl
+    if (clubb_C6thlb /= init_value) C6thlb = clubb_C6thlb
+    if (clubb_C6thlc /= init_value) C6thlc = clubb_C6thlc
+    if (clubb_C7 /= init_value) C7 = clubb_C7
+    if (clubb_C7b /= init_value) C7b = clubb_C7b
+    if (clubb_C8 /= init_value) C8 = clubb_C8
+    if (clubb_C8b /= init_value) C8b = clubb_C8b
+    if (clubb_C11 /= init_value) C11 = clubb_C11
+    if (clubb_C11b /= init_value) C11b = clubb_C11b
+    if (clubb_C11c /= init_value) C11c = clubb_C11c
+    if (clubb_C14 /= init_value) C14 = clubb_C14
+    if (clubb_C_wp2_pr_dfsn /= init_value) C_wp2_pr_dfsn = clubb_C_wp2_pr_dfsn
+    if (clubb_C_wp3_pr_tp /= init_value) C_wp3_pr_tp = clubb_C_wp3_pr_tp
+    if (clubb_C_wp3_pr_turb /= init_value) C_wp3_pr_turb = clubb_C_wp3_pr_turb
+    if (clubb_C_wp3_pr_dfsn /= init_value) C_wp3_pr_dfsn = clubb_C_wp3_pr_dfsn
+    if (clubb_beta /= init_value) beta = clubb_beta
+    ! if clubb_gamma_coefb not specified, continue to use gamma_coefb=gamma_coef
+    ! to preserve existing compsets that have assumed so  and only vary gamma_coef
+    if (clubb_gamma_coef /= init_value) then
+       gamma_coef = clubb_gamma_coef
+       if (clubb_gamma_coefb == init_value) gamma_coefb = gamma_coef
+    end if
+    ! Allows gamma_coefb to vary separately
+    if (clubb_gamma_coefb /= init_value) gamma_coefb = clubb_gamma_coefb
+    if (clubb_gamma_coefc /= init_value) gamma_coefc = clubb_gamma_coefc
+    if (clubb_pdf_component_stdev_factor_w /= init_value) &
+       pdf_component_stdev_factor_w = clubb_pdf_component_stdev_factor_w
+    if (clubb_mu /= init_value) mu = clubb_mu
+    if (clubb_c_K1 /= init_value) c_K1 = clubb_c_K1
+    if (clubb_nu1 /= init_value) nu1 = clubb_nu1
+    if (clubb_c_K2 /= init_value) c_K2 = clubb_c_K2
+    if (clubb_nu2 /= init_value) nu2 = clubb_nu2
+    if (clubb_c_K8 /= init_value) c_K8 = clubb_c_K8
+    if (clubb_nu8 /= init_value) nu8 = clubb_nu8
+    if (clubb_c_K9 /= init_value) c_K9 = clubb_c_K9
+    if (clubb_nu9 /= init_value) nu9 = clubb_nu9
+    if (clubb_c_K10 /= init_value) c_K10 = clubb_c_K10
+    if (clubb_c_K10h /= init_value) c_K10h = clubb_c_K10h
+    if (clubb_c_K_hmb /= init_value) c_K_hmb = clubb_c_K_hmb
+    if (clubb_wpxp_L_thresh /= init_value) wpxp_L_thresh = clubb_wpxp_L_thresh
+    if (clubb_lmin_coef /= init_value) lmin_coef = clubb_lmin_coef
+    if (clubb_mult_coef /= init_value) mult_coef = clubb_mult_coef
+    if (clubb_Skw_denom_coef /= init_value) &
+       Skw_denom_coef = clubb_Skw_denom_coef
+    if (clubb_up2_sfc_coef /= init_value) &
+       up2_sfc_coef = clubb_up2_sfc_coef
+    if (clubb_Skw_max_mag /= init_value) &
+       Skw_max_mag = clubb_Skw_max_mag
+    if (clubb_C_invrs_tau_bkgnd /= init_value) &
+       C_invrs_tau_bkgnd = clubb_C_invrs_tau_bkgnd
+    if (clubb_C_invrs_tau_sfc /= init_value) &
+       C_invrs_tau_sfc = clubb_C_invrs_tau_sfc
+    if (clubb_C_invrs_tau_shear /= init_value) &
+       C_invrs_tau_shear = clubb_C_invrs_tau_shear
+    if (clubb_C_invrs_tau_N2 /= init_value) &
+       C_invrs_tau_N2 = clubb_C_invrs_tau_N2
+    if (clubb_C_invrs_tau_N2_wp2 /= init_value) &
+       C_invrs_tau_N2_wp2 = clubb_C_invrs_tau_N2_wp2
+    if (clubb_C_invrs_tau_N2_xp2 /= init_value) &
+       C_invrs_tau_N2_xp2 = clubb_C_invrs_tau_N2_xp2
+    if (clubb_C_invrs_tau_N2_wpxp /= init_value) &
+       C_invrs_tau_N2_wpxp = clubb_C_invrs_tau_N2_wpxp
+    if (clubb_C_invrs_tau_N2_clear_wp3 /= init_value) &
+       C_invrs_tau_N2_clear_wp3 = clubb_C_invrs_tau_N2_clear_wp3
+    if (clubb_C_invrs_tau_wpxp_Ri /= init_value) &
+       C_invrs_tau_wpxp_Ri = clubb_C_invrs_tau_wpxp_Ri
+    if (clubb_C_invrs_tau_wpxp_N2_thresh /= init_value) &
+       C_invrs_tau_wpxp_N2_thresh = clubb_C_invrs_tau_wpxp_N2_thresh
+    if (clubb_C_wp2_splat  /= init_value ) C_wp2_splat = clubb_C_wp2_splat
+    if (clubb_xp3_coef_base /= init_value) xp3_coef_base = clubb_xp3_coef_base
+    if (clubb_xp3_coef_slope /= init_value) &
+       xp3_coef_slope = clubb_xp3_coef_slope
+    if (clubb_altitude_threshold /= init_value) &
+       altitude_threshold = clubb_altitude_threshold
+    if (clubb_rtp2_clip_coef /= init_value) &
+       rtp2_clip_coef = clubb_rtp2_clip_coef
+    if (clubb_Cx_min /= init_value) Cx_min = clubb_Cx_min
+    if (clubb_Cx_max /= init_value) Cx_max = clubb_Cx_max
+    if (clubb_Richardson_num_min /= init_value) &
+       Richardson_num_min = clubb_Richardson_num_min
+    if (clubb_Richardson_num_max /= init_value) &
+       Richardson_num_max = clubb_Richardson_num_max
+    if (clubb_a3_coef_min /= init_value) a3_coef_min = clubb_a3_coef_min
 
 !$OMP PARALLEL
     call read_parameters_api( -99, "", &

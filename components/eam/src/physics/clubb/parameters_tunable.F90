@@ -994,7 +994,7 @@ module parameters_tunable
     return
   end subroutine adj_low_res_nu
 
-#ifdef E3SM
+#ifdef NEVEREVER
   !=============================================================================
   subroutine clubb_param_readnl(filename)
 
@@ -1374,7 +1374,7 @@ module parameters_tunable
 
     end if
 
-#ifdef E3SM
+#ifdef NEVEREVER
     if (clubb_C1 /= init_value) then
        C1 = clubb_C1
     endif
