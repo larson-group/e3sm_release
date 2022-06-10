@@ -1895,7 +1895,7 @@ end subroutine clubb_init_cnst
    real(r8) :: rrho                             ! Inverse of air density                        [1/kg/m^3]
    real(r8) :: kinwat(pcols)                    ! Kinematic water vapor flux                    [m/s]
    real(r8) :: latsub
-  
+
    integer  :: ktop(pcols,pver)
    integer  :: ncvfin(pcols)
    real(r8) :: chs(pcols,pverp)
@@ -2948,11 +2948,11 @@ end subroutine clubb_init_cnst
       endif     
 
       if (do_cldcool) then
-        rcm_out_zm = zt2zm_api(nz, ngrdcol, gr, rcm_inout(1:ngrdcol,:))
-        qrl_zm     = zt2zm_api(nz, ngrdcol, gr, qrl_clubb(1:ngrdcol,:))
+        rcm_out_zm(1:ncol,:) = zt2zm_api(pverp, ncol, gr, rcm_inout(1:ncol,:))
+        qrl_zm(1:ncol,:)     = zt2zm_api(pverp, ncol, gr, qrl_clubb(1:ncol,:))
         do i=1,ncol 
           thlp2_rad_out(:) = 0._r8
-          call calculate_thlp2_rad_api(pverp, rcm_out_zm(i,:), thlprcp_out(i,:), qrl_zm, clubb_params, &
+          call calculate_thlp2_rad_api(pverp, rcm_out_zm(i,:), thlprcp_out(i,:), qrl_zm(i,:), clubb_params, &
                                        thlp2_rad_out)
           thlp2_in(i,:) = thlp2_in(i,:) + thlp2_rad_out * dtime
           thlp2_in(i,:) = max(thl_tol**2,thlp2_in(i,:))
