@@ -925,10 +925,6 @@ end subroutine clubb_init_cnst
     integer :: ixnumliq
     integer :: lptr
 
-    type(grid), target :: dummy_gr
-    type(nu_vertical_res_dep) :: dummy_nu_vert_res_dep   ! Vertical resolution dependent nu values
-    real(r8) :: dummy_lmin
-
     real(r8) :: &
       C1, C1b, C1c, C2rt, C2thl, C2rtthl, &
       C4, C_uu_shr, C_uu_buoy, C6rt, C6rtb, C6rtc, C6thl, C6thlb, C6thlc, &
