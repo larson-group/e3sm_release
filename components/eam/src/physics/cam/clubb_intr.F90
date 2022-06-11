@@ -880,7 +880,6 @@ end subroutine clubb_init_cnst
          rt_tol, &
          thl_tol, &
          init_pdf_params_api, &
-         init_pdf_implicit_coefs_terms_api, &
          params_list
 
     use units,                     only: getunit, freeunit
@@ -1640,6 +1639,7 @@ end subroutine clubb_init_cnst
         update_xp2_mc_api, &
         copy_multi_pdf_params_to_single, &
         init_pdf_params_api, &
+        init_pdf_implicit_coefs_terms_api, &
         imu
 #endif
 
@@ -1818,7 +1818,7 @@ end subroutine clubb_init_cnst
    real(core_rknd) :: qclvar_out(pcols,pverp)                ! cloud water variance                          [kg^2/kg^2]
    real(core_rknd) :: varmu2(pcols)
    real(core_rknd) :: qrl_clubb(pcols,pverp)
-   real(core_rknd) :: qrl_zm(pverp)
+   real(core_rknd) :: qrl_zm(pcols,pverp)
    real(core_rknd) :: thlp2_rad_out(pverp)
    
    real(core_rknd), dimension(sclr_dim) :: sclr_tol          ! Tolerance on passive scalar       [units vary]
