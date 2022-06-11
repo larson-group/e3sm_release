@@ -115,7 +115,7 @@ module parameters_tunable
   real( kind = core_rknd ), parameter, private :: &
     init_value = -999._core_rknd ! Initial value for the parameters, used to detect missing values
 
-#ifdef E3SM
+#ifdef NEVEREVER
   public :: clubb_param_readnl
 
   ! The parameters below have the same meaning as those without prefix 'clubb_'
@@ -217,7 +217,7 @@ module parameters_tunable
 !$omp   clubb_Cx_max, clubb_Richardson_num_min, clubb_Richardson_num_max, &
 !$omp   clubb_a3_coef_min)
     
-#endif /*E3SM*/
+#endif /*NEVEREVER*/
 
   contains
 
@@ -1013,7 +1013,7 @@ module parameters_tunable
     return
   end subroutine adj_low_res_nu
 
-#ifdef E3SM
+#ifdef NEVEREVER
   !=============================================================================
   subroutine clubb_param_readnl(filename)
 
@@ -1275,7 +1275,7 @@ module parameters_tunable
 
 
   end subroutine clubb_param_readnl
-#endif /*E3SM*/
+#endif /*NEVEREVER*/
   !=============================================================================
   subroutine read_parameters( iunit, filename, &
                               C1, C1b, C1c, C2rt, C2thl, C2rtthl, &
@@ -1393,7 +1393,7 @@ module parameters_tunable
 
     end if
 
-#ifdef E3SM
+#ifdef NEVEREVER
     if (clubb_C1 /= init_value) then
        C1 = clubb_C1
     endif
@@ -1505,7 +1505,7 @@ module parameters_tunable
     if (clubb_Richardson_num_max /= init_value) &
        Richardson_num_max = clubb_Richardson_num_max
     if (clubb_a3_coef_min /= init_value) a3_coef_min = clubb_a3_coef_min
-#endif /*E3SM*/
+#endif /*NEVEREVER*/
 
     ! Put the variables in the output array
     call pack_parameters &
