@@ -53,7 +53,7 @@ module setup_clubb_pdf_params
 
   !=============================================================================
   subroutine setup_pdf_parameters( gr, nz, ngrdcol, pdf_dim, dt, &             ! Intent(in)
-                                   Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
+                                   Nc_in_cloud, cloud_frac, Kh_zm, &           ! Intent(in)
                                    ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
                                    corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
                                    pdf_params, l_stats_samp, &                 ! Intent(in)
@@ -179,14 +179,13 @@ module setup_clubb_pdf_params
       pdf_dim,     & ! Number of variables in the correlation array
       ngrdcol        ! Number of grid columns
       
-    type (grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
 
     real( kind = core_rknd ), intent(in) ::  &
       dt    ! Model timestep                                           [s]
 
     real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
       Nc_in_cloud,       & ! Mean (in-cloud) cloud droplet conc.       [num/kg]
-      rcm,               & ! Mean cloud water mixing ratio, < r_c >    [kg/kg]
       cloud_frac,        & ! Cloud fraction                            [-]
       Kh_zm,             & ! Eddy diffusivity coef. on momentum levels [m^2/s]
       ice_supersat_frac    ! Ice supersaturation fraction              [-]
@@ -279,6 +278,9 @@ module setup_clubb_pdf_params
     real( kind = core_rknd ), dimension(ngrdcol,nz) :: &
       Ncnm    ! Mean cloud nuclei concentration, < N_cn >        [num/kg]
 
+    real( kind = core_rknd ), dimension(ngrdcol,nz) :: &
+      rcm_pdf      ! Liquid water mixing ratio          [kg/kg]
+
     real( kind = core_rknd ), dimension(ngrdcol,nz) ::  &
       wpNcnp_zm, & ! Covariance of N_cn and w (momentum levs.)   [(m/s)(num/kg)]
       wpNcnp_zt    ! Covariance of N_cn and w on thermo. levels  [(m/s)(num/kg)]
@@ -324,8 +326,9 @@ module setup_clubb_pdf_params
       wm_zt,  & ! Mean vertical velocity, <w>, on thermo. levels  [m/s]
       wp2_zt    ! Variance of w, <w'^2> (interp. to t-levs.)      [m^2/s^2]
 
-    real( kind = core_rknd ), dimension(nz) :: &
-      rtp2_zt_from_chi
+    real( kind = core_rknd ), dimension(ngrdcol,nz) :: &
+      rtp2_zt_from_chi, &
+      rtp2_zm_from_chi
  
     real( kind = core_rknd ) :: &
       omicron,        & ! Relative width parameter, omicron = R / Rmax    [-]
@@ -374,6 +377,12 @@ module setup_clubb_pdf_params
         sigma_w_1(i,k)    = sqrt( pdf_params%varnce_w_1(i,k) )
         sigma_w_2(i,k)    = sqrt( pdf_params%varnce_w_2(i,k) )
       end do
+    end do
+
+    ! Compute rcm_pdf for use within SILHS
+    do i = 1, ngrdcol
+      rcm_pdf(i,:) = compute_mean_binormal( pdf_params%rc_1(i,:), pdf_params%rc_2(i,:), &
+                                            pdf_params%mixt_frac(i,:) )
     end do
 
     ! Note on hydrometeor PDF shape:
@@ -629,7 +638,7 @@ module setup_clubb_pdf_params
       do k = 2, nz, 1
         do i = 1, ngrdcol
 
-          if ( rcm(i,k) > rc_tol ) then
+          if ( rcm_pdf(i,k) > rc_tol ) then
 
             call diagnose_correlations( pdf_dim, corr_array_n_cloud, & ! In
                                         l_calc_w_corr, &               ! In
@@ -796,7 +805,7 @@ module setup_clubb_pdf_params
       if ( irtp2_from_chi > 0 ) then
 
         do i = 1, ngrdcol
-          rtp2_zt_from_chi &
+          rtp2_zt_from_chi(i,:) &
             = compute_rtp2_from_chi( pdf_params%stdev_chi_1(i,:), pdf_params%stdev_chi_2(i,:), &
                                      pdf_params%stdev_eta_1(i,:), pdf_params%stdev_eta_2(i,:), &
                                      pdf_params%rt_1(i,:), pdf_params%rt_2(j,:),               &
@@ -804,16 +813,20 @@ module setup_clubb_pdf_params
                                      pdf_params%mixt_frac(i,:),                                &   
                                      corr_array_1_n(i,:,iiPDF_chi,iiPDF_eta),                  &
                                      corr_array_2_n(i,:,iiPDF_chi,iiPDF_eta) )
-
-          ! Switch back to using stat_update_var once the code is generalized
-          ! to pass in the number of vertical levels.
-          ! call stat_update_var( irtp2_from_chi, zt2zm( rtp2_zt_from_chi ), &
-          ! stats_zm )
-          do k = 1, nz, 1
-            call stat_update_var_pt( irtp2_from_chi, k, zt2zm( gr(i), rtp2_zt_from_chi, k ), & !in
-                                     stats_zm(i) ) ! intent(inout)
-          end do ! k = 1, nz, 1
         end do
+        
+        rtp2_zm_from_chi = zt2zm( nz, ngrdcol, gr, rtp2_zt_from_chi )
+      
+        ! Switch back to using stat_update_var once the code is generalized
+        ! to pass in the number of vertical levels.
+        ! call stat_update_var( irtp2_from_chi, zt2zm( rtp2_zt_from_chi ), &
+        ! stats_zm )
+        do k = 1, nz, 1
+          do i = 1, ngrdcol
+            call stat_update_var_pt( irtp2_from_chi, k, rtp2_zm_from_chi(i,k), & !in
+                                     stats_zm(i) ) ! intent(inout)
+          end do
+        end do ! k = 1, nz, 1
         
       end if
 

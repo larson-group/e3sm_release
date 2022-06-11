@@ -231,6 +231,10 @@ module clubb_api_module
     nvarmax_sfc
 
   use grid_class, only: grid ! Type
+  
+  use grid_class, only: &
+    zm2zt_api => zm2zt, &
+    zt2zm_api => zt2zm
 
   use stats_type, only: stats ! Type
 
@@ -504,14 +508,6 @@ module clubb_api_module
   public &
    copy_single_pdf_params_to_multi, &
    copy_multi_pdf_params_to_single
-
-  interface zt2zm_api
-    module procedure zt2zm_scalar_api, zt2zm_prof_api, zt2zm_2D_api
-  end interface
-
-  interface zm2zt_api
-    module procedure zm2zt_scalar_api, zm2zt_prof_api, zm2zt_2D_api
-  end interface
   
   interface setup_pdf_parameters_api
     module procedure setup_pdf_parameters_api_single_col
@@ -522,7 +518,27 @@ module clubb_api_module
     module procedure advance_clubb_core_api_single_col
     module procedure advance_clubb_core_api_multi_col
   end interface
+  
+  interface setup_grid_api
+    module procedure setup_grid_api_single_col
+    module procedure setup_grid_api_multi_col
+  end interface
+  
+  interface setup_parameters_api
+    module procedure setup_parameters_api_single_col
+    module procedure setup_parameters_api_multi_col
+  end interface
 
+  interface adj_low_res_nu_api
+    module procedure adj_low_res_nu_api_single_col
+    module procedure adj_low_res_nu_api_multi_col
+  end interface
+  
+  interface setup_grid_heights_api
+    module procedure setup_grid_heights_api_single_col
+    module procedure setup_grid_heights_api_multi_col
+  end interface
+  
 contains
 
   !================================================================================================
@@ -834,9 +850,6 @@ contains
       stats_zm_col, &
       stats_sfc_col
 
-    type(grid), target, dimension(1) :: &
-      gr_col
-
     real( kind = core_rknd ), dimension(1) ::  &
       fcor_col,  &          ! Coriolis forcing             [s^-1]
       sfc_elevation_col     ! Elevation of ground level    [m AMSL]
@@ -919,12 +932,6 @@ contains
       host_dx_col,  & ! East-West horizontal grid spacing     [m]
       host_dy_col     ! North-South horizontal grid spacing   [m]
 
-    type(nu_vertical_res_dep), dimension(1) :: &
-      nu_vert_res_dep_col    ! Vertical resolution dependent nu values
-
-    real( kind = core_rknd ), dimension(1) :: &
-      lmin_col    ! Min. value for the length scale    [m]
-
 
     !!! Input/Output Variables
     ! These are prognostic or are planned to be in the future
@@ -993,9 +1000,6 @@ contains
       upwp_pert_col, & ! perturbed <u'w'>    [m^2/s^2]
       vpwp_pert_col    ! perturbed <v'w'>    [m^2/s^2]
 
-    type(implicit_coefs_terms), dimension(1) :: &
-      pdf_implicit_coefs_terms_col    ! Implicit coefs / explicit terms [units vary]
-
 #ifdef GFDL
     real( kind = core_rknd ), dimension(1,gr%nz,sclr_dim) :: &  ! h1g, 2010-06-16
       sclrm_trsport_only_col  ! Passive scalar concentration due to pure transport [{units vary}/s]
@@ -1035,8 +1039,6 @@ contains
 
     integer :: i
 
-
-    gr_col(1) = gr
     fcor_col(1) = fcor
     sfc_elevation_col(1) = sfc_elevation
     
@@ -1097,8 +1099,6 @@ contains
     
     host_dx_col(1) = host_dx
     host_dy_col(1) = host_dy
-    nu_vert_res_dep_col(1) = nu_vert_res_dep
-    lmin_col(1) = lmin
     
     stats_zt_col(1) = stats_zt
     stats_zm_col(1) = stats_zm
@@ -1157,7 +1157,6 @@ contains
     vm_pert_col(1,:) = vm_pert
     upwp_pert_col(1,:) = upwp_pert
     vpwp_pert_col(1,:) = vpwp_pert
-    pdf_implicit_coefs_terms_col(1) = pdf_implicit_coefs_terms
 #ifdef GFDL
     RH_crit_col(1,:,:,:) = RH_crit
 #endif
@@ -1173,7 +1172,7 @@ contains
     cloud_cover_col(1,:) = cloud_cover
     invrs_tau_zm_col(1,:) = invrs_tau_zm
 
-    call advance_clubb_core( gr_col, gr%nz, 1, &
+    call advance_clubb_core( gr, gr%nz, 1, &
       l_implemented, dt, fcor_col, sfc_elevation_col, hydromet_dim, & ! intent(in)
       thlm_forcing_col, rtm_forcing_col, um_forcing_col, vm_forcing_col, &    ! intent(in)
       sclrm_forcing_col, edsclrm_forcing_col, wprtp_forcing_col, &        ! intent(in)
@@ -1192,7 +1191,7 @@ contains
 #endif
       wphydrometp_col, wp2hmp_col, rtphmp_col, thlphmp_col, &                 ! intent(in)
       host_dx_col, host_dy_col, &                                     ! intent(in)
-      clubb_params, nu_vert_res_dep_col, lmin_col, &                  ! intent(in)
+      clubb_params, nu_vert_res_dep, lmin, &                  ! intent(in)
       clubb_config_flags, &                                   ! intent(in)
       stats_zt_col, stats_zm_col, stats_sfc_col, &                        ! intent(inout)
       um_col, vm_col, upwp_col, vpwp_col, up2_col, vp2_col, up3_col, vp3_col, &               ! intent(inout)
@@ -1211,7 +1210,7 @@ contains
       wpup2_col, wpvp2_col, wp2up2_col, wp2vp2_col, ice_supersat_frac_col, & ! intent(inout)
       um_pert_col, vm_pert_col, upwp_pert_col, vpwp_pert_col, &            ! intent(inout)
       pdf_params, pdf_params_zm, &                            ! intent(inout)
-      pdf_implicit_coefs_terms_col, &                             ! intent(inout)
+      pdf_implicit_coefs_terms, &                             ! intent(inout)
 #ifdef GFDL
                RH_crit_col, & !h1g, 2010-06-16                    ! intent(inout)
                do_liquid_only_in_clubb, &                     ! intent(in)
@@ -1288,7 +1287,6 @@ contains
     wp2vp2 = wp2vp2_col(1,:)
     wp2up2 = wp2up2_col(1,:)
     ice_supersat_frac = ice_supersat_frac_col(1,:)
-    pdf_implicit_coefs_terms = pdf_implicit_coefs_terms_col(1)
 #ifdef GFDL
     sclrm_trsport_only = sclrm_trsport_only_col(1,:,:)
 #endif
@@ -1384,7 +1382,7 @@ contains
       stats_zm, &
       stats_sfc
 
-    type(grid), target, intent(in), dimension(ngrdcol) :: gr
+    type(grid), target, intent(in) :: gr
     
       !!! Input Variables
     logical, intent(in) ::  &
@@ -1481,10 +1479,10 @@ contains
     real( kind = core_rknd ), dimension(nparams), intent(in) :: &
       clubb_params    ! Array of CLUBB's tunable parameters    [units vary]
 
-    type(nu_vertical_res_dep), intent(in), dimension(ngrdcol) :: &
+    type(nu_vertical_res_dep), intent(in) :: &
       nu_vert_res_dep    ! Vertical resolution dependent nu values
 
-    real( kind = core_rknd ), intent(in), dimension(ngrdcol) :: &
+    real( kind = core_rknd ), intent(in) :: &
       lmin    ! Min. value for the length scale    [m]
 
     type( clubb_config_flags_type ), intent(in) :: &
@@ -1562,7 +1560,7 @@ contains
       pdf_params,    & ! PDF parameters (thermodynamic levels)    [units vary]
       pdf_params_zm    ! PDF parameters on momentum levels        [units vary]
 
-    type(implicit_coefs_terms), intent(inout), dimension(ngrdcol) :: &
+    type(implicit_coefs_terms), intent(inout) :: &
       pdf_implicit_coefs_terms    ! Implicit coefs / explicit terms [units vary]
 
 #ifdef GFDL
@@ -1672,9 +1670,6 @@ contains
 #ifdef GFDL
     I_sat_sphum,                                        & ! intent(in)  h1g, 2010-06-16
 #endif
-    l_implemented, grid_type, deltaz, zm_init, zm_top,  & ! intent(in)
-    momentum_heights, thermodynamic_heights,            & ! intent(in)
-    sfc_elevation,                                      & ! intent(in)
     iiPDF_type,                                         & ! intent(in)
     ipdf_call_placement,                                & ! intent(in)
     l_predict_upwp_vpwp,                                & ! intent(in)
@@ -1687,7 +1682,7 @@ contains
 #ifdef GFDL
     cloud_frac_min ,                                    & ! intent(in)  h1g, 2010-06-16
 #endif
-    gr, lmin, nu_vert_res_dep, err_code_api )             ! intent(out) 
+    err_code_api )             ! intent(out) 
 
     use advance_clubb_core_module, only : setup_clubb_core
 
@@ -1704,49 +1699,9 @@ contains
 
       implicit none
 
-      type(grid), target, intent(inout) :: gr
-
     ! Input Variables
 
     integer, intent(in) :: nzmax  ! Vertical grid levels            [#]
-
-    real( kind = core_rknd ), intent(in) ::  &
-      sfc_elevation  ! Elevation of ground level    [m AMSL]
-
-    logical, intent(in) :: l_implemented   ! (T/F) CLUBB implemented in host model?
-
-    ! If CLUBB is running on it's own, this option determines
-    ! if it is using:
-    ! 1) an evenly-spaced grid,
-    ! 2) a stretched (unevenly-spaced) grid entered on the
-    !    thermodynamic grid levels (with momentum levels set
-    !    halfway between thermodynamic levels), or
-    ! 3) a stretched (unevenly-spaced) grid entered on the
-    !    momentum grid levels (with thermodynamic levels set
-    !    halfway between momentum levels).
-    integer, intent(in) :: grid_type
-
-    ! If the CLUBB model is running by itself, and is using an
-    ! evenly-spaced grid (grid_type = 1), it needs the vertical
-    ! grid spacing, momentum-level starting altitude, and maximum
-    ! altitude as input.
-    real( kind = core_rknd ), intent(in) :: &
-      deltaz,   & ! Change in altitude per level           [m]
-      zm_init,  & ! Initial grid altitude (momentum level) [m]
-      zm_top      ! Maximum grid altitude (momentum level) [m]
-
-    ! If the CLUBB parameterization is implemented in a host model,
-    ! it needs to use the host model's momentum level altitudes
-    ! and thermodynamic level altitudes.
-    ! If the CLUBB model is running by itself, but is using a
-    ! stretched grid entered on thermodynamic levels (grid_type = 2),
-    ! it needs to use the thermodynamic level altitudes as input.
-    ! If the CLUBB model is running by itself, but is using a
-    ! stretched grid entered on momentum levels (grid_type = 3),
-    ! it needs to use the momentum level altitudes as input.
-    real( kind = core_rknd ), intent(in), dimension(nzmax) :: &
-      momentum_heights,      & ! Momentum level altitudes (input)      [m]
-      thermodynamic_heights    ! Thermodynamic level altitudes (input) [m]
 
     ! Model parameters
     real( kind = core_rknd ), intent(in) ::  &
@@ -1809,18 +1764,11 @@ contains
          cloud_frac_min         ! h1g, 2010-06-16 end mod
 #endif
 
-    ! Output variables 
-    real( kind = core_rknd ), intent(out) :: &
-      lmin    ! Min. value for the length scale    [m]
-
-    type(nu_vertical_res_dep), intent(out) :: &
-      nu_vert_res_dep    ! Vertical resolution dependent nu values
-
     integer, intent(out) :: & 
       err_code_api   ! Diagnostic for a problem with the setup 
 
-    call setup_clubb_core &
-      ( nzmax, T0_in, ts_nudge_in,                          & ! intent(in)
+    call setup_clubb_core(  &
+      nzmax, T0_in, ts_nudge_in,                            & ! intent(in)
       hydromet_dim_in, sclr_dim_in,                         & ! intent(in)
       sclr_tol_in, edsclr_dim_in, params,                   & ! intent(in)
       l_host_applies_sfc_fluxes,                            & ! intent(in)
@@ -1829,9 +1777,6 @@ contains
 #ifdef GFDL
       I_sat_sphum,                                          & ! intent(in)  h1g, 2010-06-16
 #endif
-      l_implemented, grid_type, deltaz, zm_init, zm_top,    & ! intent(in)
-      momentum_heights, thermodynamic_heights,              & ! intent(in)
-      sfc_elevation,                                        & ! intent(in)
       iiPDF_type,                                           & ! intent(in)
       ipdf_call_placement,                                  & ! intent(in)
       l_predict_upwp_vpwp,                                  & ! intent(in)
@@ -1844,7 +1789,7 @@ contains
 #ifdef GFDL
       cloud_frac_min,                                       & ! intent(in)  h1g, 2010-06-16
 #endif
-      gr, lmin, nu_vert_res_dep, err_code_api )               ! intent(out)
+      err_code_api )                                          ! intent(out)
 
   end subroutine setup_clubb_core_api
 
@@ -2081,7 +2026,7 @@ contains
   ! fill_holes_vertical - clips values of 'field' that are below 'threshold' as much as possible.
   !================================================================================================
 
-  subroutine fill_holes_vertical_api( gr, &
+  subroutine fill_holes_vertical_api( nz, dzm, dzt, &
     num_pts, threshold, field_grid, &
     rho_ds, rho_ds_zm, &
     field )
@@ -2091,8 +2036,15 @@ contains
      ! Type
 
     implicit none
-
-    type(grid), target, intent(in) :: gr
+    
+    integer, intent(in) :: &
+      nz
+    
+    real( kind = core_rknd ), dimension(nz) :: &
+      dzm, &  ! Spacing between thermodynamic grid levels; centered over
+              ! momentum grid levels
+      dzt     ! Spcaing between momentum grid levels; centered over
+              ! thermodynamic grid levels
 
     ! Input variables
     integer, intent(in) :: &
@@ -2106,15 +2058,15 @@ contains
     character(len=2), intent(in) :: &
       field_grid ! The grid of the field, either stats_zt or stats_zm
 
-    real( kind = core_rknd ), dimension(gr%nz), intent(in) ::  &
+    real( kind = core_rknd ), dimension(nz), intent(in) ::  &
       rho_ds,    & ! Dry, static density on thermodynamic levels    [kg/m^3]
       rho_ds_zm    ! Dry, static density on momentum levels         [kg/m^3]
 
     ! Input/Output variable
-    real( kind = core_rknd ), dimension(gr%nz), intent(inout) :: &
+    real( kind = core_rknd ), dimension(nz), intent(inout) :: &
       field  ! The field (e.g. wp2) that contains holes [Units same as threshold]
 
-    call fill_holes_vertical( gr, & ! intent(in)
+    call fill_holes_vertical( nz, dzm, dzt, & ! intent(in)
       num_pts, threshold, field_grid, & ! intent(in)
       rho_ds, rho_ds_zm, & ! intent(in)
       field ) ! intent(inout)
@@ -2187,7 +2139,7 @@ contains
   ! setup_grid_heights - Sets the heights and interpolation weights of the column.
   !================================================================================================
 
-  subroutine setup_grid_heights_api( &
+  subroutine setup_grid_heights_api_single_col( &
     l_implemented, grid_type,  &
     deltaz, zm_init, momentum_heights,  &
     gr, thermodynamic_heights )
@@ -2200,10 +2152,10 @@ contains
         clubb_fatal_error       ! Constant
 
     implicit none
-   
-    type(grid), target, intent(inout) :: gr
 
     ! Input Variables
+   
+    type(grid), target, intent(inout) :: gr
 
     ! Flag to see if CLUBB is running on it's own,
     ! or if it's implemented as part of a host model.
@@ -2238,8 +2190,95 @@ contains
     real( kind = core_rknd ), intent(in), dimension(gr%nz) ::  &
       momentum_heights,   & ! Momentum level altitudes (input)      [m]
       thermodynamic_heights ! Thermodynamic level altitudes (input) [m]
+      
+    ! ------------------- Local Variables -------------------
+    
+    real( kind = core_rknd ), dimension(1) ::  &
+      deltaz_col,   & ! Vertical grid spacing                  [m]
+      zm_init_col     ! Initial grid altitude (momentum level) [m]
+      
+    real( kind = core_rknd ), dimension(1,gr%nz) ::  &
+      momentum_heights_col,   & ! Momentum level altitudes (input)      [m]
+      thermodynamic_heights_col ! Thermodynamic level altitudes (input) [m]
+      
+    deltaz_col(1) = deltaz
+    zm_init_col(1) = zm_init
+    momentum_heights_col(1,:) = momentum_heights
+    thermodynamic_heights_col(1,:) = thermodynamic_heights
 
     call setup_grid_heights( &
+      gr%nz, 1, & ! intent(in)
+      l_implemented, grid_type,  & ! intent(in)
+      deltaz_col, zm_init_col, momentum_heights_col,  & ! intent(in)
+      thermodynamic_heights_col, & ! intent(in)
+      gr ) ! intent(inout)
+
+    if ( err_code == clubb_fatal_error ) error stop
+
+  end subroutine setup_grid_heights_api_single_col
+  
+  !================================================================================================
+  ! setup_grid_heights - Sets the heights and interpolation weights of the column.
+  !================================================================================================
+
+  subroutine setup_grid_heights_api_multi_col( &
+      nz, ngrdcol, &
+      l_implemented, grid_type,  &
+      deltaz, zm_init, momentum_heights,  &
+      gr, thermodynamic_heights )
+
+    use grid_class, only: & 
+        grid, & ! Type
+        setup_grid_heights
+    
+    use error_code, only : &
+        clubb_fatal_error       ! Constant
+
+    implicit none
+
+    ! Input Variables
+    integer, intent(in) :: &
+      nz, &
+      ngrdcol
+
+    type (grid), target, intent(inout) :: gr
+
+    ! Flag to see if CLUBB is running on it's own,
+    ! or if it's implemented as part of a host model.
+    logical, intent(in) :: l_implemented
+
+    ! If CLUBB is running on it's own, this option determines if it is using:
+    ! 1) an evenly-spaced grid;
+    ! 2) a stretched (unevenly-spaced) grid entered on the thermodynamic grid
+    !    levels (with momentum levels set halfway between thermodynamic levels);
+    !    or
+    ! 3) a stretched (unevenly-spaced) grid entered on the momentum grid levels
+    !    (with thermodynamic levels set halfway between momentum levels).
+    integer, intent(in) :: grid_type
+
+    ! If the CLUBB model is running by itself, and is using an evenly-spaced
+    ! grid (grid_type = 1), it needs the vertical grid spacing and
+    ! momentum-level starting altitude as input.
+    real( kind = core_rknd ), dimension(ngrdcol), intent(in) ::  &
+      deltaz,   & ! Vertical grid spacing                  [m]
+      zm_init     ! Initial grid altitude (momentum level) [m]
+
+
+    ! If the CLUBB parameterization is implemented in a host model, it needs to
+    ! use the host model's momentum level altitudes and thermodynamic level
+    ! altitudes.
+    ! If the CLUBB model is running by itself, but is using a stretched grid
+    ! entered on thermodynamic levels (grid_type = 2), it needs to use the
+    ! thermodynamic level altitudes as input.
+    ! If the CLUBB model is running by itself, but is using a stretched grid
+    ! entered on momentum levels (grid_type = 3), it needs to use the momentum
+    ! level altitudes as input.
+    real( kind = core_rknd ), intent(in), dimension(ngrdcol,nz) ::  &
+      momentum_heights,   & ! Momentum level altitudes (input)      [m]
+      thermodynamic_heights ! Thermodynamic level altitudes (input) [m]
+
+    call setup_grid_heights( &
+      nz, ngrdcol, & ! intent(in)
       l_implemented, grid_type,  & ! intent(in)
       deltaz, zm_init, momentum_heights,  & ! intent(in)
       thermodynamic_heights, & ! intent(in)
@@ -2247,16 +2286,15 @@ contains
 
     if ( err_code == clubb_fatal_error ) error stop
 
-  end subroutine setup_grid_heights_api
+  end subroutine setup_grid_heights_api_multi_col
   
   !================================================================================================
-  ! setup_grid - This subroutine sets up the CLUBB vertical grid.
+  ! setup_grid - This subroutine sets up the CLUBB vertical grid for a single column
   !================================================================================================
-  
-  subroutine setup_grid_api( nzmax, sfc_elevation, l_implemented, &
-                             grid_type, deltaz, zm_init, zm_top, &
-                             momentum_heights, thermodynamic_heights, &
-                             gr, begin_height, end_height )
+  subroutine setup_grid_api_single_col( nzmax, sfc_elevation, l_implemented, &
+                                        grid_type, deltaz, zm_init, zm_top, &
+                                        momentum_heights, thermodynamic_heights, &
+                                        gr, begin_height, end_height )
                             
     use grid_class, only: & 
         grid, & ! Type
@@ -2264,11 +2302,11 @@ contains
 
     implicit none
 
-    type(grid), target, intent(inout) :: gr
-
     ! Input Variables
     integer, intent(in) ::  & 
       nzmax  ! Number of vertical levels in grid      [#]
+
+    type(grid), target, intent(inout) :: gr
 
     real( kind = core_rknd ), intent(in) ::  &
       sfc_elevation  ! Elevation of ground level    [m AMSL]
@@ -2289,14 +2327,81 @@ contains
     integer, intent(out) :: &
       begin_height, &  ! Lower bound for *_heights arrays [-]
       end_height       ! Upper bound for *_heights arrays [-]
+    
+    real( kind = core_rknd ), dimension(1) ::  &
+      sfc_elevation_col  ! Elevation of ground level    [m AMSL]
+      
+    real( kind = core_rknd ), dimension(1) ::  & 
+      deltaz_col,   & ! Vertical grid spacing                  [m]
+      zm_init_col,  & ! Initial grid altitude (momentum level) [m]
+      zm_top_col      ! Maximum grid altitude (momentum level) [m]
+      
+    real( kind = core_rknd ), dimension(1,nzmax) ::  & 
+      momentum_heights_col,   & ! Momentum level altitudes (input)      [m]
+      thermodynamic_heights_col ! Thermodynamic level altitudes (input) [m]
 
+    sfc_elevation_col(1)            = sfc_elevation
+    deltaz_col(1)                   = deltaz
+    zm_init_col(1)                  = zm_init
+    zm_top_col(1)                   = zm_top
+    momentum_heights_col(1,:)       = momentum_heights
+    thermodynamic_heights_col(1,:)  = thermodynamic_heights
 
-    call setup_grid( nzmax, sfc_elevation, l_implemented,     & ! intent(in)
-                     grid_type, deltaz, zm_init, zm_top,      & ! intent(in)
-                     momentum_heights, thermodynamic_heights, & ! intent(in)
+    call setup_grid( nzmax, 1, sfc_elevation_col, l_implemented,     & ! intent(in)
+                     grid_type, deltaz_col, zm_init_col, zm_top_col,      & ! intent(in)
+                     momentum_heights_col, thermodynamic_heights_col, & ! intent(in)
                      gr, begin_height, end_height             ) ! intent(out)
 
-  end subroutine setup_grid_api
+  end subroutine setup_grid_api_single_col
+  
+  !================================================================================================
+  ! setup_grid - This subroutine sets up the CLUBB vertical grid.
+  !================================================================================================
+  subroutine setup_grid_api_multi_col( nzmax, ngrdcol, sfc_elevation, l_implemented, &
+                                       grid_type, deltaz, zm_init, zm_top, &
+                                       momentum_heights, thermodynamic_heights, &
+                                       gr, begin_height, end_height )
+                            
+    use grid_class, only: & 
+        grid, & ! Type
+        setup_grid
+
+    implicit none
+
+    ! Input Variables
+    integer, intent(in) ::  & 
+      nzmax,  & ! Number of vertical levels in grid      [#]
+      ngrdcol   ! Number of grid columns                 [#]
+      
+    type (grid), target, intent(inout) :: gr
+
+    real( kind = core_rknd ), dimension(ngrdcol), intent(in) ::  &
+      sfc_elevation  ! Elevation of ground level    [m AMSL]
+      
+    logical, intent(in) :: l_implemented
+    
+    integer, intent(in) :: grid_type
+    
+    real( kind = core_rknd ), dimension(ngrdcol), intent(in) ::  & 
+      deltaz,   & ! Vertical grid spacing                  [m]
+      zm_init,  & ! Initial grid altitude (momentum level) [m]
+      zm_top      ! Maximum grid altitude (momentum level) [m]
+      
+    real( kind = core_rknd ), intent(in), dimension(ngrdcol,nzmax) ::  & 
+      momentum_heights,   & ! Momentum level altitudes (input)      [m]
+      thermodynamic_heights ! Thermodynamic level altitudes (input) [m]
+
+    integer, intent(out) :: &
+      begin_height, &  ! Lower bound for *_heights arrays [-]
+      end_height       ! Upper bound for *_heights arrays [-]
+
+
+    call setup_grid( nzmax, ngrdcol, sfc_elevation, l_implemented,  & ! intent(in)
+                     grid_type, deltaz, zm_init, zm_top,            & ! intent(in)
+                     momentum_heights, thermodynamic_heights,       & ! intent(in)
+                     gr, begin_height, end_height )                   ! intent(out)
+
+  end subroutine setup_grid_api_multi_col
 
   !================================================================================================
   ! lin_interpolate_two_points - Computes a linear interpolation of the value of a variable.
@@ -2457,11 +2562,10 @@ contains
   end subroutine read_parameters_api
 
   !================================================================================================
-  ! setup_parameters - Sets up model parameters.
+  ! setup_parameters - Sets up model parameters for a single column
   !================================================================================================
-
-  subroutine setup_parameters_api &
-           ( deltaz, params, nzmax, &
+  subroutine setup_parameters_api_single_col( &
+             deltaz, params, nzmax, &
              grid_type, momentum_heights, thermodynamic_heights, &
              l_prescribed_avg_deltaz, &
              lmin, nu_vert_res_dep, err_code_api )
@@ -2520,20 +2624,107 @@ contains
 
     integer, intent(out) ::  & 	 	      
       err_code_api ! Error condition 
+      
+      
+    real( kind = core_rknd ), dimension(1,nzmax) :: &
+      momentum_heights_col,      & ! Momentum level altitudes (input)      [m]
+      thermodynamic_heights_col    ! Thermodynamic level altitudes (input) [m]
+      
+    real( kind = core_rknd ), dimension(1) ::  &
+      deltaz_col  ! Change per height level        [m]
 
-    call setup_parameters & 
-            ( deltaz, params, nzmax, &
+    momentum_heights_col(1,:) = momentum_heights
+    thermodynamic_heights_col(1,:) = thermodynamic_heights
+    deltaz_col(1) = deltaz
+
+    call setup_parameters( & 
+              deltaz_col, params, nzmax, 1, &
               grid_type, momentum_heights, thermodynamic_heights, &
               l_prescribed_avg_deltaz, &
               lmin, nu_vert_res_dep, err_code_api )
 
-  end subroutine setup_parameters_api
+  end subroutine setup_parameters_api_single_col
+  
+  !================================================================================================
+  ! setup_parameters - Sets up model parameters.
+  !================================================================================================
+  
+  subroutine setup_parameters_api_multi_col( &
+             deltaz, params, nzmax, ngrdcol, &
+             grid_type, momentum_heights, thermodynamic_heights, &
+             l_prescribed_avg_deltaz, &
+             lmin, nu_vert_res_dep, err_code_api )
+
+    use parameters_tunable, only: &
+        setup_parameters
+
+    use parameter_indices, only:  &
+        nparams ! Variable(s)
+
+    implicit none
+
+    ! Input Variables
+
+    ! Grid definition
+    integer, intent(in) :: &
+      nzmax, &  ! Vertical grid levels            [#]
+      ngrdcol   ! Number of grid columns          [#]
+
+    real( kind = core_rknd ), dimension(ngrdcol), intent(in) ::  &
+      deltaz  ! Change per height level        [m]
+
+    real( kind = core_rknd ), intent(in), dimension(nparams) :: &
+      params  ! Tuneable model parameters      [-]
+    ! If CLUBB is running on its own, this option determines
+    ! if it is using:
+    ! 1) an evenly-spaced grid,
+    ! 2) a stretched (unevenly-spaced) grid entered on the
+    !    thermodynamic grid levels (with momentum levels set
+    !    halfway between thermodynamic levels), or
+    ! 3) a stretched (unevenly-spaced) grid entered on the
+    !    momentum grid levels (with thermodynamic levels set
+    !    halfway between momentum levels).
+    integer, intent(in) :: grid_type
+
+    ! If the CLUBB parameterization is implemented in a host model,
+    ! it needs to use the host model's momentum level altitudes
+    ! and thermodynamic level altitudes.
+    ! If the CLUBB model is running by itself, but is using a
+    ! stretched grid entered on thermodynamic levels (grid_type = 2),
+    ! it needs to use the thermodynamic level altitudes as input.
+    ! If the CLUBB model is running by itself, but is using a
+    ! stretched grid entered on momentum levels (grid_type = 3),
+    ! it needs to use the momentum level altitudes as input.
+    real( kind = core_rknd ), intent(in), dimension(ngrdcol,nzmax) :: &
+      momentum_heights,      & ! Momentum level altitudes (input)      [m]
+      thermodynamic_heights    ! Thermodynamic level altitudes (input) [m]
+
+    logical, intent(in) :: &
+      l_prescribed_avg_deltaz ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
+
+    ! Output Variables 
+    real( kind = core_rknd ), intent(out) :: &
+      lmin    ! Min. value for the length scale    [m]
+
+    type(nu_vertical_res_dep), intent(out) :: &
+      nu_vert_res_dep    ! Vertical resolution dependent nu values
+
+    integer, intent(out) ::  & 	 	      
+      err_code_api ! Error condition 
+
+    call setup_parameters( & 
+              deltaz, params, nzmax, ngrdcol, &
+              grid_type, momentum_heights, thermodynamic_heights, &
+              l_prescribed_avg_deltaz, &
+              lmin, nu_vert_res_dep, err_code_api )
+
+  end subroutine setup_parameters_api_multi_col
 
   !================================================================================================
   ! adj_low_res_nu - Adjusts values of background eddy diffusivity based on vertical grid spacing.
   !================================================================================================
 
-  subroutine adj_low_res_nu_api( nzmax, grid_type, deltaz,  & ! Intent(in)
+  subroutine adj_low_res_nu_api_single_col( nzmax, grid_type, deltaz,  & ! Intent(in)
                                  momentum_heights, thermodynamic_heights, & ! Intent(in)
                                  l_prescribed_avg_deltaz, mult_coef, &  ! Intent(in)
                                  nu1, nu2, nu6, nu8, nu9, nu10, nu_hm, &  ! Intent(in)
@@ -2591,14 +2782,99 @@ contains
     ! Output Variables
     type(nu_vertical_res_dep), intent(out) :: &
       nu_vert_res_dep    ! Vertical resolution dependent nu values
+      
+    ! Local variables
+    real( kind = core_rknd ), dimension(1) ::  &
+      deltaz_col  ! Change per height level        [m]
+      
+    real( kind = core_rknd ), dimension(1,nzmax) :: &
+      momentum_heights_col,      & ! Momentum level altitudes (input)      [m]
+      thermodynamic_heights_col    ! Thermodynamic level altitudes (input) [m]
 
-    call adj_low_res_nu( nzmax, grid_type, deltaz,  & ! Intent(in)
+    deltaz_col(1) = deltaz
+    momentum_heights_col(1,:) = momentum_heights
+    thermodynamic_heights_col(1,:) = thermodynamic_heights
+
+    call adj_low_res_nu( nzmax, 1, grid_type, deltaz_col, & ! Intent(in)
+                         momentum_heights_col, thermodynamic_heights_col, & ! Intent(in)
+                         l_prescribed_avg_deltaz, mult_coef, &  ! Intent(in)
+                         nu1, nu2, nu6, nu8, nu9, nu10, nu_hm, &  ! Intent(in)
+                         nu_vert_res_dep )  ! Intent(out)
+
+  end subroutine adj_low_res_nu_api_single_col
+  
+  !================================================================================================
+  ! adj_low_res_nu - Adjusts values of background eddy diffusivity based on vertical grid spacing.
+  !================================================================================================
+
+  subroutine adj_low_res_nu_api_multi_col( nzmax, ngrdcol, grid_type, deltaz,  & ! Intent(in)
+                                 momentum_heights, thermodynamic_heights, & ! Intent(in)
+                                 l_prescribed_avg_deltaz, mult_coef, &  ! Intent(in)
+                                 nu1, nu2, nu6, nu8, nu9, nu10, nu_hm, &  ! Intent(in)
+                                 nu_vert_res_dep )  ! Intent(out)
+
+    use parameters_tunable, only : adj_low_res_nu
+
+    implicit none
+
+    ! Input Variables
+
+    ! Grid definition
+    integer, intent(in) :: &
+      nzmax, &  ! Vertical grid levels            [#]
+      ngrdcol
+
+    ! If CLUBB is running on it's own, this option determines
+    ! if it is using:
+    ! 1) an evenly-spaced grid,
+    ! 2) a stretched (unevenly-spaced) grid entered on the
+    !    thermodynamic grid levels (with momentum levels set
+    !    halfway between thermodynamic levels), or
+    ! 3) a stretched (unevenly-spaced) grid entered on the
+    !    momentum grid levels (with thermodynamic levels set
+    !    halfway between momentum levels).
+    integer, intent(in) :: grid_type
+
+    real( kind = core_rknd ), dimension(ngrdcol), intent(in) ::  &
+      deltaz  ! Change per height level        [m]
+
+    ! If the CLUBB parameterization is implemented in a host model,
+    ! it needs to use the host model's momentum level altitudes
+    ! and thermodynamic level altitudes.
+    ! If the CLUBB model is running by itself, but is using a
+    ! stretched grid entered on thermodynamic levels (grid_type = 2),
+    ! it needs to use the thermodynamic level altitudes as input.
+    ! If the CLUBB model is running by itself, but is using a
+    ! stretched grid entered on momentum levels (grid_type = 3),
+    ! it needs to use the momentum level altitudes as input.
+    real( kind = core_rknd ), intent(in), dimension(ngrdcol,nzmax) :: &
+      momentum_heights,      & ! Momentum level altitudes (input)      [m]
+      thermodynamic_heights    ! Thermodynamic level altitudes (input) [m]
+
+    logical, intent(in) :: &
+      l_prescribed_avg_deltaz ! used in adj_low_res_nu. If .true., avg_deltaz = deltaz
+
+    real( kind = core_rknd ), intent(in) :: &
+      mult_coef, & ! CLUBB tunable parameter mult_coef
+      nu1,       & ! CLUBB tunable parameter nu1
+      nu2,       & ! CLUBB tunable parameter nu2
+      nu6,       & ! CLUBB tunable parameter nu6
+      nu8,       & ! CLUBB tunable parameter nu8
+      nu9,       & ! CLUBB tunable parameter nu9
+      nu10,      & ! CLUBB tunable parameter nu10
+      nu_hm        ! CLUBB tunable parameter nu_hm
+
+    ! Output Variables
+    type(nu_vertical_res_dep), intent(out) :: &
+      nu_vert_res_dep    ! Vertical resolution dependent nu values
+
+    call adj_low_res_nu( nzmax, ngrdcol, grid_type, deltaz, & ! Intent(in)
                          momentum_heights, thermodynamic_heights, & ! Intent(in)
                          l_prescribed_avg_deltaz, mult_coef, &  ! Intent(in)
                          nu1, nu2, nu6, nu8, nu9, nu10, nu_hm, &  ! Intent(in)
                          nu_vert_res_dep )  ! Intent(out)
 
-  end subroutine adj_low_res_nu_api
+  end subroutine adj_low_res_nu_api_multi_col
 
 ! The CLUBB_CAM preprocessor directives are being commented out because this
 ! code is now also used for WRF-CLUBB.
@@ -2875,7 +3151,7 @@ contains
   ! init_pdf_implicit_coefs_terms - allocates arrays for the PDF implicit
   ! coefficient and explicit terms.
   !================================================================================================
-  subroutine init_pdf_implicit_coefs_terms_api( nz, sclr_dim, &
+  subroutine init_pdf_implicit_coefs_terms_api( nz, ngrdcol, sclr_dim, &
                                                 pdf_implicit_coefs_terms )
 
     use pdf_parameter_module, only: &
@@ -2886,13 +3162,14 @@ contains
     ! Input Variables
     integer, intent(in) :: &
       nz,       & ! Number of vertical grid levels    [-]
+      ngrdcol,  & ! Number of grid columns            [-]
       sclr_dim    ! Number of scalar variables        [-]
 
     ! Output Variable
     type(implicit_coefs_terms), intent(out) :: &
       pdf_implicit_coefs_terms    ! Implicit coefs / explicit terms [units vary]
 
-    call init_pdf_implicit_coefs_terms( nz, sclr_dim, & ! intent(in)
+    call init_pdf_implicit_coefs_terms( nz, ngrdcol, sclr_dim, & ! intent(in)
                                         pdf_implicit_coefs_terms ) ! intent(out)
 
   end subroutine init_pdf_implicit_coefs_terms_api
@@ -2902,8 +3179,8 @@ contains
   !================================================================================================
 
   subroutine setup_pdf_parameters_api_single_col( gr, & ! intent(in)
-    nz, pdf_dim, dt, &                      ! Intent(in)
-    Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
+    nz, pdf_dim, dt, &                          ! Intent(in)
+    Nc_in_cloud, cloud_frac, Kh_zm, &           ! Intent(in)
     ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
     corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
     pdf_params, l_stats_samp, &                 ! Intent(in)
@@ -2954,7 +3231,6 @@ contains
 
     real( kind = core_rknd ), dimension(nz), intent(in) :: &
       Nc_in_cloud,       & ! Mean (in-cloud) cloud droplet conc.       [num/kg]
-      rcm,               & ! Mean cloud water mixing ratio, < r_c >    [kg/kg]
       cloud_frac,        & ! Cloud fraction                            [-]
       Kh_zm,             & ! Eddy diffusivity coef. on momentum levels [m^2/s]
       ice_supersat_frac    ! Ice supersaturation fraction              [-]
@@ -3030,7 +3306,6 @@ contains
     
     real( kind = core_rknd ), dimension(1,nz) :: &
       Nc_in_cloud_col,       & ! Mean (in-cloud) cloud droplet conc.       [num/kg]
-      rcm_col,               & ! Mean cloud water mixing ratio, < r_c >    [kg/kg]
       cloud_frac_col,        & ! Cloud fraction                            [-]
       Kh_zm_col,             & ! Eddy diffusivity coef. on momentum levels [m^2/s]
       ice_supersat_frac_col    ! Ice supersaturation fraction              [-]
@@ -3066,12 +3341,7 @@ contains
       stats_zm_col, &
       stats_sfc_col
 
-    type(grid), target, dimension(1) :: &
-      gr_col
-
-
     Nc_in_cloud_col(1,:) = Nc_in_cloud
-    rcm_col(1,:) = rcm
     cloud_frac_col(1,:) = cloud_frac
     Kh_zm_col(1,:) = Kh_zm
     ice_supersat_frac_col(1,:) = ice_supersat_frac
@@ -3079,15 +3349,13 @@ contains
     hydromet_col(1,:,:) = hydromet
     wphydrometp_col(1,:,:) = wphydrometp
     
-    gr_col(1) = gr
-    
     stats_zt_col(1) = stats_zt
     stats_zm_col(1) = stats_zm
     stats_sfc_col(1) = stats_sfc
 
-    call setup_pdf_parameters( gr_col, &                          ! intent(in)
+    call setup_pdf_parameters( gr, &                          ! intent(in)
       nz, 1, pdf_dim, dt, &                                   ! Intent(in)
-      Nc_in_cloud_col, rcm_col, cloud_frac_col, Kh_zm_col, &  ! Intent(in)
+      Nc_in_cloud_col, cloud_frac_col, Kh_zm_col, &           ! Intent(in)
       ice_supersat_frac_col, hydromet_col, wphydrometp_col, & ! Intent(in)
       corr_array_n_cloud, corr_array_n_below, &               ! Intent(in)
       pdf_params, l_stats_samp, &                             ! Intent(in)
@@ -3144,7 +3412,7 @@ contains
 !===========================================================================! 
   subroutine setup_pdf_parameters_api_multi_col( gr, &
     nz, ngrdcol, pdf_dim, dt, &                 ! Intent(in)
-    Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
+    Nc_in_cloud, cloud_frac, Kh_zm, &           ! Intent(in)
     ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
     corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
     pdf_params, l_stats_samp, &                 ! Intent(in)
@@ -3182,14 +3450,13 @@ contains
       pdf_dim,     & ! Number of variables in the correlation array
       ngrdcol        ! Number of grid columns
       
-    type(grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
 
     real( kind = core_rknd ), intent(in) ::  &
       dt    ! Model timestep                                           [s]
 
     real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
       Nc_in_cloud,       & ! Mean (in-cloud) cloud droplet conc.       [num/kg]
-      rcm,               & ! Mean cloud water mixing ratio, < r_c >    [kg/kg]
       cloud_frac,        & ! Cloud fraction                            [-]
       Kh_zm,             & ! Eddy diffusivity coef. on momentum levels [m^2/s]
       ice_supersat_frac    ! Ice supersaturation fraction              [-]
@@ -3268,7 +3535,7 @@ contains
 
     call setup_pdf_parameters( gr, &              ! intent(in)
       nz, ngrdcol, pdf_dim, dt, &                 ! Intent(in)
-      Nc_in_cloud, rcm, cloud_frac, Kh_zm, &      ! Intent(in)
+      Nc_in_cloud, cloud_frac, Kh_zm, &           ! Intent(in)
       ice_supersat_frac, hydromet, wphydrometp, & ! Intent(in)
       corr_array_n_cloud, corr_array_n_below, &   ! Intent(in)
       pdf_params, l_stats_samp, &                 ! Intent(in)
@@ -3753,170 +4020,6 @@ contains
       integral_forcing, dt )
 
   end function calculate_spurious_source_api
-
-  !================================================================================================
-  ! zm2zt_scalar - Interpolates a variable from zm to zt grid at one height level
-  !================================================================================================
-  function zm2zt_scalar_api( gr, azm, k )
-
-    use grid_class, only: & 
-        grid, & ! Type
-        zm2zt
-
-    implicit none
-
-    type(grid), target, intent(in) :: gr
-
-    ! Input Variables
-    real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
-      azm    ! Variable on momentum grid levels    [units vary]
-
-    integer, intent(in) :: &
-      k      ! Vertical level index
-
-    ! Return Variable
-    real( kind = core_rknd ) :: &
-      zm2zt_scalar_api   ! Variable when interp. to thermo. levels
-
-    zm2zt_scalar_api = zm2zt( gr, azm, k )
-
-  end function zm2zt_scalar_api
-
-  !================================================================================================
-  ! zt2zm_scalar - Interpolates a variable from zt to zm grid at one height level
-  !================================================================================================
-  function zt2zm_scalar_api( gr, azt, k )
-
-    use grid_class, only: &
-        grid, & ! Type
-        zt2zm
-
-    implicit none
-
-    type(grid), target, intent(in) :: gr
-
-    ! Input Variables
-    real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
-      azt    ! Variable on thermodynamic grid levels    [units vary]
-
-    integer, intent(in) :: &
-      k      ! Vertical level index
-
-    ! Return Variable
-    real( kind = core_rknd ) :: &
-      zt2zm_scalar_api   ! Variable when interp. to momentum levels
-
-    zt2zm_scalar_api = zt2zm( gr, azt, k )
-
-  end function zt2zm_scalar_api
-
-  !================================================================================================
-  ! zt2zm_prof - Interpolates a variable (profile) from zt to zm grid
-  !================================================================================================
-  function zt2zm_prof_api( gr, azt )
-
-    use grid_class, only: &
-        grid, & ! Type
-        zt2zm
-
-    implicit none
-
-    type(grid), target, intent(in) :: gr
-
-    ! Input Variables
-    real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
-      azt    ! Variable on thermodynamic grid levels    [units vary]
-
-    ! Return Variable
-    real( kind = core_rknd ), dimension(gr%nz) :: &
-      zt2zm_prof_api   ! Variable when interp. to momentum levels
-
-    zt2zm_prof_api = zt2zm( gr, azt )
-
-  end function zt2zm_prof_api
-
-  !================================================================================================
-  ! zm2zt_prof - Interpolates a variable (profile) from zm to zt grid
-  !================================================================================================
-  function zm2zt_prof_api( gr, azm )
-
-    use grid_class, only: &
-        grid, & ! Type
-        zm2zt
-
-    implicit none
-
-    type(grid), target, intent(in) :: gr
-
-    ! Input Variables
-    real( kind = core_rknd ), intent(in), dimension(gr%nz) :: &
-      azm    ! Variable on momentum grid levels    [units vary]
-
-    ! Return Variable
-    real( kind = core_rknd ), dimension(gr%nz) :: &
-      zm2zt_prof_api   ! Variable when interp. to thermo. levels
-
-    zm2zt_prof_api = zm2zt( gr, azm )
-
-  end function zm2zt_prof_api
-  
-  !================================================================================================
-  ! zm2zt_2D - Interpolates a variable (profile) from zm to zt grid for all columns
-  !================================================================================================
-  function zm2zt_2D_api( nz, ngrdcol, gr, azm )
-
-    use grid_class, only: &
-        grid, & ! Type
-        zm2zt
-
-    implicit none
-    
-    integer, intent(in) :: &
-      nz, &
-      ngrdcol
-
-    type(grid), target, dimension(ngrdcol), intent(in) :: gr
-
-    ! Input Variables
-    real( kind = core_rknd ), intent(in), dimension(ngrdcol,nz) :: &
-      azm    ! Variable on momentum grid levels    [units vary]
-
-    ! Return Variable
-    real( kind = core_rknd ), dimension(ngrdcol,nz) :: &
-      zm2zt_2D_api   ! Variable when interp. to thermo. levels
-
-    zm2zt_2D_api = zm2zt( nz, ngrdcol, gr, azm )
-
-  end function zm2zt_2D_api
-  
-  !================================================================================================
-  ! zt2zm_2D - Interpolates a variable (profile) from zt to zm grid for all columns
-  !================================================================================================
-  function zt2zm_2D_api( nz, ngrdcol, gr, azm )
-
-    use grid_class, only: &
-        grid, & ! Type
-        zt2zm
-
-    implicit none
-    
-    integer, intent(in) :: &
-      nz, &
-      ngrdcol
-
-    type(grid), target, dimension(ngrdcol), intent(in) :: gr
-
-    ! Input Variables
-    real( kind = core_rknd ), intent(in), dimension(ngrdcol,nz) :: &
-      azm    ! Variable on momentum grid levels    [units vary]
-
-    ! Return Variable
-    real( kind = core_rknd ), dimension(ngrdcol,nz) :: &
-      zt2zm_2D_api   ! Variable when interp. to thermo. levels
-
-    zt2zm_2D_api = zt2zm( nz, ngrdcol, gr, azm )
-
-  end function zt2zm_2D_api
 
   !================================================================================================
   ! calculate_thlp2_rad - Computes the contribution of radiative cooling to thlp2

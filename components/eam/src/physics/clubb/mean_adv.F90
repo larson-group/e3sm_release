@@ -27,9 +27,10 @@ module mean_adv
   contains
 
   !=============================================================================
-  pure subroutine term_ma_zt_lhs( gr, wm_zt, invrs_dzt, invrs_dzm, & ! Intent(in)
-                                  l_upwind_xm_ma,              & ! Intent(in)
-                                  lhs_ma                       ) ! Intent(out)
+  pure subroutine term_ma_zt_lhs( nz, ngrdcol, wm_zt, weights_zt2zm, & ! Intent(in)
+                                  invrs_dzt, invrs_dzm,     & ! Intent(in)
+                                  l_upwind_xm_ma,           & ! Intent(in)
+                                  lhs_ma )                    ! Intent(out)
 
     ! Description:
     ! Mean advection of var_zt:  implicit portion of the code.
@@ -184,8 +185,6 @@ module mean_adv
 
     implicit none
 
-    type (grid), target, intent(in) :: gr
-
     ! Constant parameters
     integer, parameter :: & 
       kp1_tdiag = 1, & ! Thermodynamic superdiagonal index.
@@ -197,10 +196,17 @@ module mean_adv
       t_below = 2    ! Index for lower thermodynamic level grid weight.
 
     ! Input Variables
-    real( kind = core_rknd ), dimension(gr%nz), intent(in) :: & 
+    integer, intent(in) :: &
+      nz, &
+      ngrdcol
+    
+    real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: & 
       wm_zt,     & ! wm_zt                        [m/s]
       invrs_dzt, & ! Inverse of grid spacing      [1/m]
       invrs_dzm    ! Inverse of grid spacing      [1/m]
+      
+    real( kind = core_rknd ), dimension(ngrdcol,nz,t_above:t_below), intent(in) :: & 
+      weights_zt2zm
 
     logical, intent(in) :: &
       l_upwind_xm_ma    ! This flag determines whether we want to use an upwind
@@ -209,36 +215,34 @@ module mean_adv
                         ! It affects rtm, thlm, sclrm, um and vm.
 
     ! Return Variable
-    real( kind = core_rknd ), dimension(3,gr%nz), intent(out) :: &
+    real( kind = core_rknd ), dimension(3,ngrdcol,nz), intent(out) :: &
       lhs_ma    ! Mean advection contributions to lhs    [1/s]
 
     ! Local Variables
 
-    integer :: k    ! Vertical level index
+    integer :: i, k    ! Vertical level index
 
     ! Set lower boundary array to 0
-    lhs_ma(:,1) = 0.0_core_rknd
+    lhs_ma(:,:,1) = 0.0_core_rknd
 
 
-    if( .not. l_upwind_xm_ma ) then  ! Use centered differencing
+    if ( .not. l_upwind_xm_ma ) then  ! Use centered differencing
 
-       ! Most of the interior model; normal conditions.
-       do k = 2, gr%nz, 1
+      ! Most of the interior model; normal conditions.
+      do k = 2, nz, 1
+        do i = 1, ngrdcol
 
           ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
-          lhs_ma(kp1_tdiag,k) & 
-          = + wm_zt(k) * invrs_dzt(k) * gr%weights_zt2zm(t_above,k)
+          lhs_ma(kp1_tdiag,i,k) = + wm_zt(i,k) * invrs_dzt(i,k) * weights_zt2zm(i,k,t_above)
 
           ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
-          lhs_ma(k_tdiag,k) & 
-          = + wm_zt(k) * invrs_dzt(k) * ( gr%weights_zt2zm(t_below,k) & 
-                                          - gr%weights_zt2zm(t_above,k-1) )
+          lhs_ma(k_tdiag,i,k) = + wm_zt(i,k) * invrs_dzt(i,k) * ( weights_zt2zm(i,k,t_below) & 
+                              - weights_zt2zm(i,k-1,t_above) )
 
           ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
-          lhs_ma(km1_tdiag,k) & 
-          = - wm_zt(k) * invrs_dzt(k) * gr%weights_zt2zm(t_below,k-1)
-
-       enddo ! k = 2, gr%nz, 1
+          lhs_ma(km1_tdiag,i,k) = - wm_zt(i,k) * invrs_dzt(i,k) * weights_zt2zm(i,k-1,t_below)
+        end do
+      end do ! k = 2, nz, 1
 
        ! Upper Boundary
 
@@ -246,87 +250,78 @@ module mean_adv
         ! derivative d(var_zt)/dz over the model top is set to 0, in order
         ! to stay consistent with the zero-flux boundary condition option
         ! in the eddy diffusion code.
-        ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
-        lhs_ma(kp1_tdiag,gr%nz) & 
-        = zero
-        ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
-        lhs_ma(k_tdiag,gr%nz) & 
-        = + wm_zt(gr%nz) &
-            * invrs_dzt(gr%nz) * ( one - gr%weights_zt2zm(t_above,gr%nz-1) )
+        do i = 1, ngrdcol
+          
+          ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
+          lhs_ma(kp1_tdiag,i,nz)   = zero
+          
+          ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
+          lhs_ma(k_tdiag,i,nz) = + wm_zt(i,nz) * invrs_dzt(i,nz) &
+                                   * ( one - weights_zt2zm(i,nz-1,t_above) )
 
-        ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
-        lhs_ma(km1_tdiag,gr%nz) & 
-        = - wm_zt(gr%nz) &
-            * invrs_dzt(gr%nz) * gr%weights_zt2zm(t_below,gr%nz-1)
-
+          ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
+          lhs_ma(km1_tdiag,i,nz) = - wm_zt(i,nz) * invrs_dzt(i,nz) &
+                                     * weights_zt2zm(i,nz-1,t_below)
+        end do
 
     else ! l_upwind_xm_ma == .true.; use "upwind" differencing
 
-       ! Most of the interior model; normal conditions.
-       do k = 2, gr%nz, 1
-
-          if ( wm_zt(k) >= zero ) then  ! Mean wind is in upward direction
+      ! Most of the interior model; normal conditions.
+      do k = 2, nz, 1
+        do i = 1, ngrdcol
+          if ( wm_zt(i,k) >= zero ) then  ! Mean wind is in upward direction
 
              ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
-             lhs_ma(kp1_tdiag,k) &
-             = zero
+             lhs_ma(kp1_tdiag,i,k) = zero
 
              ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
-             lhs_ma(k_tdiag,k) &
-             = + wm_zt(k) * invrs_dzm(k-1)
+             lhs_ma(k_tdiag,i,k) = + wm_zt(i,k) * invrs_dzm(i,k-1)
 
              ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
-             lhs_ma(km1_tdiag,k) &
-             = - wm_zt(k) * invrs_dzm(k-1)
-
+             lhs_ma(km1_tdiag,i,k) = - wm_zt(i,k) * invrs_dzm(i,k-1)
+             
           else  ! wm_zt < 0; Mean wind is in downward direction
 
              ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
-             lhs_ma(kp1_tdiag,k) &
-             = + wm_zt(k) * invrs_dzm(k)
+             lhs_ma(kp1_tdiag,i,k) = + wm_zt(i,k) * invrs_dzm(i,k)
 
              ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
-             lhs_ma(k_tdiag,k) &
-             = - wm_zt(k) * invrs_dzm(k)
+             lhs_ma(k_tdiag,i,k) = - wm_zt(i,k) * invrs_dzm(i,k)
 
              ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
-             lhs_ma(km1_tdiag,k) &
-             = zero
+             lhs_ma(km1_tdiag,i,k) = zero
 
           endif ! wm_zt > 0
+          
+        end do
+      end do ! k = 2, nz, 1
 
-       enddo ! k = 2, gr%nz, 1
-
-       ! Upper Boundary
-       if ( wm_zt(gr%nz) >= zero ) then  ! Mean wind is in upward direction
-
-          ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
-          lhs_ma(kp1_tdiag,gr%nz) &
-          = zero
-
-          ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
-          lhs_ma(k_tdiag,gr%nz) &
-          = + wm_zt(gr%nz) * invrs_dzm(gr%nz-1)
-
-          ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
-          lhs_ma(km1_tdiag,gr%nz) &
-          = - wm_zt(gr%nz) * invrs_dzm(gr%nz-1)
-
-       else  ! wm_zt < 0; Mean wind is in downward direction
+      ! Upper Boundary
+      do i = 1, ngrdcol
+        if ( wm_zt(i,nz) >= zero ) then  ! Mean wind is in upward direction
 
           ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
-          lhs_ma(kp1_tdiag,gr%nz) &
-          = zero
+          lhs_ma(kp1_tdiag,i,nz) = zero
 
           ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
-          lhs_ma(k_tdiag,gr%nz) &
-          = zero
+          lhs_ma(k_tdiag,i,nz) = + wm_zt(i,nz) * invrs_dzm(i,nz-1)
 
           ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
-          lhs_ma(km1_tdiag,gr%nz) &
-          = zero
+          lhs_ma(km1_tdiag,i,nz) = - wm_zt(i,nz) * invrs_dzm(i,nz-1)
 
-       endif ! wm_zt > 0
+        else  ! wm_zt < 0; Mean wind is in downward direction
+
+          ! Thermodynamic superdiagonal: [ x var_zt(k+1,<t+1>) ]
+          lhs_ma(kp1_tdiag,i,nz) = zero
+
+          ! Thermodynamic main diagonal: [ x var_zt(k,<t+1>) ]
+          lhs_ma(k_tdiag,i,nz) = zero
+
+          ! Thermodynamic subdiagonal: [ x var_zt(k-1,<t+1>) ]
+          lhs_ma(km1_tdiag,i,nz) = zero
+
+        end if ! wm_zt > 0
+      end do
 
     endif ! l_upwind_xm_ma
 
@@ -336,7 +331,8 @@ module mean_adv
   end subroutine term_ma_zt_lhs
 
   !=============================================================================
-  pure subroutine term_ma_zm_lhs( gr, wm_zm, invrs_dzm, & 
+  pure subroutine term_ma_zm_lhs( nz, ngrdcol, wm_zm, &
+                                  invrs_dzm, weights_zm2zt, & 
                                   lhs_ma )
 
     ! Description:
@@ -401,8 +397,6 @@ module mean_adv
 
     implicit none
 
-    type (grid), target, intent(in) :: gr
-
     ! Constant parameters
     integer, parameter :: & 
       kp1_mdiag = 1, & ! Momentum superdiagonal index.
@@ -414,41 +408,46 @@ module mean_adv
       m_below = 2    ! Index for lower momentum level grid weight.
 
     ! Input Variables
-    real( kind = core_rknd ), dimension(gr%nz), intent(in) :: & 
+    integer, intent(in) :: &
+      nz, &
+      ngrdcol
+    
+    real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: & 
       wm_zm,     & ! wm_zm                        [m/s]
       invrs_dzm    ! Inverse of grid spacing      [1/m]
+      
+    real( kind = core_rknd ), dimension(ngrdcol,nz,m_above:m_below), intent(in) :: & 
+      weights_zm2zt
 
     ! Return Variable
-    real( kind = core_rknd ), dimension(3,gr%nz), intent(out) :: &
+    real( kind = core_rknd ), dimension(3,ngrdcol,nz), intent(out) :: &
       lhs_ma    ! Mean advection contributions to lhs  [1/s]
 
-    integer :: k    ! Vertical level index
+    integer :: i, k    ! Vertical level index
 
 
     ! Set lower boundary array to 0
-    lhs_ma(:,1) = zero
+    lhs_ma(:,:,1) = zero
 
     ! Most of the interior model; normal conditions.
-    do k = 2, gr%nz-1, 1
+    do k = 2, nz-1, 1
+      do i = 1, ngrdcol
+        
+        ! Momentum superdiagonal: [ x var_zm(k+1,<t+1>) ]
+        lhs_ma(kp1_mdiag,i,k) = + wm_zm(i,k) * invrs_dzm(i,k) * weights_zm2zt(i,k+1,m_above)
 
-       ! Momentum superdiagonal: [ x var_zm(k+1,<t+1>) ]
-       lhs_ma(kp1_mdiag,k) & 
-       = + wm_zm(k) * invrs_dzm(k) * gr%weights_zm2zt(m_above,k+1)
+        ! Momentum main diagonal: [ x var_zm(k,<t+1>) ]
+        lhs_ma(k_mdiag,i,k) = + wm_zm(i,k) * invrs_dzm(i,k) * ( weights_zm2zt(i,k+1,m_below) & 
+                                       - weights_zm2zt(i,k,m_above) )
 
-       ! Momentum main diagonal: [ x var_zm(k,<t+1>) ]
-       lhs_ma(k_mdiag,k) & 
-       = + wm_zm(k) * invrs_dzm(k) * ( gr%weights_zm2zt(m_below,k+1) & 
-                                       - gr%weights_zm2zt(m_above,k) )
-
-       ! Momentum subdiagonal: [ x var_zm(k-1,<t+1>) ]
-       lhs_ma(km1_mdiag,k) & 
-       = - wm_zm(k) * invrs_dzm(k) * gr%weights_zm2zt(m_below,k)
-
-    enddo ! k = 2, gr%nz-1, 1
+        ! Momentum subdiagonal: [ x var_zm(k-1,<t+1>) ]
+        lhs_ma(km1_mdiag,i,k) = - wm_zm(i,k) * invrs_dzm(i,k) * weights_zm2zt(i,k,m_below)
+        
+      end do
+    end do ! k = 2, nz-1, 1
 
     ! Set upper boundary array to 0
-    lhs_ma(:,gr%nz) = zero
-
+    lhs_ma(:,:,nz) = zero
 
     return
 

@@ -258,7 +258,7 @@ module adg1_adg2_3d_luhar_pdf
       ngrdcol,  & ! Number of grid columns
       nz          ! Number of vertical level
 
-    type (grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) ::  & 
@@ -328,11 +328,11 @@ module adg1_adg2_3d_luhar_pdf
     ! Reproduce ADG2_w_closure using separate functions
     do i = 1, ngrdcol
       
-      call calc_Luhar_params( gr(i)%nz, Skw(i,:), wp2(i,:), &                   ! intent(in)
+      call calc_Luhar_params( gr%nz, Skw(i,:), wp2(i,:), &                   ! intent(in)
                               wp2(i,:), w_tol_sqd, &                         ! intent(in)
                               mixt_frac(i,:), big_m_w(i,:), small_m_w(i,:) ) ! intent(out)
 
-      call close_Luhar_pdf( gr(i)%nz, wm(i,:), wp2(i,:), mixt_frac(i,:),    & ! intent(in)
+      call close_Luhar_pdf( gr%nz, wm(i,:), wp2(i,:), mixt_frac(i,:),    & ! intent(in)
                             small_m_w(i,:), wp2(i,:), w_tol_sqd,         & ! intent(in)
                             sigma_sqd_w_1(i,:), sigma_sqd_w_2(i,:),      & ! intent(out)
                             varnce_w_1(i,:), varnce_w_2(i,:),            & ! intent(out)
@@ -380,7 +380,7 @@ module adg1_adg2_3d_luhar_pdf
   end subroutine ADG2_pdf_driver
 
   !=============================================================================
-  subroutine Luhar_3D_pdf_driver( gr, wm, rtm, thlm, wp2, rtp2, thlp2,  & ! In
+  subroutine Luhar_3D_pdf_driver( nz, wm, rtm, thlm, wp2, rtp2, thlp2,  & ! In
                                   Skw, Skrt, Skthl, wprtp, wpthlp,      & ! In
                                   w_1, w_2,                             & ! Out
                                   rt_1, rt_2,                           & ! Out
@@ -395,9 +395,6 @@ module adg1_adg2_3d_luhar_pdf
     ! References:
     !-----------------------------------------------------------------------
 
-    use grid_class, only: &
-        grid ! Type
-
     use constants_clubb, only: &
         w_tol_sqd, & ! Constant(s)
         rt_tol,    &
@@ -408,10 +405,11 @@ module adg1_adg2_3d_luhar_pdf
 
     implicit none
 
-    type (grid), target, intent(in) :: gr
+    integer, intent(in) :: &
+      nz
 
     ! Input Variables
-    real( kind = core_rknd ), dimension(gr%nz), intent(in) ::  & 
+    real( kind = core_rknd ), dimension(nz), intent(in) ::  & 
       wm,     & ! Mean of w-wind component (vertical velocity)  [m/s] 
       rtm,    & ! Mean of total water mixing ratio              [kg/kg]
       thlm,   & ! Mean of liquid water potential temperature    [K]
@@ -425,7 +423,7 @@ module adg1_adg2_3d_luhar_pdf
       wpthlp    ! Covariance of w and th_l                      [K(m/s)]
 
     ! Output Variables
-    real( kind = core_rknd ), dimension(gr%nz), intent(out) ::  &
+    real( kind = core_rknd ), dimension(nz), intent(out) ::  &
       w_1,          & ! Mean of w (1st PDF component)                      [m/s]
       w_2,          & ! Mean of w (2nd PDF component)                      [m/s]
       rt_1,         & ! Mean of r_t (1st PDF component)                  [kg/kg]
@@ -440,7 +438,7 @@ module adg1_adg2_3d_luhar_pdf
       varnce_thl_2, & ! Variance of th_l (2nd PDF component)               [K^2]
       mixt_frac       ! Mixture fraction (weight of 1st PDF component)       [-]
 
-    real( kind = core_rknd ), dimension(gr%nz) ::  &
+    real( kind = core_rknd ), dimension(nz) ::  &
       w_1_n,           & ! Normalized mean of w (1st PDF component)          [-]
       w_2_n,           & ! Normalized mean of w (2nd PDF component)          [-]
       rt_1_n,          & ! Normalized mean of rt (1st PDF component)         [-]
@@ -463,7 +461,7 @@ module adg1_adg2_3d_luhar_pdf
     integer :: k    ! Vertical loop index
 
 
-    do k = 1, gr%nz, 1
+    do k = 1, nz, 1
 
        if ( ( abs( Skw(k) ) >= abs( Skthl(k) ) ) &
             .and. ( abs( Skw(k) ) >= abs( Skrt(k) ) ) ) then

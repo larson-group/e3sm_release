@@ -134,7 +134,7 @@ module advance_windm_edsclrm_module
       nz, &
       ngrdcol
 
-    type (grid), target, dimension(ngrdcol), intent(in) :: &
+    type (grid), target, intent(in) :: &
       gr
   
     real( kind = core_rknd ), intent(in) ::  &
@@ -165,7 +165,7 @@ module advance_windm_edsclrm_module
     logical, intent(in) ::  &
       l_implemented  ! Flag for CLUBB being implemented in a larger model.
 
-    type(nu_vertical_res_dep), dimension(ngrdcol), intent(in) :: &
+    type(nu_vertical_res_dep), intent(in) :: &
       nu_vert_res_dep    ! Vertical resolution dependent nu values
 
     logical, intent(in) :: &
@@ -279,25 +279,23 @@ module advance_windm_edsclrm_module
 
     ! ------------------------ Begin Code ------------------------
     do i = 1, ngrdcol
-      nu10(i) = nu_vert_res_dep(i)%nu10
+      nu10(i) = nu_vert_res_dep%nu10(i)
       nu_zero(i) = zero
     end do
     
     do k = 1, nz
       do i = 1, ngrdcol
-        Km_zm_p_nu10(i,:) = Km_zm(i,:) + nu10(i)
+        Km_zm_p_nu10(i,k) = Km_zm(i,k) + nu10(i)
       end do
     end do
 
     l_perturbed_wind = ( .not. l_predict_upwp_vpwp ) .and. l_linearize_pbl_winds
     
     if ( .not. l_implemented ) then
-      do i = 1, ngrdcol
-        call term_ma_zt_lhs( gr(i), wm_zt(i,:),                       & ! intent(in)
-                             gr(i)%invrs_dzt(:), gr(i)%invrs_dzm(:),  & ! intent(in)
-                             l_upwind_xm_ma,                          & ! intent(in)
-                             lhs_ma_zt(:,i,:) )                         ! intent(out)
-      end do
+      call term_ma_zt_lhs( nz, ngrdcol, wm_zt, gr%weights_zt2zm, & ! intent(in)
+                           gr%invrs_dzt, gr%invrs_dzm,    & ! intent(in)
+                           l_upwind_xm_ma,                          & ! intent(in)
+                           lhs_ma_zt )                         ! intent(out)
     else
       lhs_ma_zt(:,:,:) = zero
     end if
@@ -307,24 +305,21 @@ module advance_windm_edsclrm_module
       Km_zt(:,:) = max( zm2zt( nz, ngrdcol, gr, Km_zm(:,:) ), zero )
 
       ! Calculate diffusion terms
-      do i = 1, ngrdcol
-        call diffusion_zt_lhs( gr(i), Km_zm(i,:), Km_zt(i,:), nu10(i),  & ! intent(in)
-                               gr(i)%invrs_dzm(:), gr(i)%invrs_dzt(:),  & ! intent(in)
-                               invrs_rho_ds_zt(i,:), rho_ds_zm(i,:),    & ! intent(in)
-                               lhs_diff(:,i,:) )                          ! intent(out)
-      end do
+      call diffusion_zt_lhs( nz, ngrdcol, gr, Km_zm, Km_zt, nu10,   & ! intent(in)
+                             invrs_rho_ds_zt, rho_ds_zm,            & ! intent(in)
+                             lhs_diff )                               ! intent(out)
       
       ! The lower boundary condition needs to be applied here at level 2.
       if ( .not. l_upwind_Kh_dp_term ) then 
         
         do i = 1, ngrdcol
           ! Thermodynamic superdiagonal: [ x xm(k+1,<t+1>) ]
-          lhs_diff(kp1_tdiag,i,2) = - gr(i)%invrs_dzt(2) * invrs_rho_ds_zt(i,2) &
-                                    * ( Km_zm(i,2) + nu10(i) ) * rho_ds_zm(i,2) * gr(i)%invrs_dzm(2)
+          lhs_diff(kp1_tdiag,i,2) = - gr%invrs_dzt(i,2) * invrs_rho_ds_zt(i,2) &
+                                    * ( Km_zm(i,2) + nu10(i) ) * rho_ds_zm(i,2) * gr%invrs_dzm(i,2)
 
           ! Thermodynamic main diagonal: [ x xm(k,<t+1>) ]
-          lhs_diff(k_tdiag,i,2) = + gr(i)%invrs_dzt(2) * invrs_rho_ds_zt(i,2) &
-                                  * ( Km_zm(i,2) + nu10(i) ) * rho_ds_zm(i,2) * gr(i)%invrs_dzm(2)
+          lhs_diff(k_tdiag,i,2) = + gr%invrs_dzt(i,2) * invrs_rho_ds_zt(i,2) &
+                                  * ( Km_zm(i,2) + nu10(i) ) * rho_ds_zm(i,2) * gr%invrs_dzm(i,2)
 
           ! Thermodynamic subdiagonal: [ x xm(k-1,<t+1>) ]
           lhs_diff(km1_tdiag,i,2) = zero
@@ -334,12 +329,12 @@ module advance_windm_edsclrm_module
 
         do i = 1, ngrdcol
           ! Thermodynamic superdiagonal: [ x xm(k+1,<t+1>) ]
-          lhs_diff(kp1_tdiag,i,2) = - gr(i)%invrs_dzt(2) &
-                                      * ( Km_zt(i,2) + nu10(i) ) * gr(i)%invrs_dzm(2)
+          lhs_diff(kp1_tdiag,i,2) = - gr%invrs_dzt(i,2) &
+                                      * ( Km_zt(i,2) + nu10(i) ) * gr%invrs_dzm(i,2)
 
           ! Thermodynamic main diagonal: [ x xm(k,<t+1>) ]
-          lhs_diff(k_tdiag,i,2) = + gr(i)%invrs_dzt(2) &
-                                    * ( Km_zt(i,2) + nu10(i) ) * gr(i)%invrs_dzm(2)
+          lhs_diff(k_tdiag,i,2) = + gr%invrs_dzt(i,2) &
+                                    * ( Km_zt(i,2) + nu10(i) ) * gr%invrs_dzm(i,2)
 
           ! Thermodynamic subdiagonal: [ x xm(k-1,<t+1>) ]
           lhs_diff(km1_tdiag,i,2) = zero
@@ -462,14 +457,16 @@ module advance_windm_edsclrm_module
       if ( l_stats_samp ) then
         do i = 1, ngrdcol
           ! Implicit contributions to um and vm
-          call windm_edsclrm_implicit_stats( gr(i), windm_edsclrm_um, um(i,:),    & ! intent(in)
+          call windm_edsclrm_implicit_stats( nz, windm_edsclrm_um, um(i,:),       & ! intent(in)
+                                             gr%invrs_dzt(i,:),                     & ! intent(in)
                                              lhs_diff(:,i,:), lhs_ma_zt(:,i,:),   & ! intent(in)
                                              invrs_rho_ds_zt(i,:), u_star_sqd(i), & ! intent(in)
                                              rho_ds_zm(i,:), wind_speed(i,:),     & ! intent(in)
                                              l_imp_sfc_momentum_flux,             & ! intent(in)
                                              stats_zt(i) )                          ! intent(inout)
 
-          call windm_edsclrm_implicit_stats( gr(i), windm_edsclrm_vm, vm(i,:),    & ! intent(in)
+          call windm_edsclrm_implicit_stats( nz, windm_edsclrm_vm, vm(i,:),       & ! intent(in)
+                                             gr%invrs_dzt(i,:),                     & ! intent(in)
                                              lhs_diff(:,i,:), lhs_ma_zt(:,i,:),   & ! intent(in)
                                              invrs_rho_ds_zt(i,:), u_star_sqd(i), & ! intent(in)
                                              rho_ds_zm(i,:), wind_speed(i,:),     & ! intent(in)
@@ -507,28 +504,28 @@ module advance_windm_edsclrm_module
           
         if ( l_stats_samp ) then
           do i = 1, ngrdcol
-            call stat_begin_update( gr(i), ium_sdmp, um(i,:) / dt, & ! intent(in)
+            call stat_begin_update( nz, ium_sdmp, um(i,:) / dt, & ! intent(in)
                                     stats_zt(i) )           ! intent(inout)
-            call stat_begin_update( gr(i), ivm_sdmp, vm(i,:) / dt, & ! intent(in)
+            call stat_begin_update( nz, ivm_sdmp, vm(i,:) / dt, & ! intent(in)
                                     stats_zt(i) )           ! intent(inout)
           end do
         end if
 
         do i = 1, ngrdcol
-          um(i,1:nz) = sponge_damp_xm( gr(i), dt, gr(i)%zt, um_ref(i,1:nz), &
-                                        um(i,1:nz), uv_sponge_damp_profile )
+          um(i,1:nz) = sponge_damp_xm( nz, dt, gr%zt(i,:), gr%zm(i,:), &
+                                       um_ref(i,1:nz), um(i,1:nz), uv_sponge_damp_profile )
         end do
 
         do i = 1, ngrdcol
-          vm(i,1:nz) = sponge_damp_xm( gr(i), dt, gr(i)%zt, vm_ref(i,1:nz), &
-                                        vm(i,1:nz), uv_sponge_damp_profile )
+          vm(i,1:nz) = sponge_damp_xm( nz, dt, gr%zt(i,:), gr%zm(i,:), &
+                                       vm_ref(i,1:nz), vm(i,1:nz), uv_sponge_damp_profile )
         end do
 
         if ( l_stats_samp ) then
           do i = 1, ngrdcol
-            call stat_end_update( gr(i), ium_sdmp, um(i,:) / dt, & ! intent(in) 
+            call stat_end_update( nz, ium_sdmp, um(i,:) / dt, & ! intent(in) 
                                   stats_zt(i) )           ! intent(inout)
-            call stat_end_update( gr(i), ivm_sdmp, vm(i,:) / dt, & ! intent(in)
+            call stat_end_update( nz, ivm_sdmp, vm(i,:) / dt, & ! intent(in)
                                   stats_zt(i) )           ! intent(inout)
           end do
         end if
@@ -557,9 +554,9 @@ module advance_windm_edsclrm_module
         ! Reflect nudging in budget
         if ( l_stats_samp ) then
           do i = 1, ngrdcol
-            call stat_begin_update( gr(i), ium_ndg, um(i,:) / dt, & ! intent(in)
+            call stat_begin_update( nz, ium_ndg, um(i,:) / dt, & ! intent(in)
                                     stats_zt(i) )          ! intent(inout)
-            call stat_begin_update( gr(i), ivm_ndg, vm(i,:) / dt, & ! intent(in)
+            call stat_begin_update( nz, ivm_ndg, vm(i,:) / dt, & ! intent(in)
                                     stats_zt(i) )          ! intent(inout)
           end do
         end if
@@ -569,9 +566,9 @@ module advance_windm_edsclrm_module
 
         if ( l_stats_samp ) then
           do i = 1, ngrdcol
-            call stat_end_update( gr(i), ium_ndg, um(i,:) / dt, & ! intent(in)
+            call stat_end_update( nz, ium_ndg, um(i,:) / dt, & ! intent(in)
                                   stats_zt(i) )          ! intent(inout)
-            call stat_end_update( gr(i), ivm_ndg, vm(i,:) / dt, & ! intent(in)
+            call stat_end_update( nz, ivm_ndg, vm(i,:) / dt, & ! intent(in)
                                   stats_zt(i) )          ! intent(inout)
           end do
         end if
@@ -616,13 +613,11 @@ module advance_windm_edsclrm_module
         ! This is the third instance of u'w' clipping.
         !l_first_clip_ts = .false.
         !l_last_clip_ts = .true.
-        do i = 1, ngrdcol
-          call clip_covar( gr(i), clip_upwp, l_first_clip_ts,       & ! intent(in)
-                           l_last_clip_ts, dt, wp2(i,:), up2(i,:),  & ! intent(in)
-                           l_predict_upwp_vpwp,                     & ! intent(in)
-                           stats_zm(i),                             & ! intent(inout)
-                           upwp(i,:), upwp_chnge(i,:) )               ! intent(inout)
-        end do
+        call clip_covar( nz, ngrdcol, gr, clip_upwp, l_first_clip_ts, & ! intent(in)
+                         l_last_clip_ts, dt, wp2, up2,                & ! intent(in)
+                         l_predict_upwp_vpwp,                         & ! intent(in)
+                         stats_zm,                                    & ! intent(inout)
+                         upwp, upwp_chnge )                             ! intent(inout)
 
         ! Clipping for v'w'
         !
@@ -638,13 +633,11 @@ module advance_windm_edsclrm_module
         ! This is the third instance of v'w' clipping.
         !l_first_clip_ts = .false.
         !l_last_clip_ts = .true.
-        do i = 1, ngrdcol
-          call clip_covar( gr(i), clip_vpwp, l_first_clip_ts,       & ! intent(in)
-                           l_last_clip_ts, dt, wp2(i,:), vp2(i,:),  & ! intent(in)
-                           l_predict_upwp_vpwp,                     & ! intent(in)
-                           stats_zm(i),                             & ! intent(inout)
-                           vpwp(i,:), vpwp_chnge(i,:) )               ! intent(inout)
-        end do
+        call clip_covar( nz, ngrdcol, gr, clip_vpwp, l_first_clip_ts, & ! intent(in)
+                         l_last_clip_ts, dt, wp2, vp2,                & ! intent(in)
+                         l_predict_upwp_vpwp,                         & ! intent(in)
+                         stats_zm,                                    & ! intent(inout)
+                         vpwp, vpwp_chnge )                             ! intent(inout)
       else
 
         ! intent(in) this case, it is assumed that
@@ -652,21 +645,17 @@ module advance_windm_edsclrm_module
         ! interact with any other variables.
         !l_first_clip_ts = .false.
         !l_last_clip_ts = .true.
-        do i = 1, ngrdcol
-          call clip_covar( gr(i), clip_upwp, l_first_clip_ts,       & ! intent(in)
-                           l_last_clip_ts, dt, wp2(i,:), wp2(i,:),  & ! intent(in)
-                           l_predict_upwp_vpwp,                     & ! intent(in)
-                           stats_zm(i),                             & ! intent(inout)
-                           upwp(i,:), upwp_chnge(i,:) )               ! intent(inout)
-        end do
+        call clip_covar( nz, ngrdcol, gr, clip_upwp, l_first_clip_ts, & ! intent(in)
+                         l_last_clip_ts, dt, wp2, wp2,                & ! intent(in)
+                         l_predict_upwp_vpwp,                         & ! intent(in)
+                         stats_zm,                                    & ! intent(inout)
+                         upwp, upwp_chnge )                             ! intent(inout)
 
-        do i = 1, ngrdcol
-          call clip_covar( gr(i), clip_vpwp, l_first_clip_ts,       & ! intent(in)
-                           l_last_clip_ts, dt, wp2(i,:), wp2(i,:),  & ! intent(in)
-                           l_predict_upwp_vpwp,                     & ! intent(in)
-                           stats_zm(i),                             & ! intent(inout)
-                           vpwp(i,:), vpwp_chnge(i,:) )               ! intent(inout)
-        end do
+        call clip_covar( nz, ngrdcol, gr, clip_vpwp, l_first_clip_ts, & ! intent(in)
+                         l_last_clip_ts, dt, wp2, wp2,                & ! intent(in)
+                         l_predict_upwp_vpwp,                         & ! intent(in)
+                         stats_zm,                                    & ! intent(inout)
+                         vpwp, vpwp_chnge )                             ! intent(inout)
       endif ! l_tke_aniso
 
     endif ! .not. l_predict_upwp_vpwp
@@ -807,13 +796,11 @@ module advance_windm_edsclrm_module
         ! This is the third instance of u'w' clipping.
         l_first_clip_ts = .false.
         l_last_clip_ts = .true.
-        do i = 1, ngrdcol
-          call clip_covar( gr(i), clip_upwp, l_first_clip_ts,       & ! intent(in)
-                           l_last_clip_ts, dt, wp2(i,:), up2(i,:),  & ! intent(in)
-                           l_predict_upwp_vpwp,                     & ! intent(in)
-                           stats_zm(i),                             & ! intent(inout)
-                           upwp_pert(i,:), upwp_chnge(i,:) )          ! intent(inout)
-        end do
+        call clip_covar( nz, ngrdcol, gr, clip_upwp, l_first_clip_ts, & ! intent(in)
+                         l_last_clip_ts, dt, wp2, up2,                & ! intent(in)
+                         l_predict_upwp_vpwp,                         & ! intent(in)
+                         stats_zm,                                    & ! intent(inout)
+                         upwp_pert, upwp_chnge )                        ! intent(inout)
         
         ! Clipping for v'w'
         !
@@ -829,13 +816,11 @@ module advance_windm_edsclrm_module
         ! This is the third instance of v'w' clipping.
         l_first_clip_ts = .false.
         l_last_clip_ts = .true.
-        do i = 1, ngrdcol
-          call clip_covar( gr(i), clip_vpwp, l_first_clip_ts,       & ! intent(in)
-                           l_last_clip_ts, dt, wp2(i,:), vp2(i,:),  & ! intent(in)
-                           l_predict_upwp_vpwp,                     & ! intent(in)
-                           stats_zm(i),                             & ! intent(inout)
-                           vpwp_pert(i,:), vpwp_chnge(i,:) )          ! intent(inout)
-        end do
+        call clip_covar( nz, ngrdcol, gr, clip_vpwp, l_first_clip_ts, & ! intent(in)
+                         l_last_clip_ts, dt, wp2, vp2,                & ! intent(in)
+                         l_predict_upwp_vpwp,                         & ! intent(in)
+                         stats_zm,                                    & ! intent(inout)
+                         vpwp_pert, vpwp_chnge )                        ! intent(inout)
       else
 
         ! intent(in) this case, it is assumed that
@@ -843,21 +828,17 @@ module advance_windm_edsclrm_module
         ! interact with any other variables.
         l_first_clip_ts = .false.
         l_last_clip_ts = .true.
-        do i = 1, ngrdcol
-          call clip_covar( gr(i), clip_upwp, l_first_clip_ts,         & ! intent(in)
-                           l_last_clip_ts, dt, wp2(i,:), wp2(i,:),    & ! intent(in)
-                           l_predict_upwp_vpwp,                       & ! intent(in)
-                           stats_zm(i),                               & ! intent(inout)
-                           upwp_pert(i,:), upwp_chnge(i,:) )            ! intent(inout)
-        end do
-        
-        do i = 1, ngrdcol
-          call clip_covar( gr(i), clip_vpwp, l_first_clip_ts,       & ! intent(in)
-                           l_last_clip_ts, dt, wp2(i,:), wp2(i,:),  & ! intent(in)
-                           l_predict_upwp_vpwp,                     & ! intent(in)
-                           stats_zm(i),                             & ! intent(inout)
-                           vpwp_pert(i,:), vpwp_chnge(i,:) )          ! intent(inout)
-        end do
+        call clip_covar( nz, ngrdcol, gr, clip_upwp, l_first_clip_ts, & ! intent(in)
+                         l_last_clip_ts, dt, wp2, wp2,                & ! intent(in)
+                         l_predict_upwp_vpwp,                         & ! intent(in)
+                         stats_zm,                                    & ! intent(inout)
+                         upwp_pert, upwp_chnge )                        ! intent(inout)
+
+        call clip_covar( nz, ngrdcol, gr, clip_vpwp, l_first_clip_ts, & ! intent(in)
+                         l_last_clip_ts, dt, wp2, wp2,              & ! intent(in)
+                         l_predict_upwp_vpwp,                       & ! intent(in)
+                         stats_zm,                                  & ! intent(inout)
+                         vpwp_pert, vpwp_chnge )                      ! intent(inout)
         
       end if ! l_tke_aniso
     end if ! .not. l_predict_upwp_vpwp
@@ -871,26 +852,23 @@ module advance_windm_edsclrm_module
       Kmh_zt(:,:) = max( zm2zt( nz, ngrdcol, gr, Kmh_zm(:,:) ), zero )
 
       ! Calculate diffusion terms
-      do i = 1, ngrdcol
-        call diffusion_zt_lhs( gr(i), Kmh_zm(i,:), Kmh_zt(i,:), nu_zero(i), & ! intent(in)
-                               gr(i)%invrs_dzm(:), gr(i)%invrs_dzt(:),      & ! intent(in)
-                               invrs_rho_ds_zt(i,:), rho_ds_zm(i,:),        & ! intent(in)
-                               lhs_diff(:,i,:) )                              ! intent(out)
-      end do
+      call diffusion_zt_lhs( nz, ngrdcol, gr, Kmh_zm, Kmh_zt, nu_zero,  & ! intent(in)
+                             invrs_rho_ds_zt, rho_ds_zm,                & ! intent(in)
+                             lhs_diff )                                   ! intent(out)
       
       ! The lower boundary condition needs to be applied here at level 2.
       if ( .not. l_upwind_Kh_dp_term ) then 
         
         do i = 1, ngrdcol
           ! Thermodynamic superdiagonal: [ x xm(k+1,<t+1>) ]
-          lhs_diff(kp1_tdiag,i,2) = - gr(i)%invrs_dzt(2) * invrs_rho_ds_zt(i,2) &
+          lhs_diff(kp1_tdiag,i,2) = - gr%invrs_dzt(i,2) * invrs_rho_ds_zt(i,2) &
                                     * ( Kmh_zm(i,2) + nu_zero(i) ) &
-                                    * rho_ds_zm(i,2) * gr(i)%invrs_dzm(2)
+                                    * rho_ds_zm(i,2) * gr%invrs_dzm(i,2)
 
           ! Thermodynamic main diagonal: [ x xm(k,<t+1>) ]
-          lhs_diff(k_tdiag,i,2) = + gr(i)%invrs_dzt(2) * invrs_rho_ds_zt(i,2) &
+          lhs_diff(k_tdiag,i,2) = + gr%invrs_dzt(i,2) * invrs_rho_ds_zt(i,2) &
                                   * ( Kmh_zm(i,2) + nu_zero(i) ) &
-                                  * rho_ds_zm(i,2) * gr(i)%invrs_dzm(2)
+                                  * rho_ds_zm(i,2) * gr%invrs_dzm(i,2)
 
           ! Thermodynamic subdiagonal: [ x xm(k-1,<t+1>) ]
           lhs_diff(km1_tdiag,i,2) = zero
@@ -899,12 +877,12 @@ module advance_windm_edsclrm_module
       else
         do i = 1, ngrdcol
           ! Thermodynamic superdiagonal: [ x xm(k+1,<t+1>) ]
-          lhs_diff(kp1_tdiag,i,2) = - gr(i)%invrs_dzt(2) &
-                                      * ( Kmh_zt(i,2) + nu_zero(i) ) * gr(i)%invrs_dzm(2)
+          lhs_diff(kp1_tdiag,i,2) = - gr%invrs_dzt(i,2) &
+                                      * ( Kmh_zt(i,2) + nu_zero(i) ) * gr%invrs_dzm(i,2)
 
           ! Thermodynamic main diagonal: [ x xm(k,<t+1>) ]
-          lhs_diff(k_tdiag,i,2) = + gr(i)%invrs_dzt(2) &
-                                    * ( Kmh_zt(i,2) + nu_zero(i) ) * gr(i)%invrs_dzm(2)
+          lhs_diff(k_tdiag,i,2) = + gr%invrs_dzt(i,2) &
+                                    * ( Kmh_zt(i,2) + nu_zero(i) ) * gr%invrs_dzm(i,2)
 
           ! Thermodynamic subdiagonal: [ x xm(k-1,<t+1>) ]
           lhs_diff(km1_tdiag,i,2) = zero
@@ -1409,7 +1387,7 @@ module advance_windm_edsclrm_module
     ! condition needs to be applied.  Thus, an adjuster will have to be used at
     ! level 2 to call diffusion_zt_lhs with level 1 as the input level (the last
     ! variable being passed in during the function call).  However, the other
-    ! variables passed in (rho_ds_zm*K_zm, gr%dzt, and gr%dzm variables) will
+    ! variables passed in (rho_ds_zm*K_zm, gr%dzt(1,:), and gr%dzm(1,:) variables) will
     ! have to be passed in as solving for level 2.
     !
     ! The value of xm(1) is located below the model surface and does not effect
@@ -1595,7 +1573,7 @@ module advance_windm_edsclrm_module
       nz, &
       ngrdcol
     
-    type (grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
 
     integer, intent(in) :: &
       nrhs ! Number of right-hand side (explicit) vectors & Number of solution vectors.
@@ -1653,7 +1631,8 @@ module advance_windm_edsclrm_module
   end subroutine windm_edsclrm_solve
 
   !=============================================================================
-  subroutine windm_edsclrm_implicit_stats( gr, solve_type, xm, & !intent(in)
+  subroutine windm_edsclrm_implicit_stats( nz, solve_type, xm, & !intent(in)
+                                           invrs_dzt, & 
                                            lhs_diff, lhs_ma_zt, & 
                                            invrs_rho_ds_zt, u_star_sqd,&
                                            rho_ds_zm, wind_speed, &
@@ -1683,9 +1662,6 @@ module advance_windm_edsclrm_module
     use clubb_precision, only:  & 
         core_rknd
 
-    use grid_class, only: &
-        grid ! Type
-
     use stats_type, only: stats ! Type
 
     implicit none
@@ -1693,20 +1669,23 @@ module advance_windm_edsclrm_module
     type (stats), target, intent(inout) :: &
       stats_zt
 
-    type (grid), target, intent(in) :: gr
-
     ! Input variables
+    integer, intent(in) :: &
+      nz
+    
     integer, intent(in) :: & 
       solve_type     ! Desc. of what is being solved for
 
-    real( kind = core_rknd ), dimension(gr%nz), intent(in) :: &
-      xm !  Computed value um or vm at <t+1>    [m/s]
+    real( kind = core_rknd ), dimension(nz), intent(in) :: &
+      xm,         & !  Computed value um or vm at <t+1>    [m/s]
+      invrs_dzt     ! The inverse spacing between momentum grid levels;
+                    ! centered over thermodynamic grid levels.
       
-    real( kind = core_rknd ), dimension(3,gr%nz), intent(in) :: &
+    real( kind = core_rknd ), dimension(3,nz), intent(in) :: &
       lhs_diff, & ! LHS diffustion terms
       lhs_ma_zt   ! LHS mean advection terms
       
-    real( kind = core_rknd ), dimension(gr%nz), intent(in) ::  &
+    real( kind = core_rknd ), dimension(nz), intent(in) ::  &
       wind_speed,      & ! wind speed; sqrt(u^2 + v^2)              [m/s]
       rho_ds_zm,       & ! Dry, static density on momentum levels      [kg/m^3]
       invrs_rho_ds_zt    ! Inv. dry, static density at thermo. levels  [m^3/kg]
@@ -1720,7 +1699,7 @@ module advance_windm_edsclrm_module
     ! Local variables
     integer :: k, kp1, km1 ! Array indices
     
-    real( kind = core_rknd ), dimension(gr%nz) :: &
+    real( kind = core_rknd ), dimension(nz) :: &
       imp_sfc_flux
 
     ! Budget indices
@@ -1751,7 +1730,7 @@ module advance_windm_edsclrm_module
       ! surface flux.  In this case, this effects the implicit portion of
       ! the term, which handles the main diagonal for the turbulent advection term 
       if ( ium_ta + ivm_ta > 0 ) then
-        imp_sfc_flux(2) =  - invrs_rho_ds_zt(2) * gr%invrs_dzt(2) &
+        imp_sfc_flux(2) =  - invrs_rho_ds_zt(2) * invrs_dzt(2) &
                              * rho_ds_zm(1) * ( u_star_sqd / wind_speed(2) )
       endif
 
@@ -1759,10 +1738,10 @@ module advance_windm_edsclrm_module
 
     ! Finalize implicit contributions for xm
 
-    do k = 2, gr%nz-1, 1
+    do k = 2, nz-1, 1
 
       km1 = max( k-1, 1 )
-      kp1 = min( k+1, gr%nz )
+      kp1 = min( k+1, nz )
 
       ! xm mean advection
       ! xm term ma is completely implicit; call stat_update_var_pt.
@@ -1786,7 +1765,7 @@ module advance_windm_edsclrm_module
 
 
     ! Upper boundary conditions
-    k   = gr%nz
+    k   = nz
     km1 = max( k-1, 1 )
 
     ! xm mean advection
@@ -1870,7 +1849,7 @@ module advance_windm_edsclrm_module
       nz, &
       ngrdcol
 
-    type (grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
     
     integer, intent(in) ::  &
       solve_type      ! Description of what is being solved for
@@ -2031,7 +2010,7 @@ module advance_windm_edsclrm_module
       nz, &
       ngrdcol
 
-    type (grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
     
     real( kind = core_rknd ), intent(in) :: & 
       dt                 ! Model timestep                             [s]
@@ -2103,7 +2082,7 @@ module advance_windm_edsclrm_module
 
       ! LHS momentum surface flux.
       do i = 1, ngrdcol
-        lhs(2,i,2) = lhs(2,i,2) + invrs_rho_ds_zt(i,2) * gr(i)%invrs_dzt(2) &
+        lhs(2,i,2) = lhs(2,i,2) + invrs_rho_ds_zt(i,2) * gr%invrs_dzt(i,2) &
                                   * rho_ds_zm(i,1) * ( u_star_sqd(i) / wind_speed(i,2) )
       end do
       
@@ -2170,7 +2149,7 @@ module advance_windm_edsclrm_module
       nz, &
       ngrdcol
     
-    type (grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
     
     integer, intent(in) :: &
       solve_type ! Description of what is being solved for
@@ -2279,7 +2258,7 @@ module advance_windm_edsclrm_module
       ! RHS generalized surface flux.
       do i = 1, ngrdcol
         rhs(i,2) = rhs(i,2) + invrs_rho_ds_zt(i,2)  &
-                              * gr(i)%invrs_dzt(2)  &
+                              * gr%invrs_dzt(i,2)  &
                               * rho_ds_zm(i,1) * xpwp_sfc(i)
       end do
 
@@ -2287,7 +2266,7 @@ module advance_windm_edsclrm_module
         do i = 1, ngrdcol
           call stat_modify_pt( ixm_ta, 2,  &                    ! intent(in)  
                              + invrs_rho_ds_zt(i,2)  &  
-                             * gr(i)%invrs_dzt(2)  &
+                             * gr%invrs_dzt(i,2)  &
                              * rho_ds_zm(i,1) * xpwp_sfc(i),  & ! intent(in)
                                stats_zt(i) )                    ! intent(inout)
         end do

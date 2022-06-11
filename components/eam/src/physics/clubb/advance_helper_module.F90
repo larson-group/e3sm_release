@@ -30,34 +30,42 @@ module advance_helper_module
 !===============================================================================
   interface smooth_min
 
-    ! These functions wrap the intrinsic Fortran 'min' function in 
-    ! zt2zm(zm2zt()), thus smoothing the result for a variable defined on the
-    ! momentum grid ("zm").  These functions can accept two 1d arrays,
-    ! or a scalar and a 1d array in either order. In the case of an 
-    ! array being compared with a scalar (eg zero), an additional
-    ! 'min' is applied to guarantee that the smoothing did not violate
-    ! the original min requirement.
+    ! These functions smooth the output of the min function 
+    ! by introducing a varyingly steep path between the two input variables.
+    ! The degree to which smoothing is applied depends on the value of 'smth_coef'.
+    ! If 'smth_coef' goes toward 0, the output of the min function will be 
+    !        0.5 * ((a+b) - abs(a-b))
+    ! If a > b, then this comes out to be b. Likewise, if a < b, abs(a-b)=b-a so we get a.
+    ! Increasing the smoothing coefficient will lead to a greater degree of smoothing
+    ! in the smooth min and max functions. Generally, the coefficient should roughly scale
+    ! with the magnitude of data in the data structure that is to be smoothed, in order to
+    ! obtain a sensible degree of smoothing (not too much, not too little).
 
     module procedure smooth_min_scalar_array
     module procedure smooth_min_array_scalar
     module procedure smooth_min_arrays
+    module procedure smooth_min_scalars
 
   end interface
 
 !===============================================================================
   interface smooth_max
 
-    ! These functions wrap the intrinsic Fortran 'max' function in 
-    ! zt2zm(zm2zt()), thus smoothing the result for a variable defined on the
-    ! momentum grid ("zm").  These functions can accept two 1d arrays,
-    ! or a scalar and a 1d array in either order. In the case of an  
-    ! array being compared with a scalar (eg zero), an additional
-    ! 'max' is applied to guarantee that the smoothing did not violate
-    ! the original max requirement.
+    ! These functions smooth the output of the max functions 
+    ! by introducing a varyingly steep path between the two input variables.
+    ! The degree to which smoothing is applied depends on the value of 'smth_coef'.
+    ! If 'smth_coef' goes toward 0, the output of the max function will be 
+    !        0.5 * ((a+b) + abs(a-b))
+    ! If a > b, then this comes out to be a. Likewise, if a < b, abs(a-b)=b-a so we get b.
+    ! Increasing the smoothing coefficient will lead to a greater degree of smoothing
+    ! in the smooth min and max functions. Generally, the coefficient should roughly scale
+    ! with the magnitude of data in the data structure that is to be smoothed, in order to
+    ! obtain a sensible degree of smoothing (not too much, not too little).
 
     module procedure smooth_max_scalar_array
     module procedure smooth_max_array_scalar
     module procedure smooth_max_arrays
+    module procedure smooth_max_scalars
 
   end interface
 
@@ -239,7 +247,7 @@ module advance_helper_module
       nz, &
       ngrdcol
 
-    type (grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
     
     real( kind = core_rknd ), intent(in), dimension(ngrdcol,nz) :: &
       Lscale,          & ! Turbulent mixing length                   [m]
@@ -290,7 +298,7 @@ module advance_helper_module
 
     stability_correction = one &
         + min( lambda0_stability * brunt_vaisala_freq_sqd &
-                * zt2zm(nz, ngrdcol, gr(:), Lscale(:,:))**2 / em, three )
+                * zt2zm(nz, ngrdcol, gr, Lscale(:,:))**2 / em, three )
 
     return
   end subroutine calc_stability_correction
@@ -342,7 +350,7 @@ module advance_helper_module
       nz, &
       ngrdcol
 
-    type (grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
 
     ! Input Variables
     real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
@@ -410,7 +418,7 @@ module advance_helper_module
 
         do k = 1, nz
           do i = 1, ngrdcol
-            stat_dry(i,k)  =  Cp * T_in_K(i,k) + grav * gr(i)%zt(k)
+            stat_dry(i,k)  =  Cp * T_in_K(i,k) + grav * gr%zt(i,k)
           end do
         end do
         
@@ -541,7 +549,7 @@ module advance_helper_module
     type (stats), target, dimension(ngrdcol), intent(inout) :: &
       stats_zm
 
-    type (grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
 
     ! Constant Parameters
     real( kind = core_rknd ), parameter :: &
@@ -665,11 +673,9 @@ module advance_helper_module
     if ( l_Richardson_vert_avg ) then
       ! Clip below-min values of Richardson_num
       Richardson_num = max( Richardson_num, Richardson_num_min )
-
-      do i = 1, ngrdcol
-        Richardson_num(i,:) = Lscale_width_vert_avg( gr(i), Richardson_num(i,:), Lscale_zm(i,:), rho_ds_zm(i,:), &
-                                                Richardson_num_max )
-      end do
+      Richardson_num = Lscale_width_vert_avg( nz, ngrdcol, gr, &
+                                              Richardson_num, Lscale_zm, rho_ds_zm, &
+                                              Richardson_num_max )
     end if
 
     ! Cx_fnc_Richardson is interpolated based on the value of Richardson_num
@@ -681,10 +687,9 @@ module advance_helper_module
                                               clubb_params(iCx_max), clubb_params(iCx_min) )
 
     if ( l_Cx_fnc_Richardson_vert_avg ) then
-      do i = 1, ngrdcol
-        Cx_fnc_Richardson(i,:) = Lscale_width_vert_avg( gr(i), Cx_fnc_Richardson(i,:), Lscale_zm(i,:), rho_ds_zm(i,:), &
-                                                   Cx_fnc_Richardson_below_ground_value )
-      end do
+      Cx_fnc_Richardson = Lscale_width_vert_avg( nz, ngrdcol, gr, &
+                                                 Cx_fnc_Richardson, Lscale_zm, rho_ds_zm, &
+                                                 Cx_fnc_Richardson_below_ground_value )
     end if
 
     ! On some compilers, roundoff error can result in Cx_fnc_Richardson being
@@ -703,7 +708,9 @@ module advance_helper_module
   !----------------------------------------------------------------------
 
   !----------------------------------------------------------------------
-  function Lscale_width_vert_avg( gr, var_profile, Lscale_zm, rho_ds_zm, var_below_ground_value )&
+  function Lscale_width_vert_avg( nz, ngrdcol, gr, &
+                                  var_profile, Lscale_zm, rho_ds_zm, &
+                                  var_below_ground_value )&
   result (Lscale_width_vert_avg_output)
 
   ! Description:
@@ -723,10 +730,14 @@ module advance_helper_module
 
     implicit none
 
-    type (grid), target, intent(in) :: gr
-
     ! Input Variables
-    real( kind = core_rknd ), dimension(gr%nz), intent(in) :: &
+    integer, intent(in) :: &
+      nz, &
+      ngrdcol
+      
+    type (grid), target, intent(in) :: gr
+    
+    real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
       var_profile, &      ! Profile on momentum levels
       Lscale_zm, &        ! Lscale on momentum levels
       rho_ds_zm           ! Dry static energy on momentum levels!
@@ -735,16 +746,17 @@ module advance_helper_module
       var_below_ground_value ! Value to use below ground
 
     ! Result Variable
-    real( kind = core_rknd ), dimension(gr%nz) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,nz) :: &
       Lscale_width_vert_avg_output ! Vertically averaged profile (on momentum levels)
 
     ! Local Variables
     integer :: &
         k, i,        & ! Loop variable
         k_avg_lower, &
-        k_avg_upper
+        k_avg_upper, &
+        k_avg
 
-    real( kind = core_rknd ), dimension(gr%nz) :: &
+    real( kind = core_rknd ), dimension(ngrdcol,nz) :: &
       one_half_avg_width, &
       numer_terms, &
       denom_terms
@@ -762,19 +774,22 @@ module advance_helper_module
     one_half_avg_width = max( Lscale_zm, 500.0_core_rknd )
 
     ! Pre calculate numerator and denominator terms
-    do k=1, gr%nz
-        numer_terms(k) = rho_ds_zm(k) * gr%dzm(k) * var_profile(k)
-        denom_terms(k) = rho_ds_zm(k) * gr%dzm(k)
+    do k=1, nz
+      do i = 1, ngrdcol
+        numer_terms(i,k) = rho_ds_zm(i,k) * gr%dzm(i,k) * var_profile(i,k)
+        denom_terms(i,k) = rho_ds_zm(i,k) * gr%dzm(i,k)
+      end do
     end do
 
     k_avg_upper = 2
     k_avg_lower = 1
 
     ! For every grid level
-    do k=1, gr%nz
+    do k=1, nz
+      do i = 1, ngrdcol
 
         !-----------------------------------------------------------------------
-        ! Hunt down all vertical levels with one_half_avg_width(k) of gr%zm(k).
+        ! Hunt down all vertical levels with one_half_avg_width(k) of gr%zm(1,k).
         ! 
         !     k_avg_upper and k_avg_lower are saved each loop iteration, this 
         !     improves computational efficiency since their values are likely
@@ -788,21 +803,21 @@ module advance_helper_module
 
 
         ! Determine if k_avg_upper needs to increment or decrement
-        if ( gr%zm(k_avg_upper) - gr%zm(k) > one_half_avg_width(k) ) then
+        if ( gr%zm(i,k_avg_upper) - gr%zm(i,k) > one_half_avg_width(i,k) ) then
 
             ! k_avg_upper is too large, decrement it
-            do while ( gr%zm(k_avg_upper) - gr%zm(k) > one_half_avg_width(k) )
+            do while ( gr%zm(i,k_avg_upper) - gr%zm(i,k) > one_half_avg_width(i,k) )
                 k_avg_upper = k_avg_upper - 1
             end do
 
-        elseif ( k_avg_upper < gr%nz ) then
+        elseif ( k_avg_upper < nz ) then
 
             ! k_avg_upper is too small, increment it
-            do while ( gr%zm(k_avg_upper+1) - gr%zm(k) <= one_half_avg_width(k) )
+            do while ( gr%zm(i,k_avg_upper+1) - gr%zm(i,k) <= one_half_avg_width(i,k) )
 
                 k_avg_upper = k_avg_upper + 1
 
-                if ( k_avg_upper == gr%nz ) exit
+                if ( k_avg_upper == nz ) exit
 
             end do
 
@@ -810,10 +825,10 @@ module advance_helper_module
 
 
         ! Determine if k_avg_lower needs to increment or decrement
-        if ( gr%zm(k) - gr%zm(k_avg_lower) > one_half_avg_width(k) ) then
+        if ( gr%zm(i,k) - gr%zm(i,k_avg_lower) > one_half_avg_width(i,k) ) then
 
             ! k_avg_lower is too small, increment it
-            do while ( gr%zm(k) - gr%zm(k_avg_lower) > one_half_avg_width(k) )
+            do while ( gr%zm(i,k) - gr%zm(i,k_avg_lower) > one_half_avg_width(i,k) )
 
                 k_avg_lower = k_avg_lower + 1
 
@@ -822,7 +837,7 @@ module advance_helper_module
         elseif ( k_avg_lower > 1 ) then
 
             ! k_avg_lower is too large, decrement it
-            do while ( gr%zm(k) - gr%zm(k_avg_lower-1) <= one_half_avg_width(k) )
+            do while ( gr%zm(i,k) - gr%zm(i,k_avg_lower-1) <= one_half_avg_width(i,k) )
 
                 k_avg_lower = k_avg_lower - 1
 
@@ -850,25 +865,25 @@ module advance_helper_module
             ! divided by the distance between vertical levels below ground; the
             ! latter is assumed to be the same as the distance between the first and
             ! second vertical levels.
-            n_below_ground_levels = int( ( one_half_avg_width(k)-(gr%zm(k)-gr%zm(1)) ) / &
-                                        ( gr%zm(2)-gr%zm(1) ) )
+            n_below_ground_levels = int( ( one_half_avg_width(i,k)-(gr%zm(i,k)-gr%zm(i,1)) ) / &
+                                        ( gr%zm(i,2)-gr%zm(i,1) ) )
 
-            numer_integral = n_below_ground_levels * denom_terms(1) * var_below_ground_value
-            denom_integral = n_below_ground_levels * denom_terms(1)
+            numer_integral = n_below_ground_levels * denom_terms(i,1) * var_below_ground_value
+            denom_integral = n_below_ground_levels * denom_terms(i,1)
 
         end if
 
             
         ! Add numerator and denominator terms for all above-ground levels
-        do i = k_avg_lower, k_avg_upper
+        do k_avg = k_avg_lower, k_avg_upper
 
-            numer_integral = numer_integral + numer_terms(i)
-            denom_integral = denom_integral + denom_terms(i)
+            numer_integral = numer_integral + numer_terms(i,k_avg)
+            denom_integral = denom_integral + denom_terms(i,k_avg)
 
         end do
 
-        Lscale_width_vert_avg_output(k) = numer_integral / denom_integral
-
+        Lscale_width_vert_avg_output(i,k) = numer_integral / denom_integral
+      end do
     end do
 
     return
@@ -908,7 +923,7 @@ module advance_helper_module
       nz, &
       ngrdcol
       
-    type(grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
 
     real( kind = core_rknd ), intent(in) :: & 
       C_wp2_splat, &          ! Tuning parameter                    [-]
@@ -982,7 +997,7 @@ module advance_helper_module
       nz, &
       ngrdcol
       
-    type(grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
 
     real( kind = core_rknd ), intent(in) :: & 
       C_wp2_splat, &          ! Tuning parameter                    [-]
@@ -1025,8 +1040,8 @@ module advance_helper_module
   result( output_var )
 
   ! Description:
-  !   Computes a smoothed version of the min function using zt2zm/zm2zt, using
-  !   one scalar and one 1d array as inputs.
+  !   Computes a smoothed version of the min function, using one scalar and
+  !   one 1d array as inputs. For more details, see the interface in this file.
 
   ! References:
   !   See clubb:ticket:894, updated version: 965
@@ -1047,14 +1062,15 @@ module advance_helper_module
   ! Input Variables
     real ( kind = core_rknd ), intent(in) :: &
       input_var1, &       ! Units vary
-      smth_coef          
+      smth_coef           ! "intensity" of the smoothing. Should be of a similar magnitude to
+                          ! that of the data structures input_var1 and input_var2
 
     real ( kind = core_rknd ), dimension(ngrdcol, nz), intent(in) :: &
       input_var2          ! Units vary
 
   ! Output Variables
     real( kind = core_rknd ), dimension(ngrdcol, nz) :: &
-      output_var          ! Units vary
+      output_var          ! Same unit as input_var1 and input_var2
 
   !----------------------------------------------------------------------
 
@@ -1069,8 +1085,8 @@ module advance_helper_module
   result( output_var )
 
   ! Description:
-  !   Computes a smoothed version of the min function using zt2zm/zm2zt, using
-  !   one scalar and one 1d array as inputs.
+  !   Computes a smoothed version of the min function, using one scalar and 
+  !   one 1d array as inputs. For more details, see the interface in this file.
 
   ! References:
   !   See clubb:ticket:894, updated version: 965
@@ -1094,11 +1110,12 @@ module advance_helper_module
 
     real ( kind = core_rknd ), intent(in) :: &
       input_var2, &       ! Units vary
-      smth_coef          
+      smth_coef           ! "intensity" of the smoothing. Should be of a similar magnitude to
+                          ! that of the data structures input_var1 and input_var2
 
   ! Output Variables
     real( kind = core_rknd ), dimension(ngrdcol, nz) :: &
-      output_var          ! Units vary
+      output_var          ! Same unit as input_var1 and input_var2
 
   !----------------------------------------------------------------------
 
@@ -1113,8 +1130,8 @@ module advance_helper_module
   result( output_var )
 
   ! Description:
-  !   Computes a smoothed version of the min function using zt2zm/zm2zt, using
-  !   two 1d arrays as inputs.
+  !   Computes a smoothed version of the min function, using two 1d arrays as inputs.
+  !   For more details, see the interface in this file.
 
   ! References:
   !   See clubb:ticket:894, updated version: 965
@@ -1138,11 +1155,12 @@ module advance_helper_module
       input_var2          ! Units vary
       
     real ( kind = core_rknd ), intent(in) :: &
-      smth_coef          
+      smth_coef           ! "intensity" of the smoothing. Should be of a similar magnitude to
+                          ! that of the data structures input_var1 and input_var2
 
   ! Output Variables
     real( kind = core_rknd ), dimension(ngrdcol, nz) :: &
-      output_var          ! Units vary
+      output_var          ! Same unit as input_var1 and input_var2
 
   !----------------------------------------------------------------------
 
@@ -1151,14 +1169,53 @@ module advance_helper_module
 
     return
   end function smooth_min_arrays
+  
+!===============================================================================
+  function smooth_min_scalars( input_var1, input_var2, smth_coef ) &
+  result( output_var )
+
+  ! Description:
+  !   Computes a smoothed version of the min function, using two scalars as inputs.
+  !   For more details, see the interface in this file.
+
+  ! References:
+  !   See clubb:ticket: 965
+  !----------------------------------------------------------------------
+
+    use clubb_precision, only: &
+        core_rknd                     ! Constant(s)
+        
+    use constants_clubb, only: &
+        one_half
+
+    implicit none
+
+  ! Input Variables
+    real ( kind = core_rknd ), intent(in) :: &
+      input_var1, &       ! Units vary
+      input_var2, &       ! Units vary
+      smth_coef           ! "intensity" of the smoothing. Should be of a similar magnitude to
+                          ! that of the data structures input_var1 and input_var2
+
+  ! Output Variables
+    real( kind = core_rknd ) :: &
+      output_var          ! Same unit as input_var1 and input_var2
+
+  !----------------------------------------------------------------------
+
+    output_var = one_half * ( (input_var1+input_var2) - &
+                              sqrt((input_var1-input_var2)**2 + smth_coef**2) )
+
+    return
+  end function smooth_min_scalars
 
 !===============================================================================
   function smooth_max_scalar_array( nz, ngrdcol, input_var1, input_var2, smth_coef ) &
   result( output_var )
 
   ! Description:
-  !   Computes a smoothed version of the max function using zt2zm/zm2zt, 
-  !   using one scalar and one 1d array as inputs.
+  !   Computes a smoothed version of the max function, using one scalar and 
+  !   one 1d array as inputs. For more details, see the interface in this file.
 
   ! References:
   !   See clubb:ticket:894, updated version: 965
@@ -1179,14 +1236,15 @@ module advance_helper_module
   ! Input Variables
     real ( kind = core_rknd ), intent(in) :: &
       input_var1, &       ! Units vary
-      smth_coef
+      smth_coef           ! "intensity" of the smoothing. Should be of a similar magnitude to
+                          ! that of the data structures input_var1 and input_var2
 
     real ( kind = core_rknd ), dimension(ngrdcol, nz), intent(in) :: &
       input_var2          ! Units vary
 
   ! Output Variables
     real( kind = core_rknd ), dimension(ngrdcol, nz) :: &
-      output_var          ! Units vary
+      output_var          ! Same unit as input_var1 and input_var2
 
   !----------------------------------------------------------------------
   
@@ -1201,8 +1259,8 @@ module advance_helper_module
   result( output_var )
 
   ! Description:
-  !   Computes a smoothed version of the max function using zt2zm/zm2zt, 
-  !   using one scalar and one 1d array as inputs.
+  !   Computes a smoothed version of the max function, using one scalar and 
+  !   one 1d array as inputs. For more details, see the interface in this file.
 
   ! References:
   !   See clubb:ticket:894, updated version: 965
@@ -1226,11 +1284,12 @@ module advance_helper_module
 
     real ( kind = core_rknd ), intent(in) :: &
       input_var2, &       ! Units vary
-      smth_coef          
+      smth_coef           ! "intensity" of the smoothing. Should be of a similar magnitude to
+                          ! that of the data structures input_var1 and input_var2
 
   ! Output Variables
     real( kind = core_rknd ), dimension(ngrdcol, nz) :: &
-      output_var          ! Units vary
+      output_var          ! Same unit as input_var1 and input_var2
 
   !----------------------------------------------------------------------
 
@@ -1245,8 +1304,8 @@ module advance_helper_module
   result( output_var )
 
   ! Description:
-  !   Computes a smoothed version of the max function using zt2zm/zm2zt, using
-  !   two 1d arrays as inputs.
+  !   Computes a smoothed version of the max function, using two 1d arrays as inputs.
+  !   For more details, see the interface in this file.
 
   ! References:
   !   See clubb:ticket:894, updated version: 965
@@ -1270,11 +1329,12 @@ module advance_helper_module
       input_var2          ! Units vary
       
     real( kind = core_rknd ), intent(in) :: &
-      smth_coef          
+      smth_coef           ! "intensity" of the smoothing. Should be of a similar magnitude to
+                          ! that of the data structures input_var1 and input_var2
 
   ! Output Variables
     real( kind = core_rknd ), dimension(ngrdcol, nz) :: &
-      output_var          ! Units vary
+      output_var          ! Same unit as input_var1 and input_var2
 
   !----------------------------------------------------------------------
 
@@ -1284,13 +1344,52 @@ module advance_helper_module
     return
   end function smooth_max_arrays
   
+!===============================================================================
+  function smooth_max_scalars( input_var1, input_var2, smth_coef ) &
+  result( output_var )
+
+  ! Description:
+  !   Computes a smoothed version of the max function, using two scalars as inputs.
+  !   For more details, see the interface in this file.
+
+  ! References:
+  !   See clubb:ticket: 965
+  !----------------------------------------------------------------------
+
+    use clubb_precision, only: &
+        core_rknd                     ! Constant(s)
+        
+    use constants_clubb, only: &
+        one_half
+
+    implicit none
+
+  ! Input Variables
+    real ( kind = core_rknd ), intent(in) :: &
+      input_var1, &       ! Units vary
+      input_var2, &       ! Units vary
+      smth_coef           ! "intensity" of the smoothing. Should be of a similar magnitude to
+                          ! that of the data structures input_var1 and input_var2
+
+  ! Output Variables
+    real( kind = core_rknd ) :: &
+      output_var          ! Same unit as input_var1 and input_var2
+
+  !----------------------------------------------------------------------
+
+    output_var = one_half * ( (input_var1+input_var2) + &
+                              sqrt((input_var1-input_var2)**2 + smth_coef**2) )
+
+    return
+  end function smooth_max_scalars
+  
   elemental function smooth_heaviside_peskin( input, smth_range ) &
     result( smth_output )
     
   ! Description:
   !   Computes a smoothed heaviside function as in 
-  !   [Lin, Lee et al., 2005, A level set characteristic Galerkin finite element 
-  !   method for free surface flows], equation (2)
+  !       [Lin, Lee et al., 2005, A level set characteristic Galerkin 
+  !       finite element method for free surface flows], equation (2)
   
   ! References:
   !   See clubb:ticket:965
@@ -1315,7 +1414,7 @@ module advance_helper_module
 
     ! Output Variables
     real( kind = core_rknd ) :: &
-      smth_output    ! Units vary
+      smth_output    ! Same units as input
       
   !----------------------------------------------------------------------
     if (input < -smth_range ) then 
@@ -1370,7 +1469,7 @@ module advance_helper_module
 
     ! Solve for x'w' at all intermediate model levels.
     do k = 1, gr%nz-1
-      xpwp(k) = Km_zm(k) * gr%invrs_dzm(k) * ( xm(k+1) - xm(k) )
+      xpwp(k) = Km_zm(k) * gr%invrs_dzm(1,k) * ( xm(k+1) - xm(k) )
     end do
 
     return
@@ -1401,7 +1500,7 @@ module advance_helper_module
       nz, &
       ngrdcol
       
-    type (grid), target, dimension(ngrdcol), intent(in) :: gr
+    type (grid), target, intent(in) :: gr
       
     real( kind = core_rknd ), dimension(ngrdcol,nz), intent(in) :: &
       Km_zm,     & ! Eddy diff. (k momentum level)                 [m^2/s]
@@ -1418,7 +1517,7 @@ module advance_helper_module
     ! Solve for x'w' at all intermediate model levels.
     do k = 1, nz-1
       do i = 1, ngrdcol
-        xpwp(i,k) = Km_zm(i,k) * gr(i)%invrs_dzm(k) * ( xm(i,k+1) - xm(i,k) )
+        xpwp(i,k) = Km_zm(i,k) * gr%invrs_dzm(i,k) * ( xm(i,k+1) - xm(i,k) )
       end do
     end do
 

@@ -39,7 +39,7 @@ module parameters_tunable
             adj_low_res_nu, nu_vertical_res_dep
 
   type nu_vertical_res_dep
-    real( kind = core_rknd ) :: & 
+    real( kind = core_rknd ), allocatable, dimension(:) :: & 
       nu1,   & ! Background Coefficient of Eddy Diffusion: wp2      [m^2/s]
       nu2,   & ! Background Coefficient of Eddy Diffusion: xp2      [m^2/s]
       nu6,   & ! Background Coefficient of Eddy Diffusion: wpxp     [m^2/s]
@@ -116,106 +116,106 @@ module parameters_tunable
     init_value = -999._core_rknd ! Initial value for the parameters, used to detect missing values
 
 #ifdef E3SM
-!  public :: clubb_param_readnl
-!
-!  ! The parameters below have the same meaning as those without prefix 'clubb_'
-!  ! They can be specified via namelist to ease parameter tuning
-!  ! If adding more parameters for tuning via namelist, need to insert blocks
-!  ! accordingly in subroutines read_parameters and clubb_paramm_readnl
-!  ! (including updating list of nml variables)
-!  real( kind = core_rknd ) ::           &
-!    clubb_C1,                           &
-!    clubb_C1b,                          &
-!    clubb_C1c,                          &
-!    clubb_C2rt,                         &
-!    clubb_C2thl,                        &
-!    clubb_C2rtthl,                      &
-!    clubb_C4,                           &
-!    clubb_C_uu_shr,                     &
-!    clubb_C_uu_buoy,                    &
-!    clubb_C6rt,                         &
-!    clubb_C6rtb,                        &
-!    clubb_C6rtc,                        &
-!    clubb_C6thl,                        &
-!    clubb_C6thlb,                       &
-!    clubb_C6thlc,                       &
-!    clubb_C7,                           &
-!    clubb_C7b,                          &
-!    clubb_C8,                           &
-!    clubb_C8b,                          &
-!    clubb_C11,                          &
-!    clubb_C11b,                         &
-!    clubb_C11c,                         &
-!    clubb_C14,                          &
-!    clubb_C_wp2_pr_dfsn,                &
-!    clubb_C_wp3_pr_tp,                  &
-!    clubb_C_wp3_pr_turb,                &
-!    clubb_C_wp3_pr_dfsn,                &
-!    clubb_beta,                         &
-!    clubb_gamma_coef,                   &
-!    clubb_gamma_coefb,                  &
-!    clubb_gamma_coefc,                  &
-!    clubb_pdf_component_stdev_factor_w, &
-!    clubb_mu,                           &
-!    clubb_c_K1,                         &
-!    clubb_nu1,                          &
-!    clubb_c_K2,                         &
-!    clubb_nu2,                          &
-!    clubb_c_K8,                         &
-!    clubb_nu8,                          &
-!    clubb_c_K9,                         &
-!    clubb_nu9,                          &
-!    clubb_c_K10,                        &
-!    clubb_c_K10h,                       &
-!    clubb_c_K_hmb,                      &
-!    clubb_wpxp_L_thresh,                &
-!    clubb_lmin_coef,                    &
-!    clubb_mult_coef,                    &
-!    clubb_Skw_denom_coef,               &
-!    clubb_up2_sfc_coef,                 &
-!    clubb_Skw_max_mag,                  &
-!    clubb_C_invrs_tau_bkgnd,            &
-!    clubb_C_invrs_tau_sfc,              &
-!    clubb_C_invrs_tau_shear,            &
-!    clubb_C_invrs_tau_N2,               &
-!    clubb_C_invrs_tau_N2_wp2,           &
-!    clubb_C_invrs_tau_N2_xp2,           &
-!    clubb_C_invrs_tau_N2_wpxp,          &
-!    clubb_C_invrs_tau_N2_clear_wp3,     &
-!    clubb_C_invrs_tau_wpxp_Ri,          &
-!    clubb_C_invrs_tau_wpxp_N2_thresh,   &
-!    clubb_C_wp2_splat,                  &
-!    clubb_xp3_coef_base,                &
-!    clubb_xp3_coef_slope,               &
-!    clubb_altitude_threshold,           &
-!    clubb_rtp2_clip_coef,               &
-!    clubb_Cx_min,                       &
-!    clubb_Cx_max,                       &
-!    clubb_Richardson_num_min,           & 
-!    clubb_Richardson_num_max,           &
-!    clubb_a3_coef_min 
+  public :: clubb_param_readnl
+
+  ! The parameters below have the same meaning as those without prefix 'clubb_'
+  ! They can be specified via namelist to ease parameter tuning
+  ! If adding more parameters for tuning via namelist, need to insert blocks
+  ! accordingly in subroutines read_parameters and clubb_paramm_readnl
+  ! (including updating list of nml variables)
+  real( kind = core_rknd ) ::           &
+    clubb_C1,                           &
+    clubb_C1b,                          &
+    clubb_C1c,                          &
+    clubb_C2rt,                         &
+    clubb_C2thl,                        &
+    clubb_C2rtthl,                      &
+    clubb_C4,                           &
+    clubb_C_uu_shr,                     &
+    clubb_C_uu_buoy,                    &
+    clubb_C6rt,                         &
+    clubb_C6rtb,                        &
+    clubb_C6rtc,                        &
+    clubb_C6thl,                        &
+    clubb_C6thlb,                       &
+    clubb_C6thlc,                       &
+    clubb_C7,                           &
+    clubb_C7b,                          &
+    clubb_C8,                           &
+    clubb_C8b,                          &
+    clubb_C11,                          &
+    clubb_C11b,                         &
+    clubb_C11c,                         &
+    clubb_C14,                          &
+    clubb_C_wp2_pr_dfsn,                &
+    clubb_C_wp3_pr_tp,                  &
+    clubb_C_wp3_pr_turb,                &
+    clubb_C_wp3_pr_dfsn,                &
+    clubb_beta,                         &
+    clubb_gamma_coef,                   &
+    clubb_gamma_coefb,                  &
+    clubb_gamma_coefc,                  &
+    clubb_pdf_component_stdev_factor_w, &
+    clubb_mu,                           &
+    clubb_c_K1,                         &
+    clubb_nu1,                          &
+    clubb_c_K2,                         &
+    clubb_nu2,                          &
+    clubb_c_K8,                         &
+    clubb_nu8,                          &
+    clubb_c_K9,                         &
+    clubb_nu9,                          &
+    clubb_c_K10,                        &
+    clubb_c_K10h,                       &
+    clubb_c_K_hmb,                      &
+    clubb_wpxp_L_thresh,                &
+    clubb_lmin_coef,                    &
+    clubb_mult_coef,                    &
+    clubb_Skw_denom_coef,               &
+    clubb_up2_sfc_coef,                 &
+    clubb_Skw_max_mag,                  &
+    clubb_C_invrs_tau_bkgnd,            &
+    clubb_C_invrs_tau_sfc,              &
+    clubb_C_invrs_tau_shear,            &
+    clubb_C_invrs_tau_N2,               &
+    clubb_C_invrs_tau_N2_wp2,           &
+    clubb_C_invrs_tau_N2_xp2,           &
+    clubb_C_invrs_tau_N2_wpxp,          &
+    clubb_C_invrs_tau_N2_clear_wp3,     &
+    clubb_C_invrs_tau_wpxp_Ri,          &
+    clubb_C_invrs_tau_wpxp_N2_thresh,   &
+    clubb_C_wp2_splat,                  &
+    clubb_xp3_coef_base,                &
+    clubb_xp3_coef_slope,               &
+    clubb_altitude_threshold,           &
+    clubb_rtp2_clip_coef,               &
+    clubb_Cx_min,                       &
+    clubb_Cx_max,                       &
+    clubb_Richardson_num_min,           & 
+    clubb_Richardson_num_max,           &
+    clubb_a3_coef_min 
     
-!!$omp threadprivate(clubb_C1, clubb_C1b, clubb_C1c, &
-!!$omp   clubb_C2rt, clubb_C2thl, clubb_C2rtthl, clubb_C4, &
-!!$omp   clubb_C_uu_shr, clubb_C_uu_buoy, clubb_C6rt, clubb_C6rtb, clubb_C6rtc, &
-!!$omp   clubb_C6thl, clubb_C6thlb, clubb_C6thlc, &
-!!$omp   clubb_C7, clubb_C7b, clubb_C8, clubb_C8b, clubb_C11, clubb_C11b, &
-!!$omp   clubb_C11c, clubb_C14, clubb_C_wp2_pr_dfsn, & 
-!!$omp   clubb_C_wp3_pr_tp, clubb_C_wp3_pr_turb, clubb_C_wp3_pr_dfsn, &
-!!$omp   clubb_beta, clubb_gamma_coef, clubb_gamma_coefb, clubb_gamma_coefc, &
-!!$omp   clubb_pdf_component_stdev_factor_w, clubb_mu, clubb_c_K1, clubb_nu1, &
-!!$omp   clubb_c_K2, clubb_nu2, clubb_c_K8, clubb_nu8, clubb_c_K9, clubb_nu9, &
-!!$omp   clubb_c_K10, clubb_c_K10h, clubb_c_K_hmb, clubb_wpxp_L_thresh, &
-!!$omp   clubb_lmin_coef, clubb_mult_coef, clubb_Skw_denom_coef, &
-!!$omp   clubb_up2_sfc_coef, clubb_Skw_max_mag, clubb_C_invrs_tau_bkgnd, &
-!!$omp   clubb_C_invrs_tau_sfc, clubb_C_invrs_tau_shear, clubb_C_invrs_tau_N2, &
-!!$omp   clubb_C_invrs_tau_N2_wp2, clubb_C_invrs_tau_N2_xp2, &
-!!$omp   clubb_C_invrs_tau_N2_wpxp, clubb_C_invrs_tau_N2_clear_wp3, &
-!!$omp   clubb_C_invrs_tau_wpxp_Ri, clubb_C_invrs_tau_wpxp_N2_thresh, &
-!!$omp   clubb_C_wp2_splat, clubb_xp3_coef_base, clubb_xp3_coef_slope, &
-!!$omp   clubb_altitude_threshold, clubb_rtp2_clip_coef, clubb_Cx_min, &
-!!$omp   clubb_Cx_max, clubb_Richardson_num_min, clubb_Richardson_num_max, &
-!!$omp   clubb_a3_coef_min)
+!$omp threadprivate(clubb_C1, clubb_C1b, clubb_C1c, &
+!$omp   clubb_C2rt, clubb_C2thl, clubb_C2rtthl, clubb_C4, &
+!$omp   clubb_C_uu_shr, clubb_C_uu_buoy, clubb_C6rt, clubb_C6rtb, clubb_C6rtc, &
+!$omp   clubb_C6thl, clubb_C6thlb, clubb_C6thlc, &
+!$omp   clubb_C7, clubb_C7b, clubb_C8, clubb_C8b, clubb_C11, clubb_C11b, &
+!$omp   clubb_C11c, clubb_C14, clubb_C_wp2_pr_dfsn, & 
+!$omp   clubb_C_wp3_pr_tp, clubb_C_wp3_pr_turb, clubb_C_wp3_pr_dfsn, &
+!$omp   clubb_beta, clubb_gamma_coef, clubb_gamma_coefb, clubb_gamma_coefc, &
+!$omp   clubb_pdf_component_stdev_factor_w, clubb_mu, clubb_c_K1, clubb_nu1, &
+!$omp   clubb_c_K2, clubb_nu2, clubb_c_K8, clubb_nu8, clubb_c_K9, clubb_nu9, &
+!$omp   clubb_c_K10, clubb_c_K10h, clubb_c_K_hmb, clubb_wpxp_L_thresh, &
+!$omp   clubb_lmin_coef, clubb_mult_coef, clubb_Skw_denom_coef, &
+!$omp   clubb_up2_sfc_coef, clubb_Skw_max_mag, clubb_C_invrs_tau_bkgnd, &
+!$omp   clubb_C_invrs_tau_sfc, clubb_C_invrs_tau_shear, clubb_C_invrs_tau_N2, &
+!$omp   clubb_C_invrs_tau_N2_wp2, clubb_C_invrs_tau_N2_xp2, &
+!$omp   clubb_C_invrs_tau_N2_wpxp, clubb_C_invrs_tau_N2_clear_wp3, &
+!$omp   clubb_C_invrs_tau_wpxp_Ri, clubb_C_invrs_tau_wpxp_N2_thresh, &
+!$omp   clubb_C_wp2_splat, clubb_xp3_coef_base, clubb_xp3_coef_slope, &
+!$omp   clubb_altitude_threshold, clubb_rtp2_clip_coef, clubb_Cx_min, &
+!$omp   clubb_Cx_max, clubb_Richardson_num_min, clubb_Richardson_num_max, &
+!$omp   clubb_a3_coef_min)
     
 #endif /*E3SM*/
 
@@ -457,8 +457,8 @@ module parameters_tunable
   end subroutine set_default_parameters
 
   !=============================================================================
-  subroutine setup_parameters & 
-            ( deltaz, params, nzmax, &
+  subroutine setup_parameters( & 
+              deltaz, params, nzmax, ngrdcol, &
               grid_type, momentum_heights, thermodynamic_heights, &
               l_prescribed_avg_deltaz, &
               lmin, nu_vert_res_dep, err_code_out )
@@ -494,14 +494,17 @@ module parameters_tunable
       lmin_deltaz = 40.0_core_rknd ! Fixed value for minimum value for the length scale.
 
     ! Input Variables
-    real( kind = core_rknd ), intent(in) ::  & 
+
+    ! Grid definition
+    integer, intent(in) :: &
+      nzmax,  & ! Vertical grid levels            [#]
+      ngrdcol   ! Number of grid columns          [#]
+      
+    real( kind = core_rknd ), dimension(ngrdcol), intent(in) ::  & 
       deltaz  ! Change per height level        [m]
 
     real( kind = core_rknd ), intent(in), dimension(nparams) :: & 
       params  ! Tuneable model parameters      [-]
-
-    ! Grid definition
-    integer, intent(in) :: nzmax  ! Vertical grid levels            [#]
 
     ! If CLUBB is running on its own, this option determines
     ! if it is using:
@@ -523,7 +526,7 @@ module parameters_tunable
     ! If the CLUBB model is running by itself, but is using a
     ! stretched grid entered on momentum levels (grid_type = 3),
     ! it needs to use the momentum level altitudes as input.
-    real( kind = core_rknd ), intent(in), dimension(nzmax) :: &
+    real( kind = core_rknd ), intent(in), dimension(ngrdcol,nzmax) :: &
       momentum_heights,      & ! Momentum level altitudes (input)      [m]
       thermodynamic_heights    ! Thermodynamic level altitudes (input) [m]
 
@@ -539,7 +542,7 @@ module parameters_tunable
     integer, intent(out) :: &
       err_code_out  ! Error code indicator
 
-    integer :: k    ! loop variable
+    integer :: k, i    ! loop variable
 
     real( kind = core_rknd ) :: & 
       C1, C1b, C1c, C2rt, C2thl, C2rtthl, & 
@@ -619,8 +622,8 @@ module parameters_tunable
     lmin = lmin_coef * lmin_deltaz ! New fixed value
 
     ! ### Adjust Constant Diffusivity Coefficients Based On Grid Spacing ###
-    call adj_low_res_nu &
-           ( nzmax, grid_type, deltaz,  & ! Intent(in)
+    call adj_low_res_nu( &
+             nzmax, ngrdcol, grid_type, deltaz,  & ! Intent(in)
              momentum_heights, thermodynamic_heights, & ! Intent(in)
              l_prescribed_avg_deltaz, mult_coef, &  ! Intent(in)
              nu1, nu2, nu6, nu8, nu9, nu10, nu_hm, &  ! Intent(in)
@@ -798,8 +801,8 @@ module parameters_tunable
   end subroutine setup_parameters
 
   !=============================================================================
-  subroutine adj_low_res_nu &
-               ( nzmax, grid_type, deltaz, & ! Intent(in)
+  subroutine adj_low_res_nu( &
+                 nzmax, ngrdcol, grid_type, deltaz, & ! Intent(in)
                  momentum_heights, thermodynamic_heights, & ! Intent(in)
                  l_prescribed_avg_deltaz, mult_coef, &  ! Intent(in)
                  nu1, nu2, nu6, nu8, nu9, nu10, nu_hm, & ! Intent(out)
@@ -844,7 +847,9 @@ module parameters_tunable
     ! Input Variables
 
     ! Grid definition
-    integer, intent(in) :: nzmax  ! Vertical grid levels            [#]
+    integer, intent(in) :: &
+      nzmax, &  ! Vertical grid levels            [#]
+      ngrdcol
 
     ! If CLUBB is running on it's own, this option determines
     ! if it is using:
@@ -857,7 +862,7 @@ module parameters_tunable
     !    halfway between momentum levels).
     integer, intent(in) :: grid_type
 
-    real( kind = core_rknd ), intent(in) ::  & 
+    real( kind = core_rknd ), dimension(ngrdcol), intent(in) ::  & 
       deltaz  ! Change per height level        [m]
 
     ! If the CLUBB parameterization is implemented in a host model,
@@ -869,7 +874,7 @@ module parameters_tunable
     ! If the CLUBB model is running by itself, but is using a
     ! stretched grid entered on momentum levels (grid_type = 3),
     ! it needs to use the momentum level altitudes as input.
-    real( kind = core_rknd ), intent(in), dimension(nzmax) :: &
+    real( kind = core_rknd ), intent(in), dimension(ngrdcol,nzmax) :: &
       momentum_heights,      & ! Momentum level altitudes (input)      [m]
       thermodynamic_heights    ! Thermodynamic level altitudes (input) [m]
 
@@ -897,104 +902,118 @@ module parameters_tunable
     ! diffusivity if the grid spacing threshold is exceeded and l_adj_low_res_nu
     ! is turned on.
     real( kind = core_rknd ) :: &
-      mult_factor_zt, &  ! Uses gr%dzt for nu values on zt levels
-      mult_factor_zm     ! Uses gr%dzm for nu values on zm levels
+      mult_factor_zt, &  ! Uses gr%dzt(1,:) for nu values on zt levels
+      mult_factor_zm     ! Uses gr%dzm(1,:) for nu values on zm levels
+
+    integer :: i
 
     !--------------- Begin code -------------------------
+    
+    allocate( nu_vert_res_dep%nu1(1:ngrdcol), &
+              nu_vert_res_dep%nu2(1:ngrdcol), &
+              nu_vert_res_dep%nu6(1:ngrdcol), &
+              nu_vert_res_dep%nu8(1:ngrdcol), &
+              nu_vert_res_dep%nu9(1:ngrdcol), &
+              nu_vert_res_dep%nu10(1:ngrdcol), &
+              nu_vert_res_dep%nu_hm(1:ngrdcol) )
+              
+    do i = 1, ngrdcol
 
-    ! Flag for adjusting the values of the constant diffusivity coefficients
-    ! based on the grid spacing.  If this flag is turned off, the values of the
-    ! various nu coefficients will remain as they are declared in the
-    ! parameters.in file.
-    if ( l_adj_low_res_nu ) then
+      ! Flag for adjusting the values of the constant diffusivity coefficients
+      ! based on the grid spacing.  If this flag is turned off, the values of the
+      ! various nu coefficients will remain as they are declared in the
+      ! parameters.in file.
+      if ( l_adj_low_res_nu ) then
 
-      ! ### Adjust Constant Diffusivity Coefficients Based On Grid Spacing ###
+        ! ### Adjust Constant Diffusivity Coefficients Based On Grid Spacing ###
 
-      ! All of the background coefficients of eddy diffusivity, as well as the
-      ! constant coefficient for 4th-order hyper-diffusion, must be adjusted
-      ! based on the size of the grid spacing.  For a case that uses an
-      ! evenly-spaced grid, the adjustment is based on the constant grid
-      ! spacing deltaz.  For a case that uses a stretched grid, the adjustment
-      ! is based on avg_deltaz, which is the average grid spacing over the
-      ! vertical domain.
- 
-      if ( l_prescribed_avg_deltaz ) then
-        
-        avg_deltaz = deltaz
+        ! All of the background coefficients of eddy diffusivity, as well as the
+        ! constant coefficient for 4th-order hyper-diffusion, must be adjusted
+        ! based on the size of the grid spacing.  For a case that uses an
+        ! evenly-spaced grid, the adjustment is based on the constant grid
+        ! spacing deltaz.  For a case that uses a stretched grid, the adjustment
+        ! is based on avg_deltaz, which is the average grid spacing over the
+        ! vertical domain.
+   
+        if ( l_prescribed_avg_deltaz ) then
+          
+          avg_deltaz = deltaz(i)
 
-      else if ( grid_type == 3 ) then
+        else if ( grid_type == 3 ) then
 
-        ! CLUBB is implemented in a host model, or is using grid_type = 3
+          ! CLUBB is implemented in a host model, or is using grid_type = 3
 
-        ! Find the average deltaz over the grid based on momentum level
-        ! inputs.
+          ! Find the average deltaz over the grid based on momentum level
+          ! inputs.
 
-        avg_deltaz  &
-           = ( momentum_heights(nzmax) - momentum_heights(1) )  &
-             / real( nzmax - 1, kind = core_rknd )
+          avg_deltaz  &
+             = ( momentum_heights(i,nzmax) - momentum_heights(i,1) )  &
+               / real( nzmax - 1, kind = core_rknd )
 
-      else if ( grid_type == 1 ) then
+        else if ( grid_type == 1 ) then
 
-        ! Evenly-spaced grid.
+          ! Evenly-spaced grid.
 
-        avg_deltaz = deltaz
+          avg_deltaz = deltaz(i)
 
-      else if ( grid_type == 2 ) then
+        else if ( grid_type == 2 ) then
 
-        ! Stretched (unevenly-spaced) grid:  stretched thermodynamic level
-        ! input.
+          ! Stretched (unevenly-spaced) grid:  stretched thermodynamic level
+          ! input.
 
-        ! Find the average deltaz over the stretched grid based on
-        ! thermodynamic level inputs.
+          ! Find the average deltaz over the stretched grid based on
+          ! thermodynamic level inputs.
 
-        avg_deltaz  &
-          = ( thermodynamic_heights(nzmax) - thermodynamic_heights(1) )  &
-             / real( nzmax - 1, kind = core_rknd )
-      else
-        ! Eric Raut added to remove compiler warning. (Obviously, this value is not used)
-        avg_deltaz = 0.0_core_rknd
-        write(fstderr,*) "Invalid grid_type:", grid_type
-        error stop "Fatal error"
+          avg_deltaz  &
+            = ( thermodynamic_heights(i,nzmax) - thermodynamic_heights(i,1) )  &
+               / real( nzmax - 1, kind = core_rknd )
+        else
+          ! Eric Raut added to remove compiler warning. (Obviously, this value is not used)
+          avg_deltaz = 0.0_core_rknd
+          write(fstderr,*) "Invalid grid_type:", grid_type
+          error stop "Fatal error"
 
-      end if ! grid_type
+        end if ! grid_type
 
-      ! The nu's are chosen for deltaz <= 40 m. Looks like they must
-      ! be adjusted for larger grid spacings (Vince Larson)
+        ! The nu's are chosen for deltaz <= 40 m. Looks like they must
+        ! be adjusted for larger grid spacings (Vince Larson)
 
-      ! Use a constant mult_factor so nu does not depend on grid spacing
-      if( avg_deltaz > grid_spacing_thresh ) then
-        mult_factor_zt = 1.0_core_rknd + mult_coef * log( avg_deltaz / grid_spacing_thresh )
-        mult_factor_zm = mult_factor_zt
-      else
-        mult_factor_zt = 1.0_core_rknd
-        mult_factor_zm = 1.0_core_rknd
-      end if
+        ! Use a constant mult_factor so nu does not depend on grid spacing
+        if( avg_deltaz > grid_spacing_thresh ) then
+          mult_factor_zt = 1.0_core_rknd + mult_coef * log( avg_deltaz / grid_spacing_thresh )
+          mult_factor_zm = mult_factor_zt
+        else
+          mult_factor_zt = 1.0_core_rknd
+          mult_factor_zm = 1.0_core_rknd
+        end if
 
-      !mult_factor = 1.0_core_rknd + mult_coef * log( avg_deltaz / grid_spacing_thresh )
-      nu_vert_res_dep%nu1   =  nu1 * mult_factor_zm
-      nu_vert_res_dep%nu2   =  nu2 * mult_factor_zm
-      nu_vert_res_dep%nu6   =  nu6 * mult_factor_zm
-      nu_vert_res_dep%nu8   =  nu8 * mult_factor_zt
-      nu_vert_res_dep%nu9   =  nu9 * mult_factor_zm
-      nu_vert_res_dep%nu10  =  nu10 * mult_factor_zt !We're unsure of the grid
-      nu_vert_res_dep%nu_hm =  nu_hm * mult_factor_zt
+        !mult_factor = 1.0_core_rknd + mult_coef * log( avg_deltaz / grid_spacing_thresh )
+        nu_vert_res_dep%nu1(i)   =  nu1 * mult_factor_zm
+        nu_vert_res_dep%nu2(i)   =  nu2 * mult_factor_zm
+        nu_vert_res_dep%nu6(i)   =  nu6 * mult_factor_zm
+        nu_vert_res_dep%nu8(i)   =  nu8 * mult_factor_zt
+        nu_vert_res_dep%nu9(i)   =  nu9 * mult_factor_zm
+        nu_vert_res_dep%nu10(i)  =  nu10 * mult_factor_zt !We're unsure of the grid
+        nu_vert_res_dep%nu_hm(i) =  nu_hm * mult_factor_zt
 
-    else ! nu values are not adjusted
+      else ! nu values are not adjusted
 
-      nu_vert_res_dep%nu1   =  nu1
-      nu_vert_res_dep%nu2   =  nu2
-      nu_vert_res_dep%nu6   =  nu6
-      nu_vert_res_dep%nu8   =  nu8
-      nu_vert_res_dep%nu9   =  nu9
-      nu_vert_res_dep%nu10  =  nu10
-      nu_vert_res_dep%nu_hm =  nu_hm
+        nu_vert_res_dep%nu1(i)   =  nu1
+        nu_vert_res_dep%nu2(i)   =  nu2
+        nu_vert_res_dep%nu6(i)   =  nu6
+        nu_vert_res_dep%nu8(i)   =  nu8
+        nu_vert_res_dep%nu9(i)   =  nu9
+        nu_vert_res_dep%nu10(i)  =  nu10
+        nu_vert_res_dep%nu_hm(i) =  nu_hm
 
-    end if  ! l_adj_low_res_nu
+      end if  ! l_adj_low_res_nu
+      
+    end do
 
     return
   end subroutine adj_low_res_nu
 
-#ifdef NEVEREVER
+#ifdef E3SM
   !=============================================================================
   subroutine clubb_param_readnl(filename)
 
@@ -1016,77 +1035,77 @@ module parameters_tunable
 
     character(len=*), intent(in) :: filename
 
-!    namelist /clubb_param_nl/      &
-!    clubb_C1,                           &
-!    clubb_C1b,                          &
-!    clubb_C1c,                          &
-!    clubb_C2rt,                         &
-!    clubb_C2thl,                        &
-!    clubb_C2rtthl,                      &
-!    clubb_C4,                           &
-!    clubb_C_uu_shr,                     &
-!    clubb_C_uu_buoy,                    &
-!    clubb_C6rt,                         &
-!    clubb_C6rtb,                        &
-!    clubb_C6rtc,                        &
-!    clubb_C6thl,                        &
-!    clubb_C6thlb,                       &
-!    clubb_C6thlc,                       &
-!    clubb_C7,                           &
-!    clubb_C7b,                          &
-!    clubb_C8,                           &
-!    clubb_C8b,                          &
-!    clubb_C11,                          &
-!    clubb_C11b,                         &
-!    clubb_C11c,                         &
-!    clubb_C14,                          &
-!    clubb_C_wp2_pr_dfsn,                &
-!    clubb_C_wp3_pr_tp,                  &
-!    clubb_C_wp3_pr_turb,                &
-!    clubb_C_wp3_pr_dfsn,                &
-!    clubb_beta,                         &
-!    clubb_gamma_coef,                   &
-!    clubb_gamma_coefb,                  &
-!    clubb_gamma_coefc,                  &
-!    clubb_pdf_component_stdev_factor_w, &
-!    clubb_mu,                           &
-!    clubb_c_K1,                         &
-!    clubb_nu1,                          &
-!    clubb_c_K2,                         &
-!    clubb_nu2,                          &
-!    clubb_c_K8,                         &
-!    clubb_nu8,                          &
-!    clubb_c_K9,                         &
-!    clubb_nu9,                          &
-!    clubb_c_K10,                        &
-!    clubb_c_K10h,                       &
-!    clubb_c_K_hmb,                      &
-!    clubb_wpxp_L_thresh,                &
-!    clubb_lmin_coef,                    &
-!    clubb_mult_coef,                    &
-!    clubb_Skw_denom_coef,               &
-!    clubb_up2_sfc_coef,                 &
-!    clubb_Skw_max_mag,                  &
-!    clubb_C_invrs_tau_bkgnd,            &
-!    clubb_C_invrs_tau_sfc,              &
-!    clubb_C_invrs_tau_shear,            &
-!    clubb_C_invrs_tau_N2,               &
-!    clubb_C_invrs_tau_N2_wp2,           &
-!    clubb_C_invrs_tau_N2_xp2,           &
-!    clubb_C_invrs_tau_N2_wpxp,          &
-!    clubb_C_invrs_tau_N2_clear_wp3,     &
-!    clubb_C_invrs_tau_wpxp_Ri,          &
-!    clubb_C_invrs_tau_wpxp_N2_thresh,   &
-!    clubb_C_wp2_splat,                  &
-!    clubb_xp3_coef_base,                &
-!    clubb_xp3_coef_slope,               &
-!    clubb_altitude_threshold,           &
-!    clubb_rtp2_clip_coef,               &
-!    clubb_Cx_min,                       &
-!    clubb_Cx_max,                       &
-!    clubb_Richardson_num_min,           &
-!    clubb_Richardson_num_max,           &
-!    clubb_a3_coef_min
+    namelist /clubb_param_nl/      &
+    clubb_C1,                           &
+    clubb_C1b,                          &
+    clubb_C1c,                          &
+    clubb_C2rt,                         &
+    clubb_C2thl,                        &
+    clubb_C2rtthl,                      &
+    clubb_C4,                           &
+    clubb_C_uu_shr,                     &
+    clubb_C_uu_buoy,                    &
+    clubb_C6rt,                         &
+    clubb_C6rtb,                        &
+    clubb_C6rtc,                        &
+    clubb_C6thl,                        &
+    clubb_C6thlb,                       &
+    clubb_C6thlc,                       &
+    clubb_C7,                           &
+    clubb_C7b,                          &
+    clubb_C8,                           &
+    clubb_C8b,                          &
+    clubb_C11,                          &
+    clubb_C11b,                         &
+    clubb_C11c,                         &
+    clubb_C14,                          &
+    clubb_C_wp2_pr_dfsn,                &
+    clubb_C_wp3_pr_tp,                  &
+    clubb_C_wp3_pr_turb,                &
+    clubb_C_wp3_pr_dfsn,                &
+    clubb_beta,                         &
+    clubb_gamma_coef,                   &
+    clubb_gamma_coefb,                  &
+    clubb_gamma_coefc,                  &
+    clubb_pdf_component_stdev_factor_w, &
+    clubb_mu,                           &
+    clubb_c_K1,                         &
+    clubb_nu1,                          &
+    clubb_c_K2,                         &
+    clubb_nu2,                          &
+    clubb_c_K8,                         &
+    clubb_nu8,                          &
+    clubb_c_K9,                         &
+    clubb_nu9,                          &
+    clubb_c_K10,                        &
+    clubb_c_K10h,                       &
+    clubb_c_K_hmb,                      &
+    clubb_wpxp_L_thresh,                &
+    clubb_lmin_coef,                    &
+    clubb_mult_coef,                    &
+    clubb_Skw_denom_coef,               &
+    clubb_up2_sfc_coef,                 &
+    clubb_Skw_max_mag,                  &
+    clubb_C_invrs_tau_bkgnd,            &
+    clubb_C_invrs_tau_sfc,              &
+    clubb_C_invrs_tau_shear,            &
+    clubb_C_invrs_tau_N2,               &
+    clubb_C_invrs_tau_N2_wp2,           &
+    clubb_C_invrs_tau_N2_xp2,           &
+    clubb_C_invrs_tau_N2_wpxp,          &
+    clubb_C_invrs_tau_N2_clear_wp3,     &
+    clubb_C_invrs_tau_wpxp_Ri,          &
+    clubb_C_invrs_tau_wpxp_N2_thresh,   &
+    clubb_C_wp2_splat,                  &
+    clubb_xp3_coef_base,                &
+    clubb_xp3_coef_slope,               &
+    clubb_altitude_threshold,           &
+    clubb_rtp2_clip_coef,               &
+    clubb_Cx_min,                       &
+    clubb_Cx_max,                       &
+    clubb_Richardson_num_min,           &
+    clubb_Richardson_num_max,           &
+    clubb_a3_coef_min
 
     integer :: read_status
     integer :: iunit
@@ -1096,90 +1115,90 @@ module parameters_tunable
     ! If clubb_tunables_nl present, read in to replace preset values
     ! This is made available for tuning 
      
-!    clubb_C1 = init_value
-!    clubb_C1b = init_value
-!    clubb_C1c = init_value
-!    clubb_C2rt = init_value
-!    clubb_C2thl = init_value
-!    clubb_C2rtthl = init_value
-!    clubb_C4 = init_value
-!    clubb_C_uu_shr = init_value
-!    clubb_C_uu_buoy = init_value
-!    clubb_C6rt = init_value
-!    clubb_C6rtb = init_value
-!    clubb_C6rtc = init_value
-!    clubb_C6thl = init_value
-!    clubb_C6thlb = init_value
-!    clubb_C6thlc = init_value
-!    clubb_C7 = init_value
-!    clubb_C7b = init_value
-!    clubb_C8 = init_value
-!    clubb_C8b = init_value
-!    clubb_C11 = init_value
-!    clubb_C11b = init_value
-!    clubb_C11c = init_value
-!    clubb_C14 = init_value
-!    clubb_C_wp2_pr_dfsn = init_value
-!    clubb_C_wp3_pr_tp = init_value
-!    clubb_C_wp3_pr_turb = init_value
-!    clubb_C_wp3_pr_dfsn = init_value
-!    clubb_beta = init_value
-!    clubb_gamma_coef = init_value
-!    clubb_gamma_coefb = init_value
-!    clubb_gamma_coefc = init_value
-!    clubb_pdf_component_stdev_factor_w = init_value
-!    clubb_mu = init_value
-!    clubb_c_K1 = init_value
-!    clubb_nu1 = init_value
-!    clubb_c_K2 = init_value
-!    clubb_nu2 = init_value
-!    clubb_c_K8 = init_value
-!    clubb_nu8 = init_value
-!    clubb_c_K9 = init_value
-!    clubb_nu9 = init_value
-!    clubb_c_K10 = init_value
-!    clubb_c_K10h = init_value
-!    clubb_c_K_hmb = init_value
-!    clubb_wpxp_L_thresh = init_value
-!    clubb_lmin_coef = init_value
-!    clubb_mult_coef = init_value
-!    clubb_Skw_denom_coef = init_value
-!    clubb_up2_sfc_coef = init_value
-!    clubb_Skw_max_mag = init_value
-!    clubb_C_invrs_tau_bkgnd = init_value
-!    clubb_C_invrs_tau_sfc = init_value
-!    clubb_C_invrs_tau_shear = init_value
-!    clubb_C_invrs_tau_N2 = init_value
-!    clubb_C_invrs_tau_N2_wp2 = init_value
-!    clubb_C_invrs_tau_N2_xp2 = init_value
-!    clubb_C_invrs_tau_N2_wpxp = init_value
-!    clubb_C_invrs_tau_N2_clear_wp3 = init_value
-!    clubb_C_invrs_tau_wpxp_Ri = init_value
-!    clubb_C_invrs_tau_wpxp_N2_thresh = init_value
-!    clubb_C_wp2_splat = init_value
-!    clubb_xp3_coef_base = init_value
-!    clubb_xp3_coef_slope = init_value
-!    clubb_altitude_threshold = init_value
-!    clubb_rtp2_clip_coef = init_value
-!    clubb_Cx_min = init_value
-!    clubb_Cx_max = init_value
-!    clubb_Richardson_num_min = init_value
-!    clubb_Richardson_num_max = init_value
-!    clubb_a3_coef_min = init_value
+    clubb_C1 = init_value
+    clubb_C1b = init_value
+    clubb_C1c = init_value
+    clubb_C2rt = init_value
+    clubb_C2thl = init_value
+    clubb_C2rtthl = init_value
+    clubb_C4 = init_value
+    clubb_C_uu_shr = init_value
+    clubb_C_uu_buoy = init_value
+    clubb_C6rt = init_value
+    clubb_C6rtb = init_value
+    clubb_C6rtc = init_value
+    clubb_C6thl = init_value
+    clubb_C6thlb = init_value
+    clubb_C6thlc = init_value
+    clubb_C7 = init_value
+    clubb_C7b = init_value
+    clubb_C8 = init_value
+    clubb_C8b = init_value
+    clubb_C11 = init_value
+    clubb_C11b = init_value
+    clubb_C11c = init_value
+    clubb_C14 = init_value
+    clubb_C_wp2_pr_dfsn = init_value
+    clubb_C_wp3_pr_tp = init_value
+    clubb_C_wp3_pr_turb = init_value
+    clubb_C_wp3_pr_dfsn = init_value
+    clubb_beta = init_value
+    clubb_gamma_coef = init_value
+    clubb_gamma_coefb = init_value
+    clubb_gamma_coefc = init_value
+    clubb_pdf_component_stdev_factor_w = init_value
+    clubb_mu = init_value
+    clubb_c_K1 = init_value
+    clubb_nu1 = init_value
+    clubb_c_K2 = init_value
+    clubb_nu2 = init_value
+    clubb_c_K8 = init_value
+    clubb_nu8 = init_value
+    clubb_c_K9 = init_value
+    clubb_nu9 = init_value
+    clubb_c_K10 = init_value
+    clubb_c_K10h = init_value
+    clubb_c_K_hmb = init_value
+    clubb_wpxp_L_thresh = init_value
+    clubb_lmin_coef = init_value
+    clubb_mult_coef = init_value
+    clubb_Skw_denom_coef = init_value
+    clubb_up2_sfc_coef = init_value
+    clubb_Skw_max_mag = init_value
+    clubb_C_invrs_tau_bkgnd = init_value
+    clubb_C_invrs_tau_sfc = init_value
+    clubb_C_invrs_tau_shear = init_value
+    clubb_C_invrs_tau_N2 = init_value
+    clubb_C_invrs_tau_N2_wp2 = init_value
+    clubb_C_invrs_tau_N2_xp2 = init_value
+    clubb_C_invrs_tau_N2_wpxp = init_value
+    clubb_C_invrs_tau_N2_clear_wp3 = init_value
+    clubb_C_invrs_tau_wpxp_Ri = init_value
+    clubb_C_invrs_tau_wpxp_N2_thresh = init_value
+    clubb_C_wp2_splat = init_value
+    clubb_xp3_coef_base = init_value
+    clubb_xp3_coef_slope = init_value
+    clubb_altitude_threshold = init_value
+    clubb_rtp2_clip_coef = init_value
+    clubb_Cx_min = init_value
+    clubb_Cx_max = init_value
+    clubb_Richardson_num_min = init_value
+    clubb_Richardson_num_max = init_value
+    clubb_a3_coef_min = init_value
 
-!    if (masterproc) then
-!      iunit = getunit()
-!      open( iunit, file=trim(filename), status='old' )
-!      call find_group_name(iunit, 'clubb_param_nl', status=read_status)
-!      if (read_status == 0) then
-!         read(unit=iunit, nml=clubb_param_nl,iostat=read_status)
-!         if (read_status /= 0) then
-!            call endrun('clubb_param_readnl:  error reading namelist')
-!         end if
-!      endif
-!      close(unit=iunit)
-!      call freeunit(iunit)
-!    end if
+    if (masterproc) then
+      iunit = getunit()
+      open( iunit, file=trim(filename), status='old' )
+      call find_group_name(iunit, 'clubb_param_nl', status=read_status)
+      if (read_status == 0) then
+         read(unit=iunit, nml=clubb_param_nl,iostat=read_status)
+         if (read_status /= 0) then
+            call endrun('clubb_param_readnl:  error reading namelist')
+         end if
+      endif
+      close(unit=iunit)
+      call freeunit(iunit)
+    end if
 #ifdef SPMD
    ! Broadcast namelist variables
    call mpibcast(clubb_C1,         1, mpir8,  0, mpicom)
@@ -1374,7 +1393,7 @@ module parameters_tunable
 
     end if
 
-#ifdef NEVEREVER
+#ifdef E3SM
     if (clubb_C1 /= init_value) then
        C1 = clubb_C1
     endif
@@ -1414,10 +1433,10 @@ module parameters_tunable
     if (clubb_C11b /= init_value) C11b = clubb_C11b
     if (clubb_C11c /= init_value) C11c = clubb_C11c
     if (clubb_C14 /= init_value) C14 = clubb_C14
-!    if (clubb_C_wp2_pr_dfsn /= init_value) C_wp2_pr_dfsn = clubb_C_wp2_pr_dfsn
-!    if (clubb_C_wp3_pr_tp /= init_value) C_wp3_pr_tp = clubb_C_wp3_pr_tp
+    if (clubb_C_wp2_pr_dfsn /= init_value) C_wp2_pr_dfsn = clubb_C_wp2_pr_dfsn
+    if (clubb_C_wp3_pr_tp /= init_value) C_wp3_pr_tp = clubb_C_wp3_pr_tp
     if (clubb_C_wp3_pr_turb /= init_value) C_wp3_pr_turb = clubb_C_wp3_pr_turb
-!    if (clubb_C_wp3_pr_dfsn /= init_value) C_wp3_pr_dfsn = clubb_C_wp3_pr_dfsn
+    if (clubb_C_wp3_pr_dfsn /= init_value) C_wp3_pr_dfsn = clubb_C_wp3_pr_dfsn
     if (clubb_beta /= init_value) beta = clubb_beta
     ! if clubb_gamma_coefb not specified, continue to use gamma_coefb=gamma_coef
     ! to preserve existing compsets that have assumed so  and only vary gamma_coef
@@ -1428,20 +1447,20 @@ module parameters_tunable
     ! Allows gamma_coefb to vary separately
     if (clubb_gamma_coefb /= init_value) gamma_coefb = clubb_gamma_coefb
     if (clubb_gamma_coefc /= init_value) gamma_coefc = clubb_gamma_coefc
-!    if (clubb_pdf_component_stdev_factor_w /= init_value) &
-!       pdf_component_stdev_factor_w = clubb_pdf_component_stdev_factor_w
+    if (clubb_pdf_component_stdev_factor_w /= init_value) &
+       pdf_component_stdev_factor_w = clubb_pdf_component_stdev_factor_w
     if (clubb_mu /= init_value) mu = clubb_mu
     if (clubb_c_K1 /= init_value) c_K1 = clubb_c_K1
     if (clubb_nu1 /= init_value) nu1 = clubb_nu1
     if (clubb_c_K2 /= init_value) c_K2 = clubb_c_K2
     if (clubb_nu2 /= init_value) nu2 = clubb_nu2
     if (clubb_c_K8 /= init_value) c_K8 = clubb_c_K8
-!    if (clubb_nu8 /= init_value) nu8 = clubb_nu8
+    if (clubb_nu8 /= init_value) nu8 = clubb_nu8
     if (clubb_c_K9 /= init_value) c_K9 = clubb_c_K9
     if (clubb_nu9 /= init_value) nu9 = clubb_nu9
     if (clubb_c_K10 /= init_value) c_K10 = clubb_c_K10
     if (clubb_c_K10h /= init_value) c_K10h = clubb_c_K10h
-!    if (clubb_c_K_hmb /= init_value) c_K_hmb = clubb_c_K_hmb
+    if (clubb_c_K_hmb /= init_value) c_K_hmb = clubb_c_K_hmb
     if (clubb_wpxp_L_thresh /= init_value) wpxp_L_thresh = clubb_wpxp_L_thresh
     if (clubb_lmin_coef /= init_value) lmin_coef = clubb_lmin_coef
     if (clubb_mult_coef /= init_value) mult_coef = clubb_mult_coef
@@ -1472,19 +1491,19 @@ module parameters_tunable
     if (clubb_C_invrs_tau_wpxp_N2_thresh /= init_value) &
        C_invrs_tau_wpxp_N2_thresh = clubb_C_invrs_tau_wpxp_N2_thresh
     if (clubb_C_wp2_splat  /= init_value ) C_wp2_splat = clubb_C_wp2_splat
-!    if (clubb_xp3_coef_base /= init_value) xp3_coef_base = clubb_xp3_coef_base
-!    if (clubb_xp3_coef_slope /= init_value) &
-!       xp3_coef_slope = clubb_xp3_coef_slope
+    if (clubb_xp3_coef_base /= init_value) xp3_coef_base = clubb_xp3_coef_base
+    if (clubb_xp3_coef_slope /= init_value) &
+       xp3_coef_slope = clubb_xp3_coef_slope
     if (clubb_altitude_threshold /= init_value) &
        altitude_threshold = clubb_altitude_threshold
-!    if (clubb_rtp2_clip_coef /= init_value) &
-!       rtp2_clip_coef = clubb_rtp2_clip_coef
-!    if (clubb_Cx_min /= init_value) Cx_min = clubb_Cx_min
-!    if (clubb_Cx_max /= init_value) Cx_max = clubb_Cx_max
-!    if (clubb_Richardson_num_min /= init_value) &
-!       Richardson_num_min = clubb_Richardson_num_min
-!    if (clubb_Richardson_num_max /= init_value) &
-!       Richardson_num_max = clubb_Richardson_num_max
+    if (clubb_rtp2_clip_coef /= init_value) &
+       rtp2_clip_coef = clubb_rtp2_clip_coef
+    if (clubb_Cx_min /= init_value) Cx_min = clubb_Cx_min
+    if (clubb_Cx_max /= init_value) Cx_max = clubb_Cx_max
+    if (clubb_Richardson_num_min /= init_value) &
+       Richardson_num_min = clubb_Richardson_num_min
+    if (clubb_Richardson_num_max /= init_value) &
+       Richardson_num_max = clubb_Richardson_num_max
     if (clubb_a3_coef_min /= init_value) a3_coef_min = clubb_a3_coef_min
 #endif /*E3SM*/
 
