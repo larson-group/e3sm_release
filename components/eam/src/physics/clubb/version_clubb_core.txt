@@ -1,69 +1,64 @@
-commit 5d29760c18d2ac2209dae94af7bba6439a9b6dd3
-Author: Nicolas Strike <strike@uwm.edu>
-Date:   Wed Jul 10 14:23:09 2019 -0500
+commit 2f3542cea1a4dea1b242dd61947087b6458548fb
+Author: huebler <huebler@uwm.edu>
+Date:   Fri Jun 10 18:36:47 2022 -0500
 
-    Rensure plots match plotgen output. lba plots should now be consistent with plotgen. Added a few missing SAM plots for some panels.
-    https://github.com/larson-group/sys_admin/issues/542
+    Moving above/below index of grid weights to last dimension.
 
-commit 1204d043849de0e5c3dc790f0ef7108a319bc890
-Author: Nicolas Strike <strike@uwm.edu>
-Date:   Tue Jul 9 14:10:59 2019 -0500
+commit 974b54a132f6eb0247cea6b743ff2a44afd2dc58
+Author: huebler <huebler@uwm.edu>
+Date:   Fri Jun 10 18:16:46 2022 -0500
 
-    Rename Lineplot to Line
-    https://github.com/larson-group/sys_admin/issues/542
+    Little loop push
 
-commit 44946b9a02aaaa6fa7a4318c4a876d01462b6635
-Author: Nicolas Strike <strike@uwm.edu>
-Date:   Tue Jul 9 11:14:48 2019 -0500
+commit e7ce96456e691ac84abf467670642a8ec90f4bb9
+Author: huebler <huebler@uwm.edu>
+Date:   Fri Jun 10 16:44:28 2022 -0500
 
-    Add initial version lba case, though the output is not yet identical to plotgen's.
-    https://github.com/larson-group/sys_admin/issues/542
+    Pushing column loop into mean advection procedures.
 
-commit 36f0c546d0978cffbee001320e63fc3453f639d6
-Author: Nicolas Strike <strike@uwm.edu>
-Date:   Tue Jul 9 10:04:52 2019 -0500
+commit 6653f87f2251ad7e1b4331332e799eda6c242fc7
+Author: huebler <huebler@uwm.edu>
+Date:   Fri Jun 10 14:27:27 2022 -0500
 
-    Add initial versions of multiple variable groups
-    https://github.com/larson-group/sys_admin/issues/542
+    Removing the zt2zm interface from clubb_api and making the api calls just redirect to the grid class interface for it.
 
-commit 15f62b1155b133f79af128b8bdcf891dd97a08bb
-Author: Nicolas Strike <strike@uwm.edu>
-Date:   Tue Jul 9 07:55:47 2019 -0500
+commit 535090d011dedf50d09e27a0f90e1b9a47de0e77
+Author: vlarson <vlarson@uwm.edu>
+Date:   Fri Jun 10 12:17:55 2022 -0500
 
-    Fix time averaging bug that prevented many LES plots from appearing as expected/like their plotgen counterparts.
-    https://github.com/larson-group/sys_admin/issues/542
+    Adds to tuning dashboard an arrow plot of biases.
+    
+    Also adds other plots that show regional biases versus
+    sensitivity of those regions to parameter values.
+    
+    For #910.
 
-commit 93326ab89ca144e1bc00cd33e6199a0571b9ea4c
-Author: Nicolas Strike <strike@uwm.edu>
-Date:   Mon Jul 8 15:08:32 2019 -0500
+commit 4ea154dbcb9ca5e8574b32fd350d54bc07fa13a6
+Author: huebler <huebler@uwm.edu>
+Date:   Thu Jun 9 17:59:34 2022 -0500
 
-    Fix bug where timeseries were being plotted as profile panels.
-    https://github.com/larson-group/sys_admin/issues/542
+    The big grid change. Converting gr from being an array of types containing 1D arrays, to a type containing 2D arrays. All cases BFB, cam multicolumn+silhs BFB, and cam multicolumn (no silhs) with backwards compatible settings BFB.
 
-commit 6a7474e714a3b47f57d542d7aba8ddf31838f805
-Author: Nicolas Strike <strike@uwm.edu>
-Date:   Mon Jul 8 14:31:19 2019 -0500
+commit 04bc78913f3728aa9b2d18c79900cab28cbf00bf
+Author: cernikt <cernikt@msoe.edu>
+Date:   Thu Jun 9 11:53:15 2022 -0500
 
-    Resolve sam output wasn't being time averaged. Some code cleanup, indluding moving VariableGroupTest.py to VariableGroupBase.py. Removed some old/commented code, cleaned up print statements.
-    https://github.com/larson-group/sys_admin/issues/542
+    last minute addition
 
-commit f31e1654ea4d2f359a1040674f9d4839dea59bd2
-Merge: aed6ab0 e9dad98
-Author: Nicolas Strike <strike@uwm.edu>
-Date:   Mon Jul 8 12:57:14 2019 -0500
+commit d6f731690a2dfd25e6134ae9db50e4d229caf283
+Author: cernikt <cernikt@msoe.edu>
+Date:   Thu Jun 9 11:49:45 2022 -0500
 
-    Merge remote-tracking branch 'origin/master'
+    updating check budgets script on main branch
 
-commit aed6ab0b3e36c41772bb1ba36e84a662c8442dbd
-Author: Nicolas Strike <strike@uwm.edu>
-Date:   Mon Jul 8 10:16:55 2019 -0500
+commit 76698cc92bd01db4d5ec6961903da49776871078
+Author: cernikt <cernikt@msoe.edu>
+Date:   Thu Jun 9 10:55:08 2022 -0500
 
-    Implement output folder command line parameter and general code cleanup. Passing an output folder into the launch parameters will now result in pyplotgen creating that folder (if not exists) and placing output in there.
-    https://github.com/larson-group/sys_admin/issues/542
+    updated check budgets balance test to be compatible with branch test for testing python 3 version
 
-commit e01ea3f6f6dbffe24c8a7b3f230cbf9b3d0fd2df
-Author: Nicolas Strike <strike@uwm.edu>
-Date:   Mon Jul 8 08:51:44 2019 -0500
+commit 619c17771214c26de35567cf374be60000a246a1
+Author: pbroels <pbroels@uwm.edu>
+Date:   Wed Jun 8 14:19:25 2022 -0500
 
-    Further generalized variable group creation to make variable groups easier to create. Improved console output to provide useful information during plotting.
-    https://github.com/larson-group/sys_admin/issues/542
+    Updating Mac config to work with newer Mac processor.

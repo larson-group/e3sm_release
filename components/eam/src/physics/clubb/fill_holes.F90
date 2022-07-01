@@ -22,7 +22,7 @@ module fill_holes
   contains
 
   !=============================================================================
-  subroutine fill_holes_vertical( num_draw_pts, threshold, field_grid, &
+  subroutine fill_holes_vertical( nz, dzm, dzt, num_draw_pts, threshold, field_grid, &
                                   rho_ds, rho_ds_zm, &
                                   field )
 
@@ -43,14 +43,23 @@ module fill_holes
     !-----------------------------------------------------------------------
 
     use grid_class, only: & 
-       gr ! Variable
+        grid ! Type
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
-
+    
     ! Input variables
+    integer, intent(in) :: &
+      nz
+    
+    real( kind = core_rknd ), dimension(nz) :: &
+      dzm, &  ! Spacing between thermodynamic grid levels; centered over
+              ! momentum grid levels
+      dzt     ! Spcaing between momentum grid levels; centered over
+              ! thermodynamic grid levels
+                  
     integer, intent(in) :: & 
       num_draw_pts  ! The number of points on either side of the hole;
                ! Mass is drawn from these points to fill the hole.  []
@@ -62,12 +71,12 @@ module fill_holes
     character(len=2), intent(in) :: & 
       field_grid ! The grid of the field, either zt or zm
 
-    real( kind = core_rknd ), dimension(gr%nz), intent(in) ::  & 
+    real( kind = core_rknd ), dimension(nz), intent(in) ::  & 
       rho_ds,    & ! Dry, static density on thermodynamic levels    [kg/m^3]
       rho_ds_zm    ! Dry, static density on momentum levels         [kg/m^3]
 
     ! Input/Output variable
-    real( kind = core_rknd ), dimension(gr%nz), intent(inout) :: & 
+    real( kind = core_rknd ), dimension(nz), intent(inout) :: & 
       field  ! The field (e.g. wp2) that contains holes [Units same as threshold]
 
     ! Local Variables
@@ -85,14 +94,14 @@ module fill_holes
     ! level variables), or consider the value of 'field' at a level below the
     ! surface (for thermodynamic level variables).  For momentum level variables
     ! only, the hole-filling scheme should not alter the set value of 'field' at
-    ! the upper boundary level (k=gr%nz).
+    ! the upper boundary level (k=nz).
 
     if ( field_grid == "zt" ) then
       ! 'field' is on the zt (thermodynamic level) grid
-      upper_hf_level = gr%nz
+      upper_hf_level = nz
     elseif ( field_grid == "zm" )  then
       ! 'field' is on the zm (momentum level) grid
-      upper_hf_level = gr%nz-1
+      upper_hf_level = nz-1
     endif
 
     if ( any( field( 2:upper_hf_level ) < threshold ) ) then
@@ -105,7 +114,7 @@ module fill_holes
       ! 'field' at a level below the surface (for thermodynamic level
       ! variables).  For momentum level variables only, the hole-filling scheme
       ! should not alter the set value of 'field' at the upper boundary
-      ! level (k=gr%nz).
+      ! level (k=nz).
       do k = 2+num_draw_pts, upper_hf_level-num_draw_pts, 1
 
         begin_idx = k - num_draw_pts
@@ -116,16 +125,16 @@ module fill_holes
           ! 'field' is on the zt (thermodynamic level) grid
           if ( field_grid == "zt" ) then
             call fill_holes_multiplicative &
-                    ( begin_idx, end_idx, threshold, &
-                      rho_ds(begin_idx:end_idx), gr%dzt(begin_idx:end_idx), &
-                      field(begin_idx:end_idx) )
+                    ( begin_idx, end_idx, threshold, & ! intent(in)
+                      rho_ds(begin_idx:end_idx), dzt(begin_idx:end_idx), & ! intent(in)
+                      field(begin_idx:end_idx) ) ! intent(inout)
                       
           ! 'field' is on the zm (momentum level) grid
           elseif ( field_grid == "zm" )  then
             call fill_holes_multiplicative &
-                    ( begin_idx, end_idx, threshold, &
-                      rho_ds_zm(begin_idx:end_idx), gr%dzm(begin_idx:end_idx), &
-                      field(begin_idx:end_idx) )
+                    ( begin_idx, end_idx, threshold, & ! intent(in)
+                      rho_ds_zm(begin_idx:end_idx), dzm(begin_idx:end_idx), & ! intent(in)
+                      field(begin_idx:end_idx) ) ! intent(inout)
           endif
 
         endif
@@ -138,22 +147,22 @@ module fill_holes
       ! momentum level variables), or consider the value of 'field' at a level
       ! below the surface (for thermodynamic level variables).  For momentum
       ! level variables only, the hole-filling scheme should not alter the set
-      ! value of 'field' at the upper boundary level (k=gr%nz).
+      ! value of 'field' at the upper boundary level (k=nz).
       if ( any( field( 2:upper_hf_level ) < threshold ) ) then
 
         ! 'field' is on the zt (thermodynamic level) grid
         if ( field_grid == "zt" ) then
           call fill_holes_multiplicative &
-                 ( 2, upper_hf_level, threshold, &
-                   rho_ds(2:upper_hf_level), gr%dzt(2:upper_hf_level), &
-                   field(2:upper_hf_level) )
+                 ( 2, upper_hf_level, threshold, & ! intent(in)
+                   rho_ds(2:upper_hf_level), dzt(2:upper_hf_level), & ! intent(in)
+                   field(2:upper_hf_level) ) ! intent(inout)
                    
         ! 'field' is on the zm (momentum level) grid
         elseif ( field_grid == "zm" )  then
             call fill_holes_multiplicative &
-                 ( 2, upper_hf_level, threshold, &
-                   rho_ds_zm(2:upper_hf_level), gr%dzm(2:upper_hf_level), &
-                   field(2:upper_hf_level) )
+                 ( 2, upper_hf_level, threshold, & ! intent(in)
+                   rho_ds_zm(2:upper_hf_level), dzm(2:upper_hf_level), & ! intent(in)
+                   field(2:upper_hf_level) ) ! intent(inout)
         endif
 
       endif
@@ -187,10 +196,10 @@ module fill_holes
     !-----------------------------------------------------------------------
 
     use constants_clubb, only: &
-      eps
+        eps
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -319,7 +328,7 @@ module fill_holes
     ! is desired, or where statistics over the entire (global) vertical
     ! domain are desired, the lower (thermodynamic-level) index of k = 2 and
     ! the upper (thermodynamic-level) index of k = gr%nz, means that the
-    ! overall vertical domain will be gr%zm(gr%nz) - gr%zm(1).
+    ! overall vertical domain will be gr%zm(1,gr%nz) - gr%zm(1,1).
     !
     !
     ! Momentum-level computation:
@@ -365,7 +374,7 @@ module fill_holes
     !-----------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -430,7 +439,7 @@ module fill_holes
     !-----------------------------------------------------------------------
 
     use clubb_precision, only: &
-      core_rknd ! Variable(s)
+        core_rknd ! Variable(s)
 
     implicit none
 
@@ -770,7 +779,7 @@ module fill_holes
           case( "rim", "rsm", "rgm" )
              thlm_mc(k) = thlm_mc(k) - rvm_clip_tndcy * ( Ls / ( Cp*exner(k) ) )
           case default
-             stop "Fatal error in microphys_driver"
+             error stop "Fatal error in microphys_driver"
           end select
 
           ! Set the mixing ratio to 0
@@ -785,9 +794,10 @@ module fill_holes
   !-----------------------------------------------------------------------
 
   !-----------------------------------------------------------------------
-  subroutine fill_holes_driver( nz, dt, hydromet_dim,        & ! Intent(in)
+  subroutine fill_holes_driver( gr, nz, dt, hydromet_dim,        & ! Intent(in)
                                 l_fill_holes_hm,             & ! Intent(in)
                                 rho_ds_zm, rho_ds_zt, exner, & ! Intent(in)
+                                stats_zt,                    & ! intent(inout)
                                 thlm_mc, rvm_mc, hydromet )    ! Intent(inout)
 
   ! Description:
@@ -805,7 +815,7 @@ module fill_holes
   !-----------------------------------------------------------------------
 
     use grid_class, only: &
-        gr  ! Variable(s)
+        grid ! Type
 
     use clubb_precision, only: &
         core_rknd   ! Variable(s)
@@ -835,13 +845,19 @@ module fill_holes
         stat_end_update
 
     use stats_variables, only: &
-        stats_zt, &  ! Variables
         l_stats_samp
 
     use error_code, only: &
         clubb_at_least_debug_level  ! Procedure
 
+    use stats_type, only: stats ! Type
+
     implicit none
+
+    type (stats), target, intent(inout) :: &
+      stats_zt
+
+    type (grid), target, intent(in) :: gr
 
     intrinsic :: trim
 
@@ -901,8 +917,8 @@ module fill_holes
                                     ixrm_cl, ixrm_mc,            & ! Intent(inout)
                                     max_velocity )                 ! Intent(inout)
 
-          call stat_begin_update( ixrm_hf, hydromet(:,i) &
-                                           / dt, stats_zt )
+          call stat_begin_update( gr%nz, ixrm_hf, hydromet(:,i) / dt, & ! intent(in)
+                                  stats_zt ) ! intent(inout)
 
        enddo ! i = 1, hydromet_dim
 
@@ -962,9 +978,9 @@ module fill_holes
          if ( hydromet_name(1:1) == "r" .and. l_hole_fill ) then
 
             ! Apply the hole filling algorithm
-            call fill_holes_vertical( 2, zero_threshold, "zt", &
-                                      rho_ds_zt, rho_ds_zm, &
-                                      hydromet(:,i) )
+            call fill_holes_vertical( gr%nz, gr%dzm(1,:), gr%dzt(1,:), 2, zero_threshold, "zt", & ! intent(in)
+                                      rho_ds_zt, rho_ds_zm, & ! intent(in)
+                                      hydromet(:,i) ) ! intent(inout)
 
          endif ! Variable is a mixing ratio and l_hole_fill is true
 
@@ -973,15 +989,15 @@ module fill_holes
       ! Enter the new value of the hydrometeor for the effect of the
       ! hole-filling scheme.
       if ( l_stats_samp ) then
-         call stat_end_update( ixrm_hf, hydromet(:,i) &
-                                        / dt, stats_zt )
+         call stat_end_update( gr%nz, ixrm_hf, hydromet(:,i) / dt, & ! intent(in)
+                               stats_zt ) ! intent(inout)
       endif
 
       ! Store the previous value of the hydrometeor for the effect of the water
       ! vapor hole-filling scheme.
       if ( l_stats_samp ) then
-         call stat_begin_update( ixrm_wvhf, hydromet(:,i) &
-                                            / dt, stats_zt )
+         call stat_begin_update( gr%nz, ixrm_wvhf, hydromet(:,i) / dt, & ! intent(in)
+                                 stats_zt ) ! intent(inout)
       endif
 
       if ( any( hydromet(:,i) < zero_threshold ) ) then
@@ -1002,8 +1018,8 @@ module fill_holes
       ! Enter the new value of the hydrometeor for the effect of the water vapor
       ! hole-filling scheme.
       if ( l_stats_samp ) then
-         call stat_end_update( ixrm_wvhf, hydromet(:,i) &
-                                          / dt, stats_zt )
+         call stat_end_update( gr%nz, ixrm_wvhf, hydromet(:,i) / dt, & ! intent(in)
+                               stats_zt ) ! intent(inout)
       endif
 
       ! Clipping for hydrometeor mixing ratios.
@@ -1012,10 +1028,8 @@ module fill_holes
          ! Store the previous value of the hydrometeor for the effect of
          ! clipping.
          if ( l_stats_samp ) then
-            call stat_begin_update( ixrm_cl, &
-                                    hydromet(:,i) &
-                                    / dt, &
-                                    stats_zt )
+            call stat_begin_update( gr%nz, ixrm_cl, hydromet(:,i) / dt, & ! intent(in)
+                                    stats_zt ) ! intent(inout)
          endif
 
          if ( any( hydromet(:,i) < zero_threshold ) ) then
@@ -1065,8 +1079,8 @@ module fill_holes
 
          ! Enter the new value of the hydrometeor for the effect of clipping.
          if ( l_stats_samp ) then
-            call stat_end_update( ixrm_cl, hydromet(:,i) &
-                                           / dt, stats_zt )
+            call stat_end_update( gr%nz, ixrm_cl, hydromet(:,i) / dt, & ! intent(in)
+                                  stats_zt ) ! intent(inout)
          endif
 
       endif ! l_mix_rat_hm(i)
@@ -1074,7 +1088,7 @@ module fill_holes
     enddo ! i = 1, hydromet_dim, 1
 
     ! Calculate clipping for hydrometeor concentrations.
-    call clip_hydromet_conc_mvr( hydromet_dim, hydromet, & ! Intent(in)
+    call clip_hydromet_conc_mvr( gr%nz, hydromet_dim, hydromet, & ! Intent(in)
                                  hydromet_clipped )        ! Intent(out)
 
     ! Clip hydrometeor concentrations and output stats.
@@ -1092,7 +1106,8 @@ module fill_holes
 
              ! Store the previous value of the hydrometeor for the effect of
              ! clipping.
-             call stat_begin_update( ixrm_cl, hydromet(:,i) / dt, stats_zt )
+             call stat_begin_update( gr%nz, ixrm_cl, hydromet(:,i) / dt, & ! intent(in)
+                                     stats_zt ) ! intent(inout)
 
           endif ! l_stats_samp
 
@@ -1101,7 +1116,8 @@ module fill_holes
 
           ! Enter the new value of the hydrometeor for the effect of clipping.
           if ( l_stats_samp ) then
-             call stat_end_update( ixrm_cl, hydromet(:,i) / dt, stats_zt )
+             call stat_end_update( gr%nz, ixrm_cl, hydromet(:,i) / dt, & ! intent(in)
+                                   stats_zt ) ! intent(inout)
           endif
 
        endif ! .not. l_mix_rat_hm(i)
@@ -1114,7 +1130,7 @@ module fill_holes
   end subroutine fill_holes_driver
 
   !=============================================================================
-  subroutine clip_hydromet_conc_mvr( hydromet_dim, hydromet, & ! Intent(in)
+  subroutine clip_hydromet_conc_mvr( nz, hydromet_dim, hydromet, & ! Intent(in)
                                      hydromet_clipped )        ! Intent(out)
 
     ! Description:
@@ -1127,7 +1143,7 @@ module fill_holes
     !-----------------------------------------------------------------------
 
     use grid_class, only: &
-        gr    ! Variable(s)
+        grid ! Type
 
     use constants_clubb, only: &
         pi,          & ! Variable(s)
@@ -1152,13 +1168,16 @@ module fill_holes
 
     ! Input Variables
     integer, intent(in) :: &
+      nz
+    
+    integer, intent(in) :: &
       hydromet_dim    ! Number of hydrometeor fields
 
-    real( kind = core_rknd ), dimension(gr%nz,hydromet_dim), intent(in) :: &
+    real( kind = core_rknd ), dimension(nz,hydromet_dim), intent(in) :: &
       hydromet    ! Mean of hydrometeor fields    [units vary]
 
     ! Output Variable
-    real( kind = core_rknd ), dimension(gr%nz,hydromet_dim), intent(out) :: &
+    real( kind = core_rknd ), dimension(nz,hydromet_dim), intent(out) :: &
       hydromet_clipped    ! Clipped mean of hydrometeor fields    [units vary]
 
     ! Local Variables
@@ -1224,7 +1243,7 @@ module fill_holes
 
           ! Loop over vertical levels and increase hydrometeor concentrations
           ! when necessary.
-          do k = 2, gr%nz, 1
+          do k = 2, nz, 1
 
              if ( hydromet(k,Nx2rx_hm_idx(idx)) > zero ) then
 
@@ -1239,7 +1258,7 @@ module fill_holes
 
              endif ! hydromet(k,Nx2rx_hm_idx(idx)) > 0
 
-          enddo ! k = 2, gr%nz, 1
+          enddo ! k = 2, nz, 1
 
           ! The lowest thermodynamic level is below the model's lower boundary.
           hydromet_clipped(1,idx) = hydromet(1,idx)
