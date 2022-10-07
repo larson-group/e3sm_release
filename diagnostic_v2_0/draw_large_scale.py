@@ -42,8 +42,9 @@ def large_scale_prf (ptype,cseason, ncases, cases, casenames, nsite, lats, lons,
  nvaris = len(varis)
  cunits = ["%","mba/day","g/kg","g/kg","K", "%", "m/s", "g/kg", "m/s", "m/s","K","m" ]
  cscale = [100,      864,  1000, 1000 , 1.,   1,     1,   1000,     1,1,1,1,1,1,1 ]
- cscaleobs = [100,        1,     1, 1000 , 1.,   1,     1,   1000,     1,1,1,1,1,1,1]
- obsdataset =["ERAI", "ERAI", "ERAI", "ERAI", "ERAI", "ERAI", "ERAI", "ERAI","ERAI","ERAI"]
+ cscaleobs  = [100,        1,     1, 1000 , 1.,   1,     1,   1000,     1,1,1,1,1,1,1]
+ obsdataset = ["ERAI", "ERAI", "ERAI", "ERAI", "ERAI", "ERAI", "ERAI", "ERAI","ERAI","ERAI"]
+ rangeyr    = ['197901_201612','197901_201612','197901_201612','197901_201612','197901_201612','197901_201612','197901_201612','197901_201612','197901_201612','197901_201612']
 
  plotlgs=["" for x in range(nsite)]
 
@@ -129,7 +130,8 @@ def large_scale_prf (ptype,cseason, ncases, cases, casenames, nsite, lats, lons,
              if (varisobs[iv] =="PRECT"):
                  fileobs = filepathobs+'/GPCP_'+cseason+'_climo.nc'
              else:
-                 fileobs = filepathobs + obsdataset[iv]+'_'+cseason+'_climo.nc'
+              #   fileobs = filepathobs + '/'+obsdataset[iv]+'/'+obsdataset[iv]+'_'+cseason+'_'+rangeyr[iv]+'_climo.nc'
+                 fileobs = filepathobs + '/'+obsdataset[iv]+'_'+cseason+'_climo.nc'
              inptrobs = Dataset(fileobs,'r')
              if (varisobs[iv] =="THETA"):
                  latobs=inptrobs.variables['lat'][:]
@@ -193,8 +195,9 @@ def large_scale_prf (ptype,cseason, ncases, cases, casenames, nsite, lats, lons,
              inptrs.close()
 
          res.tiMainString  =  varis[iv]+"  "+theunits
-         res.trXMinF = min(np.min(A_field[0, :]),np.min(B))
-         res.trXMaxF = max(np.max(A_field[0, :]),np.max(B))
+         res.trXMinF = min(np.min(A_field[:, :]),np.min(B))
+         res.trXMaxF = max(np.max(A_field[:, :]),np.max(B))
+
          if(varis[iv] == "THETA"):
              res.trXMinF = 270.
              res.trXMaxF = 400.
@@ -230,6 +233,3 @@ def large_scale_prf (ptype,cseason, ncases, cases, casenames, nsite, lats, lons,
      Ngl.destroy(wks)
 
  return plotlgs
-
-     
-
