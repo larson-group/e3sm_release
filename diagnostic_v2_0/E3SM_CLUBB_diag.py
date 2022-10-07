@@ -4,7 +4,8 @@ E3SM CLUBB Diagnostics package
 
 Main code to make 1) 2D plots,2) profiles, 3) budgets on selected stations, 
          and then build up  webpages  etc
-    zhunguo : guozhun@lasg.iap.ac.cn ; guozhun@uwm.edu
+    zhunguo : guozhun@lasg.iap.ac.cn 
+    Kate
 '''
 
 ## ==========================================================
@@ -14,44 +15,45 @@ Main code to make 1) 2D plots,2) profiles, 3) budgets on selected stations,
 case='paper4' # A general case name
 outdir='/lcrc/group/acme/zhun/plots/' # Location of plots
 
+case='sens919_5' # A general case name
+outdir='/lcrc/group/acme/public_html/diagnostic_output/ac.zguo/'
+
 filepath=[ \
 '/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
 '/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
 '/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
 '/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
 '/lcrc/group/acme/ac.zguo/E3SM_simulations/',\
-'/lcrc/group/acme/zhun/E3SM_simulations/',\
           ]
 cases=[ \
-'anvil.EAMv1.F2010SC5-CMIP6_t1.ne30_ne30',\
-'anvil-centos7.base2.wpxpri_3p3e4_1_3_0_12_C7ri.ne30_ne30',\
-'anvil.EAMv1.FC5AV1C.ne30_ne30',\
-'anvil-centos7.base2.wpxpri_3p3e4_1_3_0_12_C7ri_FC5AV1C.ne30_ne30',\
-'anvil-centos7.base2.wpxpri_3p35e4_1_2p5_0_12_C7ri_F2010SC5-CMIP6.ne30_ne30',\
+'chrysalis.bmg20220630.sens915_18.ne30pg2_r05_oECv3',\
+'chrysalis.bmg20220630.sens915_19.ne30pg2_r05_oECv3',\
+'chrysalis.bmg20220630.sens915_20.ne30pg2_r05_oECv3',\
+'chrysalis.bmg20220630.sens915_21.ne30pg2_r05_oECv3',\
+'chrysalis.bmg20220630.sens915_22.ne30pg2_r05_oECv3',\
 ]
 
-       
 # Give a short name for your experiment which will appears on plots
 
-casenames=[
-'EAMv1.F2010SC5-CMIP6',\
-'wpxpri_3p3e4_1_3_0_12_C7ri',\
-'EAMv1.FC5AV1C',\
-'wpxpri_3p3e4_1_3_0_12_C7ri_FC5AV1C',\
-'wpxpri_3p35e4_1_2p5_0_12_C7ri_F2010SC5-CMIP6',\
+casenames=[ \
+'sens919_18',\
+'sens919_19',\
+'sens919_20',\
+'sens919_21',\
+'sens919_22_tuner',\
 ]
 
+
 years=[\
-        1, 1, 1, 1,1,1]
+        1979, 1979, 1979,1979,1979,2010, 2010, 2010,2010,2010,2010]
 nyear=[\
-        10, 5, 1, 5,3,1]
+        1, 1, 1, 1,1,1,1, 1, 1,1,1,1]
 
 dpsc=[\
-      'none','none','none','none','none','none']
+      'none','none','none','none','none','none','none','none','none','none','none','none','none','none','none','none','none','none','none']
 # NOTE, dpsc,deep scheme, has to be 'none', if silhs is turned on. 
 
 # Observation Data
-#filepathobs='/global/project/projectdirs/m2689/zhun/amwg/obs_data_20140804/'
 filepathobs='/blues/gpfs/home/ac.zguo/amwg_diag_20140804/obs_data_20140804/'
 #------------------------------------------------------------------------
 # Setting of plots.
@@ -60,21 +62,22 @@ cseason       ='ANN' # Seasons, or others
 casename      =case+'_'+cseason
 
 #------------------------------------------------------------------------
+calfvsite        = True       # Calculate site indexes for FV files
 calmean          = True       # make mean states
 findout          = True       # pick out the locations of your sites
 draw2d           = True       # 2D plots, SWCF etc.
 drawlarge        = True       # profiles for large-scale variable on your sites 
 drawclubb        = True       # profiles for standard clubb output
-drawskw          = False       # profiles for skewness functions
+drawskw          = True       # profiles for skewness functions
 drawrain         = True       # profiles for SNOW, Rain etc.
 drawbgt          = True       # budgets of CLUBB prognostic Eqs 
-drawe3smbgt      = True       # budgets of e3sm tendency
+drawe3smbgt      = False      # budgets of e3sm tendency
 drawmicrobgt     = False       # budgets of MG2
-drawaero         = False       # AERO for cloud brone
+drawaero         = False      # AERO for cloud brone
 # ONLY for SILHS
 drawhf           = False      # Tendency of holl filler 
 drawsilhs        = False      # profiles for silhs variables
-
+domatrix         = False
 makeweb          =True        # Make a webpage?
 maketar          =True        # Tar them?
 
@@ -129,17 +132,98 @@ if calmean:
 
 if findout:
     print('Find out the sites')
-    function_pick_out.pick_out(ncases, cases, years, nsite, lats, lons, area, filepath,casedir)
+    function_pick_out.pick_out(ncases, cases, years, nsite, lats, lons, area, filepath,casedir,calfvsite)
 
 if draw2d:
     print('Drawing 2d')
     plot2d=draw_plots_hoz_2D.draw_2D_plot(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir)
     clevel=500
     plot3d=draw_plots_hoz_3D.draw_3D_plot(ptype,clevel,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir)
+    if domatrix:
+       datain = np.empty(len(cases), dtype=object)
+       for i in range(len(cases)):
+             datain[i] = './data/' + cases[i]+'_Regional.nc'
+	       print(datain)
+       print(cases)
+       defaultNcFilename=datain[0]
+       sensNcFilenames=datain[2:len(cases)]
 
-if drawlarge:
-    print('Drawing Large-scale variables on selected sites')
-    plotlgs=draw_large_scale.large_scale_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir)
+       obsMetricValsDict = { 'LWCF_GLB': 28.008, 'PRECT_GLB': 0.000000031134259, 'SWCF_GLB': -45.81, 'TMQ_GLB': 24.423, \
+                             'LWCF_DYCOMS': 17.39229, 'PRECT_DYCOMS': 5.540433451401774e-09, 'SWCF_DYCOMS': -63.05767, 'TMQ_DYCOMS': 19.03481,\
+                             'LWCF_LBA': 54.7332, 'PRECT_LBA': 7.86887e-08, 'SWCF_LBA': -62.0982, 'TMQ_LBA': 51.1303,\
+                             'LWCF_HAWAII': 21.111, 'PRECT_HAWAII': 1.47959e-08, 'SWCF_HAWAII': -31.6793, 'TMQ_HAWAII': 30.7126,\
+                             'LWCF_WP': 54.7332, 'PRECT_WP': 7.86887e-08, 'SWCF_WP': -62.0982, 'TMQ_WP':51.1303,\
+                             'LWCF_EP': 32.724, 'PRECT_EP': 5.93702e-08, 'SWCF_EP': -54.0756, 'TMQ_EP':45.7974,\
+                             'LWCF_NP': 26.2394, 'PRECT_NP': 2.85975e-08, 'SWCF_NP': -50.9236, 'TMQ_NP':12.7285,\
+                             'LWCF_SP': 31.9614, 'PRECT_SP': 3.46254e-08, 'SWCF_SP': -70.2646, 'TMQ_SP':10.947,\
+                             'LWCF_PA': 28.5308, 'PRECT_PA': 3.22142e-08, 'SWCF_PA': -73.4048, 'TMQ_PA':50.0178,\
+                             'LWCF_CAF': 57.0782, 'PRECT_CAF': 5.71253e-08, 'SWCF_CAF': -60.8234, 'TMQ_CAF':41.1117,\
+                             'LWCF_VOCAL': 16.2196, 'PRECT_VOCAL': 1.78555e-09, 'SWCF_VOCAL': -77.2623, 'TMQ_VOCAL':17.5992  }
+
+       linSolnNcFilename = \
+            './data/anvil.0703.lmm_1.ne30_ne30_Regional.nc'
+
+
+       metricsNames = np.array(['PRECT_GLB','PRECT_LBA','PRECT_WP','PRECT_EP','PRECT_NP','PRECT_VOCAL','PRECT_DYCOMS','PRECT_HAWAII','PRECT_SP','PRECT_PA','PRECT_CAF'])#,'SWCF_GLB','SWCF_DYCOMS','SWCF_HAWAII','SWCF_VOCAL','SWCF_NP','SWCF_WP','SWCF_LBA','SWCF_EP','SWCF_SP','SWCF_PA','SWCF_CAF','LWCF_GLB','LWCF_LBA','LWCF_DYCOMS','LWCF_HAWAII','LWCF_WP','LWCF_EP','LWCF_NP','LWCF_VOCAL','LWCF_PA','LWCF_SP','LWCF_CAF'])
+       paramsNames = np.array(['clubb_c8','clubb_c_k10','clubb_c_invrs_tau_N2','clubb_c_invrs_tau_wpxp_n2_thresh','micro_vqit'])
+       transformedParamsNames = np.array(['clubb_c8','clubb_c_k10','clubb_c_invrs_tau_N2','clubb_c_invrs_tau_wpxp_n2_thresh','micro_vqit'])#'prc_exp','clubb_c_invrs_tau_n2','clubb_c_invrs_tau_n2_wp2','clubb_c_invrs_tau_n2_clear_wp3'])
+       metricsWeights = np.array([[1.],[1.],[1.],[1.],[1.], [1.], [1.],[1.],[1.],[1.],[1.]])#
+                                #,[1.],[1.],[1.],[1.],[1.], [1.], [1.],[1.],[1.],[1.],[1.],[1.],[1.],[1.],[1.],[1.], [1.], [1.],[1.],[1.],[1.],[1.]])
+
+       sensMatrixOrig, sensMatrix, normlzdSensMatrix, svdInvrsNormlzdWeighted, \
+            dparamsSoln, paramsSoln, defaultBiasesApprox = \
+          analyze_sensitivity_matrix.analyzeSensMatrix(metricsNames, paramsNames, transformedParamsNames,
+                      metricsWeights,
+                      sensNcFilenames, defaultNcFilename,
+                      obsMetricValsDict)
+    # See if the solution based on a linear combination of the SVD-calculated parameter values
+    #    matches what we expect.
+       linSolnBias = \
+          analyze_sensitivity_matrix.calcLinSolnBias(linSolnNcFilename, defaultNcFilename,
+                                  metricsNames)
+
+       metricsNames = np.array(['SWCF_GLB','SWCF_DYCOMS','SWCF_HAWAII','SWCF_VOCAL','SWCF_NP','SWCF_WP','SWCF_LBA','SWCF_EP','SWCF_SP','SWCF_PA','SWCF_CAF'])
+       sensMatrixOrig, sensMatrix, normlzdSensMatrix, svdInvrsNormlzdWeighted, \
+            dparamsSoln, paramsSoln, defaultBiasesApprox = \
+          analyze_sensitivity_matrix.analyzeSensMatrix(metricsNames, paramsNames, transformedParamsNames,
+                      metricsWeights,
+                      sensNcFilenames, defaultNcFilename,
+                      obsMetricValsDict)
+
+    # See if the solution based on a linear combination of the SVD-calculated parameter values
+    #    matches what we expect.
+       linSolnBias = \
+          analyze_sensitivity_matrix.calcLinSolnBias(linSolnNcFilename, defaultNcFilename,
+                                  metricsNames)
+
+
+       metricsNames = np.array(['LWCF_GLB','LWCF_LBA','LWCF_DYCOMS','LWCF_HAWAII','LWCF_WP','LWCF_EP','LWCF_NP','LWCF_VOCAL','LWCF_PA','LWCF_SP','LWCF_CAF'])
+       sensMatrixOrig, sensMatrix, normlzdSensMatrix, svdInvrsNormlzdWeighted, \
+            dparamsSoln, paramsSoln, defaultBiasesApprox = \
+          analyze_sensitivity_matrix.analyzeSensMatrix(metricsNames, paramsNames, transformedParamsNames,
+                      metricsWeights,
+                      sensNcFilenames, defaultNcFilename,
+                      obsMetricValsDict)
+
+    # See if the solution based on a linear combination of the SVD-calculated parameter values
+    #    matches what we expect.
+       linSolnBias = \
+          analyze_sensitivity_matrix.calcLinSolnBias(linSolnNcFilename, defaultNcFilename,
+                                  metricsNames)
+       metricsNames = np.array(['TMQ_GLB','TMQ_LBA','TMQ_DYCOMS','TMQ_HAWAII','TMQ_WP','TMQ_EP','TMQ_NP','TMQ_VOCAL','TMQ_PA','TMQ_SP','TMQ_CAF'])
+       sensMatrixOrig, sensMatrix, normlzdSensMatrix, svdInvrsNormlzdWeighted, \
+            dparamsSoln, paramsSoln, defaultBiasesApprox = \
+          analyze_sensitivity_matrix.analyzeSensMatrix(metricsNames, paramsNames, transformedParamsNames,
+                      metricsWeights,
+                      sensNcFilenames, defaultNcFilename,
+                      obsMetricValsDict)
+
+    # See if the solution based on a linear combination of the SVD-calculated parameter values
+    #    matches what we expect.
+       linSolnBias = \
+          analyze_sensitivity_matrix.calcLinSolnBias(linSolnNcFilename, defaultNcFilename,
+                                  metricsNames)
+
 
 if drawclubb:
     print('Drawing CLUBB standard variables on selected sites')
@@ -148,33 +232,55 @@ if drawclubb:
     varis    = [ 'wp2','up2','vp2','rtp2','thlp2','wp3']
     cscale   = [     1,    1,    1,   1E6,      1,    1]
     chscale  = [   '1',  '1',  '1','1E-6',    '1',  '1']
-    plotstd1=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname)
+    underlev = 0
+    plotstd1=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname,underlev)
+
+    underlev = 750
+    pname = 'std1_lev'
+    plotstd1_lev=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname,underlev)
 
     pname = 'std2'
     varis    = [ 'wprtp','wpthlp','wprcp','upwp','vpwp','rtpthlp']
-    cscale   = [     1E3,       1,    1E3,     1,     1,     1E3] 
+    cscale   = [     1E3,       1,    1E3,     1,     1,     1E3]
     chscale  = [  '1E-3',     '1', '1E-3',   '1',    '1',    '1E-3']
 
-    plotstd2=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname)
+    underlev = 0
+    plotstd2=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname,underlev)
+
+
+    underlev = 750
+    pname = 'std2_lev'
+    plotstd2_lev=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname,underlev)
 
     pname = 'std3'
     varis    = [ 'wp2thlp','wp2rtp','wpthlp2','wprtp2','rcp2', 'wp2rcp']
-    cscale   = [         1,        1,       1,     1E6,   1E6,      1E3] 
+    cscale   = [         1,        1,       1,     1E6,   1E6,      1E3]
     chscale  = [       '1',      '1',     '1',  '1E-6','1E-6',   '1E-3']
 
-    plotstd3=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname)
+    underlev = 0
+    plotstd3=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname,underlev)
+
+    underlev = 750
+    pname = 'std3_lev'
+    plotstd3_lev=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname,underlev)
 
     varis    = [ 'wpthvp','wp2thvp','rtpthvp','thlpthvp','wp4','wprtpthlp']
-    cscale   = [        1,        1,      1E3,         1,    1,        1E3] 
+    cscale   = [        1,        1,      1E3,         1,    1,        1E3]
     chscale  = [      '1',      '1',   '1E-3',       '1',  '1',    '1-E-3']
     pname = 'std4'
-    plotstd4=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname)
+    underlev = 0
+    plotstd4=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname,underlev)
+
+    underlev = 750
+    pname = 'std4_lev'
+    plotstd4_lev=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname,underlev)
 
 #    pname = 'Tau'
 #    varis   = [ 'invrs_tau_bkgnd','invrs_tau_shear','invrs_tau_sfc','tau_no_N2_zm','tau_zm','tau_wp2_zm','tau_xp2_zm','tau_wp3_zm',  'bv_freq_sqd']
 #    cscale  = [               1E3,              1E3,            1E3,           1E3,     1E3,         1E3,         1E3,         1E3,            1E3]
 #    chscale = [            '1E-3',           '1E-3',         '1E-3',        '1E-3',  '1E-3',      '1E-3',      '1E-3',      '1E-3',         '1E-3']
 #    plottau=draw_clubb_standard.clubb_std_prf(ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs,casedir,varis,cscale,chscale,pname)
+
 
 if drawskw:
     print('Drawing CLUBB skewness functions on selected sites')
