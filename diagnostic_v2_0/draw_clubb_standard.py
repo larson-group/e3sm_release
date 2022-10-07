@@ -15,7 +15,7 @@ import Common_functions
 from subprocess import call
 
 
-def clubb_std_prf (ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs, casedir,varis,cscale,chscale,pname):
+def clubb_std_prf (ptype,cseason, ncases, cases, casenames, nsite, lats, lons, filepath, filepathobs, casedir,varis,cscale,chscale,pname,underlev):
 
 # ncases, the number of models
 # cases, the name of models
@@ -188,18 +188,24 @@ def clubb_std_prf (ptype,cseason, ncases, cases, casenames, nsite, lats, lons, f
          else:
              res.tiMainString    =  varis[iv]+"  "+theunits
 
+
+         #plot.append(p)
+         levind= underlev//1000*72
+         res.trXMinF = np.min(A_field[:, levind:])
+         res.trXMaxF = np.max(A_field[:, levind:])
+         res.trYMinF = underlev
+         res.trYMaxF = 1000.
          res.trYReverse        = True
          res.xyLineColors      = np.arange(3,20,2)
          res.xyMarkerColors    = np.arange(2,20,2)
          p = Ngl.xy(wks,A_field,lev,res)
+         plot.append(p)
          
 #         res.trYReverse        = False
 #         res.xyLineColors      = ["black"]
 #         pt = Ngl.xy(wks,B,pre1,res)
 
 #         Ngl.overlay(p,pt)
-         plot.append(p)
-
 
      pres.txString   = "CLUBB VAR at"+ str(lons[ire])+"E,"+str(lats[ire])+"N"
 
@@ -214,7 +220,3 @@ def clubb_std_prf (ptype,cseason, ncases, cases, casenames, nsite, lats, lons, f
      Ngl.destroy(wks)
 
  return plotstd
-
-
-     
-
