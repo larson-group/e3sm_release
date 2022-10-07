@@ -1,9 +1,9 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Mon Apr 10 13:24:40 2017
+Created on 30 Mar 2020
 
-@author: zhunguo, guozhun@uwm.edu, guozhun@lasg.iap.ac.cn 
+@author: zhunguo, guozhun@lasg.iap.ac.cn 
 """
 
 from netCDF4 import Dataset
